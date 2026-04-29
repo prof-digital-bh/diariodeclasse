@@ -595,6 +595,55 @@ thead th.t3-col { background: #fef3c7; }
   <img id="mapaLightboxImg" src="" alt="Mapa ampliado" onclick="event.stopPropagation()">
 </div>
 
+<!-- TELA DE SETUP (configuração inicial do Supabase) -->
+<div id="setup-screen" style="display:none;position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#1a3a5c 0%,#0f2744 60%,#0a1a30 100%);align-items:center;justify-content:center;padding:20px">
+  <div style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:24px;padding:40px 36px;width:100%;max-width:520px;backdrop-filter:blur(12px);box-shadow:0 24px 60px rgba(0,0,0,.4);color:white">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-size:40px;margin-bottom:10px">⚙️</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:22px;margin-bottom:6px">Configuração Inicial</div>
+      <div style="font-size:13px;opacity:.6;line-height:1.5">Conecte o Diário ao seu projeto Supabase para começar.</div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:11px;font-weight:600;opacity:.7;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">URL do Projeto Supabase</label>
+      <input id="setup-sb-url" type="text" placeholder="https://xxxxxx.supabase.co"
+        style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:white;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+    </div>
+
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:11px;font-weight:600;opacity:.7;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Anon Key (chave pública)</label>
+      <input id="setup-sb-key" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:white;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+    </div>
+
+    <div id="setup-erro" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:10px 14px;font-size:12px;color:#fca5a5;margin-bottom:14px"></div>
+
+    <button id="setup-btn" onclick="aplicarConfiguracao()"
+      style="width:100%;padding:12px;background:#2563a8;color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s;margin-bottom:20px">
+      🚀 Conectar ao Supabase
+    </button>
+
+    <details style="margin-top:4px">
+      <summary style="font-size:12px;opacity:.6;cursor:pointer;user-select:none;margin-bottom:10px">📋 SQL para criar as tabelas no Supabase</summary>
+      <pre id="setup-sql-block" style="background:rgba(0,0,0,.3);border-radius:8px;padding:14px;font-size:11px;font-family:'DM Mono',monospace;overflow-x:auto;white-space:pre-wrap;line-height:1.6;margin-bottom:10px">-- Execute no SQL Editor do Supabase
+create table if not exists auth_config (
+  id text primary key,
+  dados jsonb not null default '{}'
+);
+create table if not exists notas_db (
+  id text primary key,
+  dados jsonb not null default '{}'
+);
+create table if not exists sessoes_ativas (
+  prof_id text primary key,
+  token text,
+  atualizado_em timestamptz default now()
+);</pre>
+      <button onclick="copiarSQL()" style="font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:white;cursor:pointer;font-family:'DM Sans',sans-serif">📋 Copiar SQL</button>
+    </details>
+  </div>
+</div>
+
 <!-- TELA DE LOGIN MULTI-PROFESSOR -->
 <div id="login-screen">
   <div class="login-card" style="max-width:420px">
@@ -995,7 +1044,7 @@ function precisaSetup() {
 
 function mostrarSetupSeNecessario() {
   if (precisaSetup()) {
-    document.getElementById('setup-screen').style.display = 'block';
+    document.getElementById('setup-screen').style.display = 'flex';
     document.getElementById('login-screen').style.display = 'none';
     return true;
   }
