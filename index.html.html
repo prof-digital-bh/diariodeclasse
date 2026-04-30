@@ -785,11 +785,25 @@ create table if not exists sessoes_ativas (
           </div>
           <!-- Lote -->
           <div id="add-modo-lote" style="display:none">
-            <div class="field">
-              <label>Lista de chamada (um nome por linha)</label>
-              <textarea id="nomesLote" placeholder="Ana Beatriz Silva&#10;Carlos Eduardo Souza&#10;Fernanda Lima..."></textarea>
+            <div style="background:var(--sky-pale);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;font-size:12px;color:var(--ink-2);line-height:1.8">
+              <strong>📋 Formato da lista</strong> — um aluno por linha.<br>
+              Sexo e etnia são <strong>opcionais</strong>, separados por vírgula:<br>
+              <table style="margin:6px 0 4px 0;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3)">
+                <tr><td style="padding:1px 10px 1px 0;color:var(--ink-2)">Ana Beatriz Silva</td><td style="color:var(--ink-3)">← só o nome</td></tr>
+                <tr><td style="padding:1px 10px 1px 0;color:var(--ink-2)">Carlos Eduardo, M</td><td style="color:var(--ink-3)">← nome + sexo</td></tr>
+                <tr><td style="padding:1px 10px 1px 0;color:var(--ink-2)">Fernanda Lima, F, Parda</td><td style="color:var(--ink-3)">← nome + sexo + etnia</td></tr>
+                <tr><td style="padding:1px 10px 1px 0;color:var(--ink-2)">João Silva, , Preto</td><td style="color:var(--ink-3)">← nome + etnia (sem sexo)</td></tr>
+              </table>
+              <span style="font-size:11px;color:var(--ink-3)">
+                <strong>Sexo:</strong> M ou F &nbsp;·&nbsp;
+                <strong>Etnias:</strong> Branco, Pardo, Preto, Amarelo, Indígena, ND
+              </span>
             </div>
-            <button class="btn btn-success btn-full" onclick="processarInclusao()">📍 Mapear Alunos</button>
+            <div class="field">
+              <label>Lista de chamada</label>
+              <textarea id="nomesLote" rows="8" placeholder="Ana Beatriz Silva&#10;Carlos Eduardo, M&#10;Fernanda Lima, F, Parda&#10;João Silva, , Preto" style="font-family:'DM Mono',monospace;font-size:12px"></textarea>
+            </div>
+            <button class="btn btn-success btn-full" onclick="processarInclusao()">📍 Adicionar Alunos</button>
           </div>
           <!-- CSV -->
           <div id="add-modo-csv" style="display:none">
@@ -2019,14 +2033,73 @@ async function adicionarTurma() {
 function processarInclusao() {
   const t = document.getElementById('selectTurmaCadastro').value;
   if (!t) return toast('Selecione uma turma primeiro.');
-  const nomes = document.getElementById('nomesLote').value
-    .split('\n').map(n => n.replace(/^[\d\.\-\)\s]+/, '').trim()).filter(n => n.length > 1);
-  if (!nomes.length) return toast('Nenhum nome encontrado.');
+
+  const linhas = document.getElementById('nomesLote').value
+    .split('\n').map(l => l.trim()).filter(l => l.length > 1);
+  if (!linhas.length) return toast('Nenhum nome encontrado.');
+
+  if (!db.alunos_info) db.alunos_info = {};
+
   let adicionados = 0;
-  nomes.forEach(n => { if (!db.turmas[t].includes(n)) { db.turmas[t].push(n); adicionados++; } });
+  let comPerfil = 0;
+
+  linhas.forEach(linha => {
+    // Separa por | e limpa cada campo
+    const partes = linha.split(',').map(p => p.trim());
+
+    // Remove numeração do início do nome (ex: "01. Ana" → "Ana")
+    const nome = partes[0].replace(/^[\d\.\-\)\s]+/, '').trim();
+    if (nome.length < 2) return;
+
+    // Campos opcionais
+    const sexoRaw  = (partes[1] || '').toUpperCase();
+    const etniaRaw = partes[2] || '';
+
+    // Normaliza sexo: aceita M, F, MASC, FEM, MASCULINO, FEMININO
+    let sexo = null;
+    if (sexoRaw === 'M' || sexoRaw.startsWith('MAS') || sexoRaw.startsWith('MASC')) sexo = 'M';
+    else if (sexoRaw === 'F' || sexoRaw.startsWith('FEM')) sexo = 'F';
+
+    // Normaliza etnia: aceita variações com acento / capitalização
+    let etnia = null;
+    const etniaMap = {
+      branco: 'Branco', branca: 'Branco',
+      pardo: 'Pardo', parda: 'Pardo',
+      preto: 'Preto', preta: 'Preto',
+      negro: 'Preto', negra: 'Preto',
+      amarelo: 'Amarelo', amarela: 'Amarelo',
+      indigena: 'Indígena', indígena: 'Indígena', indigeno: 'Indígena',
+      nd: 'ND', 'não declarado': 'ND', 'nao declarado': 'ND'
+    };
+    if (etniaRaw) {
+      const chave = etniaRaw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      etnia = etniaMap[chave] || (ETNIA_OPTS.includes(etniaRaw) ? etniaRaw : null);
+    }
+
+    // Adiciona aluno se não existir
+    if (!db.turmas[t].includes(nome)) {
+      db.turmas[t].push(nome);
+      adicionados++;
+    }
+
+    // Salva perfil se tiver algum dado
+    if (sexo || etnia) {
+      const aid = alunoId(t, nome);
+      const existente = db.alunos_info[aid] || {};
+      db.alunos_info[aid] = {
+        sexo:  sexo  || existente.sexo  || null,
+        etnia: etnia || existente.etnia || null
+      };
+      comPerfil++;
+    }
+  });
+
   salvar(); renderizarTurmas();
   document.getElementById('nomesLote').value = '';
-  toast(adicionados + ' aluno(s) adicionado(s) à turma ' + t + '! ✓');
+
+  let msg = adicionados + ' aluno(s) adicionado(s) à turma ' + t + '!';
+  if (comPerfil > 0) msg += ' (' + comPerfil + ' com sexo/etnia)';
+  toast(msg + ' ✓');
 }
 
 function removerAluno(t, i) {
@@ -2633,9 +2706,7 @@ function renderizarNotas() {
       const hasName = aNome.trim() !== '';
       const bl = i===1 ? `border-left:2px solid ${c.border}` : '';
       const br = i===N_ATIV ? `border-right:2px solid ${c.border}` : '';
-      const aValorMax = parseFloat((ativ['t'+tr][i-1] && ativ['t'+tr][i-1].valor)||0)||0;
-      const maxAttr = aValorMax > 0 ? `max="${aValorMax}" data-max="${aValorMax}"` : 'data-max="0"';
-      cells += `<td style="background:${c.light};${bl};${br};text-align:center;padding:4px"><input type="number" class="nota-input" min="0" step="0.1" ${maxAttr} value="${nota[key]!==''?nota[key]:''}" placeholder="—" ${(!hasName||isFechado)?'disabled':''} onchange="salvarNota('${esc(t)}','${esc(a)}','${key}',this.value,this)" style="width:60px;font-size:11px;${!hasName?'background:#f1f5f9;':''}"></td>`;
+      cells += `<td style="background:${c.light};${bl};${br};text-align:center;padding:4px"><input type="number" class="nota-input" min="0" step="0.1" value="${nota[key]!==''?nota[key]:''}" placeholder="—" ${(!hasName||isFechado)?'disabled':''} onchange="salvarNota('${esc(t)}','${esc(a)}','${key}',this.value)" style="width:60px;font-size:11px;${!hasName?'background:#f1f5f9;':''}"></td>`;
     }
     const info = getInfoAluno(t, a);
     const perfilCell = `<td style="text-align:center;white-space:nowrap;padding:4px 6px">
@@ -2679,25 +2750,9 @@ function _atualizarTotalHeader(t, tr) {
     ? `Total<br><span style="font-size:10px;opacity:.85">${c.label}</span><br><span style="font-size:13px;font-weight:800;letter-spacing:-.5px">${valorMax % 1 === 0 ? valorMax : valorMax.toFixed(1)} pts</span>`
     : `Total<br><span style="font-size:10px;opacity:.85">${c.label}</span>`;
 }
-function salvarNota(t, aluno, key, val, inputEl) {
+function salvarNota(t, aluno, key, val) {
   if (!db.notas[t]) db.notas[t]={};
   if (!db.notas[t][aluno]) db.notas[t][aluno]={obs:''};
-
-  // Valida valor máximo da atividade
-  const notaNum = parseFloat(val);
-  if (inputEl) {
-    const maxVal = parseFloat(inputEl.getAttribute('data-max') || 0);
-    if (maxVal > 0 && !isNaN(notaNum) && notaNum > maxVal) {
-      inputEl.classList.remove('erro-max'); void inputEl.offsetWidth; inputEl.classList.add('erro-max');
-      inputEl.value = maxVal;
-      val = String(maxVal);
-      toast(`⚠️ Nota limitada ao valor máximo da atividade (${maxVal}).`);
-      setTimeout(() => inputEl.classList.remove('erro-max'), 1200);
-    } else {
-      inputEl.classList.remove('erro-max');
-    }
-  }
-
   db.notas[t][aluno][key]=val;
   salvar();
   _atualizarTotalAluno(t, aluno);
@@ -3704,7 +3759,6 @@ async function iniciarLogin() {
 }
 
 
-// ─── VERIFICAÇÃO DE SESSÃO ANTES DO LOGIN ────────────────────────────────────
 async function verificarSessaoAntesDeFazerLogin(profId) {
   try {
     const res = await sbFetch('/rest/v1/sessoes_ativas?prof_id=eq.' + encodeURIComponent(profId) + '&select=token');
@@ -3714,7 +3768,6 @@ async function verificarSessaoAntesDeFazerLogin(profId) {
     return await mostrarModalConfirmacaoLogin();
   } catch(e) { return true; }
 }
-
 function mostrarModalConfirmacaoLogin() {
   return new Promise(resolve => {
     const anterior = document.getElementById('modal-confirmar-login');
@@ -3722,26 +3775,19 @@ function mostrarModalConfirmacaoLogin() {
     const overlay = document.createElement('div');
     overlay.id = 'modal-confirmar-login';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.8);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease';
-    overlay.innerHTML = `
-      <div style="background:#fff;border-radius:20px;padding:32px 28px;max-width:400px;width:100%;box-shadow:0 8px 40px rgba(15,23,42,.25);text-align:center">
-        <div style="font-size:40px;margin-bottom:14px">⚠️</div>
-        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#0f172a;margin-bottom:10px">Sessão já está ativa</div>
-        <div style="font-size:13px;color:#475569;line-height:1.65;margin-bottom:26px">
-          Esta conta já está aberta em <strong>outro dispositivo ou navegador</strong>.<br><br>
-          Se continuar, <strong>a sessão anterior será encerrada</strong> automaticamente.<br>
-          Deseja prosseguir mesmo assim?
-        </div>
-        <div style="display:flex;gap:10px;justify-content:center">
-          <button id="modal-login-cancelar" style="flex:1;padding:11px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;color:#334155;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✖ Cancelar</button>
-          <button id="modal-login-confirmar" style="flex:1;padding:11px;border-radius:10px;border:none;background:#1a3a5c;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✅ Sim, entrar aqui</button>
-        </div>
-      </div>`;
+    overlay.innerHTML = `<div style="background:#fff;border-radius:20px;padding:32px 28px;max-width:400px;width:100%;box-shadow:0 8px 40px rgba(15,23,42,.25);text-align:center">
+      <div style="font-size:40px;margin-bottom:14px">⚠️</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#0f172a;margin-bottom:10px">Sessão já está ativa</div>
+      <div style="font-size:13px;color:#475569;line-height:1.65;margin-bottom:26px">Esta conta já está aberta em <strong>outro dispositivo ou navegador</strong>.<br><br>Se continuar, <strong>a sessão anterior será encerrada</strong> automaticamente.<br>Deseja prosseguir mesmo assim?</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="modal-login-cancelar" style="flex:1;padding:11px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;color:#334155;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✖ Cancelar</button>
+        <button id="modal-login-confirmar" style="flex:1;padding:11px;border-radius:10px;border:none;background:#1a3a5c;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✅ Sim, entrar aqui</button>
+      </div></div>`;
     document.body.appendChild(overlay);
     document.getElementById('modal-login-confirmar').onclick = () => { overlay.remove(); resolve(true); };
     document.getElementById('modal-login-cancelar').onclick  = () => { overlay.remove(); resolve(false); };
   });
 }
-
 async function tentarLogin() {
   const selProf = document.getElementById('login-select-prof');
   const input = document.getElementById('login-input');
@@ -3810,8 +3856,6 @@ async function definirSenha() {
   btn.disabled = false; btn.textContent = '✅ Salvar e Entrar';
   if (ok) {
     sessao = { profId: '__everton__', nome: 'Prof. Everton Correa', isEverton: true, turmas: TURMAS_FIXAS, turmaReferencia: '8ºA' };
-    const podeContinuar = await verificarSessaoAntesDeFazerLogin(sessao.profId);
-    if (!podeContinuar) { sessao = null; btn.disabled = false; btn.textContent = '✅ Salvar e Entrar'; return; }
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessao));
     const screen = document.getElementById('login-screen');
     screen.style.animation = 'fadeIn .25s ease reverse forwards';
