@@ -1196,6 +1196,16 @@ async function salvar() {
   _saveTimer = setTimeout(() => _pushSupabase(), 1200);
 }
 
+// Garante que qualquer save pendente seja enviado antes de fechar/recarregar a aba
+window.addEventListener('beforeunload', () => {
+  if (_saveTimer) {
+    clearTimeout(_saveTimer);
+    _saveTimer = null;
+    // Usa sendBeacon para garantir envio mesmo durante unload
+    try { _pushSupabase(); } catch(e) {}
+  }
+});
+
 async function _pushSupabase() {
   try {
     // _pushAlunos DEVE rodar primeiro — notas têm FK para alunos.id
@@ -3867,6 +3877,12 @@ async function definirSenha() {
 
 async function sair() {
   if (!confirm('Deseja realmente sair? A sessão será encerrada.')) return;
+  // Garante que dados pendentes sejam salvos antes de sair
+  if (_saveTimer) {
+    clearTimeout(_saveTimer);
+    _saveTimer = null;
+    try { await _pushSupabase(); } catch(e) {}
+  }
   pararPollingConflito();
   // Remove sessão ativa do Supabase para liberar o acesso
   if (sessao) {
@@ -3998,7 +4014,13 @@ function mostrarModalConflito() {
   document.body.appendChild(overlay);
 }
 
-function forcarSaida() {
+async function forcarSaida() {
+  // Garante que dados pendentes sejam salvos antes de encerrar a sessão
+  if (_saveTimer) {
+    clearTimeout(_saveTimer);
+    _saveTimer = null;
+    try { await _pushSupabase(); } catch(e) {}
+  }
   sessao = null;
   sessionStorage.removeItem(SESSION_KEY);
   sessionStorage.removeItem(SESSION_KEY + '_tab');
