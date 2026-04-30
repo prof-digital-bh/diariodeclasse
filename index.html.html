@@ -1030,8 +1030,8 @@ create table if not exists sessoes_ativas (
 })();
 
 // Sobrescreve as constantes se houver override do localStorage
-const _rawSbUrl = window.__SB_URL_OVERRIDE || '%%SUPABASE_URL%%';
-const _rawSbKey = window.__SB_KEY_OVERRIDE || '%%SUPABASE_ANON_KEY%%';
+const _rawSbUrl = window.__SB_URL_OVERRIDE || 'https://sbuowwsouccfdlrihrdm.supabase.co';
+const _rawSbKey = window.__SB_KEY_OVERRIDE || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNidW93d3NvdWNjZmRscmlocmRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODUwMDUsImV4cCI6MjA5MzA2MTAwNX0.z17evu7o9we7qQZ_jbpXcSfXKmHef6JgoVcJUdliSOA';
 
 function precisaSetup() {
   return _rawSbUrl.includes('%%') || _rawSbKey.includes('%%') || !_rawSbUrl.startsWith('https://');
@@ -1102,8 +1102,8 @@ async function aplicarConfiguracao() {
 }
 
 // SB_URL e SB_KEY lidos dinamicamente — prioridade: localStorage > placeholder
-const SB_URL  = window.__SB_URL_OVERRIDE || 'COLE_AQUI_A_URL_DO_SUPABASE';
-const SB_KEY  = window.__SB_KEY_OVERRIDE || 'COLE_AQUI_A_ANON_KEY_DO_SUPABASE';
+const SB_URL  = window.__SB_URL_OVERRIDE || 'https://sbuowwsouccfdlrihrdm.supabase.co';
+const SB_KEY  = window.__SB_KEY_OVERRIDE || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNidW93d3NvdWNjZmRscmlocmRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODUwMDUsImV4cCI6MjA5MzA2MTAwNX0.z17evu7o9we7qQZ_jbpXcSfXKmHef6JgoVcJUdliSOA';
 const SB_HEADERS = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
 
 // ─── ANTHROPIC API KEY ────────────────────────────────────────────────────────
@@ -3684,6 +3684,64 @@ async function iniciarLogin() {
   setTimeout(() => sel.focus(), 100);
 }
 
+
+// ─── VERIFICAÇÃO DE SESSÃO ANTES DO LOGIN ────────────────────────────────────
+async function verificarSessaoAntesDeFazerLogin(profId) {
+  try {
+    const res = await sbFetch('/rest/v1/sessoes_ativas?prof_id=eq.' + encodeURIComponent(profId) + '&select=token,atualizado_em');
+    if (!res.ok) return true; // Se não conseguir verificar, deixa logar
+    const rows = await res.json();
+    if (!rows || !rows.length) return true; // Sem sessão ativa — pode logar
+
+    // Há sessão ativa em outro lugar — mostra modal de confirmação
+    return await mostrarModalConfirmacaoLogin();
+  } catch(e) {
+    return true; // Em caso de erro de rede, deixa logar normalmente
+  }
+}
+
+function mostrarModalConfirmacaoLogin() {
+  return new Promise(resolve => {
+    // Remove modal anterior se existir
+    const anterior = document.getElementById('modal-confirmar-login');
+    if (anterior) anterior.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'modal-confirmar-login';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.8);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease';
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:20px;padding:32px 28px;max-width:400px;width:100%;box-shadow:0 8px 40px rgba(15,23,42,.25);text-align:center">
+        <div style="font-size:40px;margin-bottom:14px">⚠️</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#0f172a;margin-bottom:10px">Sessão já está ativa</div>
+        <div style="font-size:13px;color:#475569;line-height:1.65;margin-bottom:26px">
+          Esta conta já está aberta em <strong>outro dispositivo ou navegador</strong>.<br><br>
+          Se continuar, <strong>a sessão anterior será encerrada</strong> automaticamente.<br>
+          Deseja prosseguir mesmo assim?
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button id="modal-login-cancelar"
+            style="flex:1;padding:11px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;color:#334155;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
+            ✖ Cancelar
+          </button>
+          <button id="modal-login-confirmar"
+            style="flex:1;padding:11px;border-radius:10px;border:none;background:#1a3a5c;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
+            ✅ Sim, entrar aqui
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    document.getElementById('modal-login-confirmar').onclick = () => {
+      overlay.remove();
+      resolve(true);
+    };
+    document.getElementById('modal-login-cancelar').onclick = () => {
+      overlay.remove();
+      resolve(false);
+    };
+  });
+}
+
 async function tentarLogin() {
   const selProf = document.getElementById('login-select-prof');
   const input = document.getElementById('login-input');
@@ -3722,6 +3780,14 @@ async function tentarLogin() {
     };
   }
 
+  // Verifica se há sessão ativa em outro dispositivo e pede confirmação
+  const podeContinuar = await verificarSessaoAntesDeFazerLogin(sessao.profId);
+  if (!podeContinuar) {
+    sessao = null;
+    btn.disabled = false; btn.textContent = '🔓 Entrar';
+    return;
+  }
+
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessao));
   const screen = document.getElementById('login-screen');
   screen.style.animation = 'fadeIn .25s ease reverse forwards';
@@ -3749,6 +3815,9 @@ async function definirSenha() {
   btn.disabled = false; btn.textContent = '✅ Salvar e Entrar';
   if (ok) {
     sessao = { profId: '__everton__', nome: 'Prof. Everton Correa', isEverton: true, turmas: TURMAS_FIXAS, turmaReferencia: '8ºA' };
+    // Verifica se há sessão ativa em outro dispositivo
+    const podeContinuar = await verificarSessaoAntesDeFazerLogin(sessao.profId);
+    if (!podeContinuar) { sessao = null; btn.disabled = false; btn.textContent = '✅ Salvar e Entrar'; return; }
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessao));
     const screen = document.getElementById('login-screen');
     screen.style.animation = 'fadeIn .25s ease reverse forwards';
