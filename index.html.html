@@ -175,6 +175,7 @@ tbody tr.locked td { background: #f8fafc; }
   font-family: 'DM Mono', monospace; font-size: 12px; border-radius: 6px;
 }
 .nota-input:disabled { background: #f1f5f9; color: var(--ink-3); cursor: not-allowed; border-color: var(--border); }
+.nota-input.erro-max { border-color: #ef4444 !important; background: #fff1f1 !important; box-shadow: 0 0 0 2px rgba(239,68,68,.25) !important; animation: shake .3s ease; }
 .ativ-nome-input { width: 90px; padding: 4px 6px; font-size: 11px; border-radius: 6px; }
 .total-cell {
   font-family: 'DM Mono', monospace; font-weight: 700; font-size: 13px;
@@ -2632,7 +2633,9 @@ function renderizarNotas() {
       const hasName = aNome.trim() !== '';
       const bl = i===1 ? `border-left:2px solid ${c.border}` : '';
       const br = i===N_ATIV ? `border-right:2px solid ${c.border}` : '';
-      cells += `<td style="background:${c.light};${bl};${br};text-align:center;padding:4px"><input type="number" class="nota-input" min="0" step="0.1" value="${nota[key]!==''?nota[key]:''}" placeholder="—" ${(!hasName||isFechado)?'disabled':''} onchange="salvarNota('${esc(t)}','${esc(a)}','${key}',this.value)" style="width:60px;font-size:11px;${!hasName?'background:#f1f5f9;':''}"></td>`;
+      const aValorMax = parseFloat((ativ['t'+tr][i-1] && ativ['t'+tr][i-1].valor)||0)||0;
+      const maxAttr = aValorMax > 0 ? `max="${aValorMax}" data-max="${aValorMax}"` : 'data-max="0"';
+      cells += `<td style="background:${c.light};${bl};${br};text-align:center;padding:4px"><input type="number" class="nota-input" min="0" step="0.1" ${maxAttr} value="${nota[key]!==''?nota[key]:''}" placeholder="—" ${(!hasName||isFechado)?'disabled':''} onchange="salvarNota('${esc(t)}','${esc(a)}','${key}',this.value,this)" style="width:60px;font-size:11px;${!hasName?'background:#f1f5f9;':''}"></td>`;
     }
     const info = getInfoAluno(t, a);
     const perfilCell = `<td style="text-align:center;white-space:nowrap;padding:4px 6px">
@@ -2676,9 +2679,25 @@ function _atualizarTotalHeader(t, tr) {
     ? `Total<br><span style="font-size:10px;opacity:.85">${c.label}</span><br><span style="font-size:13px;font-weight:800;letter-spacing:-.5px">${valorMax % 1 === 0 ? valorMax : valorMax.toFixed(1)} pts</span>`
     : `Total<br><span style="font-size:10px;opacity:.85">${c.label}</span>`;
 }
-function salvarNota(t, aluno, key, val) {
+function salvarNota(t, aluno, key, val, inputEl) {
   if (!db.notas[t]) db.notas[t]={};
   if (!db.notas[t][aluno]) db.notas[t][aluno]={obs:''};
+
+  // Valida valor máximo da atividade
+  const notaNum = parseFloat(val);
+  if (inputEl) {
+    const maxVal = parseFloat(inputEl.getAttribute('data-max') || 0);
+    if (maxVal > 0 && !isNaN(notaNum) && notaNum > maxVal) {
+      inputEl.classList.remove('erro-max'); void inputEl.offsetWidth; inputEl.classList.add('erro-max');
+      inputEl.value = maxVal;
+      val = String(maxVal);
+      toast(`⚠️ Nota limitada ao valor máximo da atividade (${maxVal}).`);
+      setTimeout(() => inputEl.classList.remove('erro-max'), 1200);
+    } else {
+      inputEl.classList.remove('erro-max');
+    }
+  }
+
   db.notas[t][aluno][key]=val;
   salvar();
   _atualizarTotalAluno(t, aluno);
@@ -3688,24 +3707,18 @@ async function iniciarLogin() {
 // ─── VERIFICAÇÃO DE SESSÃO ANTES DO LOGIN ────────────────────────────────────
 async function verificarSessaoAntesDeFazerLogin(profId) {
   try {
-    const res = await sbFetch('/rest/v1/sessoes_ativas?prof_id=eq.' + encodeURIComponent(profId) + '&select=token,atualizado_em');
-    if (!res.ok) return true; // Se não conseguir verificar, deixa logar
+    const res = await sbFetch('/rest/v1/sessoes_ativas?prof_id=eq.' + encodeURIComponent(profId) + '&select=token');
+    if (!res.ok) return true;
     const rows = await res.json();
-    if (!rows || !rows.length) return true; // Sem sessão ativa — pode logar
-
-    // Há sessão ativa em outro lugar — mostra modal de confirmação
+    if (!rows || !rows.length) return true;
     return await mostrarModalConfirmacaoLogin();
-  } catch(e) {
-    return true; // Em caso de erro de rede, deixa logar normalmente
-  }
+  } catch(e) { return true; }
 }
 
 function mostrarModalConfirmacaoLogin() {
   return new Promise(resolve => {
-    // Remove modal anterior se existir
     const anterior = document.getElementById('modal-confirmar-login');
     if (anterior) anterior.remove();
-
     const overlay = document.createElement('div');
     overlay.id = 'modal-confirmar-login';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.8);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease';
@@ -3719,26 +3732,13 @@ function mostrarModalConfirmacaoLogin() {
           Deseja prosseguir mesmo assim?
         </div>
         <div style="display:flex;gap:10px;justify-content:center">
-          <button id="modal-login-cancelar"
-            style="flex:1;padding:11px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;color:#334155;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
-            ✖ Cancelar
-          </button>
-          <button id="modal-login-confirmar"
-            style="flex:1;padding:11px;border-radius:10px;border:none;background:#1a3a5c;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">
-            ✅ Sim, entrar aqui
-          </button>
+          <button id="modal-login-cancelar" style="flex:1;padding:11px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;color:#334155;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✖ Cancelar</button>
+          <button id="modal-login-confirmar" style="flex:1;padding:11px;border-radius:10px;border:none;background:#1a3a5c;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✅ Sim, entrar aqui</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
-
-    document.getElementById('modal-login-confirmar').onclick = () => {
-      overlay.remove();
-      resolve(true);
-    };
-    document.getElementById('modal-login-cancelar').onclick = () => {
-      overlay.remove();
-      resolve(false);
-    };
+    document.getElementById('modal-login-confirmar').onclick = () => { overlay.remove(); resolve(true); };
+    document.getElementById('modal-login-cancelar').onclick  = () => { overlay.remove(); resolve(false); };
   });
 }
 
@@ -3780,13 +3780,8 @@ async function tentarLogin() {
     };
   }
 
-  // Verifica se há sessão ativa em outro dispositivo e pede confirmação
   const podeContinuar = await verificarSessaoAntesDeFazerLogin(sessao.profId);
-  if (!podeContinuar) {
-    sessao = null;
-    btn.disabled = false; btn.textContent = '🔓 Entrar';
-    return;
-  }
+  if (!podeContinuar) { sessao = null; btn.disabled = false; btn.textContent = '🔓 Entrar'; return; }
 
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessao));
   const screen = document.getElementById('login-screen');
@@ -3815,7 +3810,6 @@ async function definirSenha() {
   btn.disabled = false; btn.textContent = '✅ Salvar e Entrar';
   if (ok) {
     sessao = { profId: '__everton__', nome: 'Prof. Everton Correa', isEverton: true, turmas: TURMAS_FIXAS, turmaReferencia: '8ºA' };
-    // Verifica se há sessão ativa em outro dispositivo
     const podeContinuar = await verificarSessaoAntesDeFazerLogin(sessao.profId);
     if (!podeContinuar) { sessao = null; btn.disabled = false; btn.textContent = '✅ Salvar e Entrar'; return; }
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessao));
