@@ -1354,17 +1354,34 @@ async function carregarDoSupabase() {
   try {
     const profId = sessao ? sessao.profId : '__everton__';
     const profFilter = '&prof_id=eq.' + encodeURIComponent(profId);
-    const [rAlunos, rAtiv, rNotas, rAnot, rStatus, rMapas] = await Promise.all([
+    // Busca alunos e status primeiro para saber quais turmas existem
+    const [rAlunos, rAtiv, rAnot, rStatus, rMapas] = await Promise.all([
       sbFetch('/rest/v1/alunos?select=*&order=turma,posicao').then(r => r.ok ? r.json() : null),
       sbFetch('/rest/v1/atividades?select=*&order=turma,trimestre,posicao' + profFilter).then(r => r.ok ? r.json() : null),
-      sbFetch('/rest/v1/notas?select=*' + profFilter).then(r => r.ok ? r.json() : null),
       sbFetch('/rest/v1/anotacoes?select=*').then(r => r.ok ? r.json() : null),
       sbFetch('/rest/v1/turmas_status?select=*').then(r => r.ok ? r.json() : null),
       sbFetch('/rest/v1/mapas?select=*').then(r => r.ok ? r.json() : null)
     ]);
 
+    // Busca notas por turma para nunca estourar o limite de 1000 linhas do Supabase
+    // Cada turma tem ~540 linhas (30 alunos × 6 ativ × 3 tri) — bem abaixo do limite
+    const turmasConhecidas = [
+      ...new Set([
+        ...(Array.isArray(rAlunos) ? rAlunos.map(a => a.turma) : []),
+        ...(Array.isArray(rStatus) ? rStatus.map(s => s.turma) : [])
+      ])
+    ];
+    const rNotasPorTurma = await Promise.all(
+      turmasConhecidas.map(t =>
+        sbFetch('/rest/v1/notas?select=*&turma=eq.' + encodeURIComponent(t) + profFilter)
+          .then(r => r.ok ? r.json() : [])
+          .catch(() => [])
+      )
+    );
+    const rNotas = rNotasPorTurma.flat();
+
     // Se todas falharam, é erro de rede/tabela — aborta mas preserva estado em memória
-    const todasFalharam = [rAlunos, rAtiv, rNotas, rAnot, rStatus, rMapas].every(r => r === null);
+    const todasFalharam = [rAlunos, rAtiv, rAnot, rStatus, rMapas].every(r => r === null);
     if (todasFalharam) {
       document.getElementById('sync-status').textContent = '⚠️ Sem conexão';
       setSave('error');
