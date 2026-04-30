@@ -603,27 +603,22 @@ thead th.t3-col { background: #fef3c7; }
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:22px;margin-bottom:6px">Configuração Inicial</div>
       <div style="font-size:13px;opacity:.6;line-height:1.5">Conecte o Diário ao seu projeto Supabase para começar.</div>
     </div>
-
     <div style="margin-bottom:14px">
       <label style="display:block;font-size:11px;font-weight:600;opacity:.7;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">URL do Projeto Supabase</label>
       <input id="setup-sb-url" type="text" placeholder="https://xxxxxx.supabase.co"
         style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:white;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
     </div>
-
     <div style="margin-bottom:14px">
       <label style="display:block;font-size:11px;font-weight:600;opacity:.7;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Anon Key (chave pública)</label>
       <input id="setup-sb-key" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
         style="width:100%;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:white;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
     </div>
-
     <div id="setup-erro" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:10px 14px;font-size:12px;color:#fca5a5;margin-bottom:14px"></div>
-
     <button id="setup-btn" onclick="aplicarConfiguracao()"
-      style="width:100%;padding:12px;background:#2563a8;color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background .15s;margin-bottom:20px">
+      style="width:100%;padding:12px;background:#2563a8;color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:20px">
       🚀 Conectar ao Supabase
     </button>
-
-    <details style="margin-top:4px">
+    <details>
       <summary style="font-size:12px;opacity:.6;cursor:pointer;user-select:none;margin-bottom:10px">📋 SQL para criar as tabelas no Supabase</summary>
       <pre id="setup-sql-block" style="background:rgba(0,0,0,.3);border-radius:8px;padding:14px;font-size:11px;font-family:'DM Mono',monospace;overflow-x:auto;white-space:pre-wrap;line-height:1.6;margin-bottom:10px">-- Execute no SQL Editor do Supabase
 create table if not exists auth_config (
@@ -1106,8 +1101,9 @@ async function aplicarConfiguracao() {
   }
 }
 
-const SB_URL  = 'COLE_AQUI_A_URL_DO_SUPABASE'; // Ex: https://xyzxyz.supabase.co
-const SB_KEY  = 'COLE_AQUI_A_ANON_KEY_DO_SUPABASE'; // Chave anon/public do Supabase
+// SB_URL e SB_KEY lidos dinamicamente — prioridade: localStorage > placeholder
+const SB_URL  = window.__SB_URL_OVERRIDE || 'COLE_AQUI_A_URL_DO_SUPABASE';
+const SB_KEY  = window.__SB_KEY_OVERRIDE || 'COLE_AQUI_A_ANON_KEY_DO_SUPABASE';
 const SB_HEADERS = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
 
 // ─── ANTHROPIC API KEY ────────────────────────────────────────────────────────
