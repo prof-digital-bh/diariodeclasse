@@ -175,7 +175,6 @@ tbody tr.locked td { background: #f8fafc; }
   font-family: 'DM Mono', monospace; font-size: 12px; border-radius: 6px;
 }
 .nota-input:disabled { background: #f1f5f9; color: var(--ink-3); cursor: not-allowed; border-color: var(--border); }
-.nota-input.erro-max { border-color: #ef4444 !important; background: #fff1f1 !important; box-shadow: 0 0 0 2px rgba(239,68,68,.25) !important; animation: shake .3s ease; }
 .ativ-nome-input { width: 90px; padding: 4px 6px; font-size: 11px; border-radius: 6px; }
 .total-cell {
   font-family: 'DM Mono', monospace; font-weight: 700; font-size: 13px;
@@ -579,69 +578,6 @@ thead th.t3-col { background: #fef3c7; }
 .nota-med { background:#fef3c7; color:#92400e; }
 .nota-baixo { background:#fee2e2; color:#991b1b; }
 
-/* ─── COMPARATIVO SEXO / ETNIA ──────────────────────────────────────────── */
-.comp-section-title {
-  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 800;
-  color: var(--ocean); text-transform: uppercase; letter-spacing: .8px;
-  margin: 24px 0 14px; display: flex; align-items: center; gap: 8px;
-  padding-bottom: 8px; border-bottom: 2px solid var(--border);
-}
-.comp-grid-sexo { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
-@media(max-width:640px){ .comp-grid-sexo { grid-template-columns: 1fr; } }
-.comp-card {
-  background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg);
-  padding: 18px 20px; box-shadow: var(--shadow);
-}
-.comp-card-title {
-  font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; color: var(--ink-2);
-  text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px;
-  display: flex; align-items: center; gap: 6px;
-}
-.comp-stat-row {
-  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
-}
-.comp-stat-label {
-  width: 88px; flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--ink-2);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.comp-track {
-  flex: 1; background: #f1f5f9; border-radius: 20px; height: 22px; overflow: hidden; position: relative;
-}
-.comp-fill {
-  height: 100%; border-radius: 20px; display: flex; align-items: center;
-  justify-content: flex-end; padding-right: 8px;
-  font-size: 10px; font-weight: 800; color: white; transition: width .5s ease;
-  min-width: 28px;
-}
-.comp-meta {
-  display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; min-width: 54px;
-}
-.comp-meta-pct { font-size: 13px; font-weight: 800; font-family: 'DM Mono', monospace; }
-.comp-meta-n   { font-size: 10px; color: var(--ink-3); }
-.comp-diff-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 11px; font-weight: 700; padding: 2px 9px;
-  border-radius: 20px; white-space: nowrap;
-}
-.comp-diff-pos  { background: #dcfce7; color: #166534; }
-.comp-diff-neg  { background: #fee2e2; color: #991b1b; }
-.comp-diff-neu  { background: #f1f5f9; color: #64748b; }
-.comp-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
-.comp-table th {
-  background: #f0f7ff; padding: 7px 10px; font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .4px; color: var(--ink-2);
-  border-bottom: 2px solid var(--border); text-align: left;
-}
-.comp-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
-.comp-table tr:hover td { background: var(--sky-pale); }
-.comp-insight {
-  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
-  border: 1px solid #bfdbfe; border-left: 4px solid var(--ocean-mid);
-  border-radius: var(--radius-lg); padding: 14px 18px; margin: 16px 0;
-  font-size: 12px; color: var(--ink-2); line-height: 1.7;
-}
-.comp-insight strong { color: var(--ocean); }
-
 </style>
 <body>
 
@@ -848,25 +784,11 @@ create table if not exists sessoes_ativas (
           </div>
           <!-- Lote -->
           <div id="add-modo-lote" style="display:none">
-            <div style="background:var(--sky-pale);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;font-size:12px;color:var(--ink-2);line-height:1.8">
-              <strong>📋 Formato da lista</strong> — um aluno por linha.<br>
-              Sexo e etnia são <strong>opcionais</strong>, separados por vírgula:<br>
-              <table style="margin:6px 0 4px 0;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-3)">
-                <tr><td style="padding:1px 10px 1px 0;color:var(--ink-2)">Ana Beatriz Silva</td><td style="color:var(--ink-3)">← só o nome</td></tr>
-                <tr><td style="padding:1px 10px 1px 0;color:var(--ink-2)">Carlos Eduardo, M</td><td style="color:var(--ink-3)">← nome + sexo</td></tr>
-                <tr><td style="padding:1px 10px 1px 0;color:var(--ink-2)">Fernanda Lima, F, Parda</td><td style="color:var(--ink-3)">← nome + sexo + etnia</td></tr>
-                <tr><td style="padding:1px 10px 1px 0;color:var(--ink-2)">João Silva, , Preto</td><td style="color:var(--ink-3)">← nome + etnia (sem sexo)</td></tr>
-              </table>
-              <span style="font-size:11px;color:var(--ink-3)">
-                <strong>Sexo:</strong> M ou F &nbsp;·&nbsp;
-                <strong>Etnias:</strong> Branco, Pardo, Preto, Amarelo, Indígena, ND
-              </span>
-            </div>
             <div class="field">
-              <label>Lista de chamada</label>
-              <textarea id="nomesLote" rows="8" placeholder="Ana Beatriz Silva&#10;Carlos Eduardo, M&#10;Fernanda Lima, F, Parda&#10;João Silva, , Preto" style="font-family:'DM Mono',monospace;font-size:12px"></textarea>
+              <label>Lista de chamada (um nome por linha)</label>
+              <textarea id="nomesLote" placeholder="Ana Beatriz Silva&#10;Carlos Eduardo Souza&#10;Fernanda Lima..."></textarea>
             </div>
-            <button class="btn btn-success btn-full" onclick="processarInclusao()">📍 Adicionar Alunos</button>
+            <button class="btn btn-success btn-full" onclick="processarInclusao()">📍 Mapear Alunos</button>
           </div>
           <!-- CSV -->
           <div id="add-modo-csv" style="display:none">
@@ -1108,8 +1030,8 @@ create table if not exists sessoes_ativas (
 })();
 
 // Sobrescreve as constantes se houver override do localStorage
-const _rawSbUrl = window.__SB_URL_OVERRIDE || 'https://sbuowwsouccfdlrihrdm.supabase.co';
-const _rawSbKey = window.__SB_KEY_OVERRIDE || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNidW93d3NvdWNjZmRscmlocmRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODUwMDUsImV4cCI6MjA5MzA2MTAwNX0.z17evu7o9we7qQZ_jbpXcSfXKmHef6JgoVcJUdliSOA';
+const _rawSbUrl = window.__SB_URL_OVERRIDE || '%%SUPABASE_URL%%';
+const _rawSbKey = window.__SB_KEY_OVERRIDE || '%%SUPABASE_ANON_KEY%%';
 
 function precisaSetup() {
   return _rawSbUrl.includes('%%') || _rawSbKey.includes('%%') || !_rawSbUrl.startsWith('https://');
@@ -1180,8 +1102,8 @@ async function aplicarConfiguracao() {
 }
 
 // SB_URL e SB_KEY lidos dinamicamente — prioridade: localStorage > placeholder
-const SB_URL  = window.__SB_URL_OVERRIDE || 'https://sbuowwsouccfdlrihrdm.supabase.co';
-const SB_KEY  = window.__SB_KEY_OVERRIDE || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNidW93d3NvdWNjZmRscmlocmRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODUwMDUsImV4cCI6MjA5MzA2MTAwNX0.z17evu7o9we7qQZ_jbpXcSfXKmHef6JgoVcJUdliSOA';
+const SB_URL  = window.__SB_URL_OVERRIDE || 'COLE_AQUI_A_URL_DO_SUPABASE';
+const SB_KEY  = window.__SB_KEY_OVERRIDE || 'COLE_AQUI_A_ANON_KEY_DO_SUPABASE';
 const SB_HEADERS = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' };
 
 // ─── ANTHROPIC API KEY ────────────────────────────────────────────────────────
@@ -2096,73 +2018,14 @@ async function adicionarTurma() {
 function processarInclusao() {
   const t = document.getElementById('selectTurmaCadastro').value;
   if (!t) return toast('Selecione uma turma primeiro.');
-
-  const linhas = document.getElementById('nomesLote').value
-    .split('\n').map(l => l.trim()).filter(l => l.length > 1);
-  if (!linhas.length) return toast('Nenhum nome encontrado.');
-
-  if (!db.alunos_info) db.alunos_info = {};
-
+  const nomes = document.getElementById('nomesLote').value
+    .split('\n').map(n => n.replace(/^[\d\.\-\)\s]+/, '').trim()).filter(n => n.length > 1);
+  if (!nomes.length) return toast('Nenhum nome encontrado.');
   let adicionados = 0;
-  let comPerfil = 0;
-
-  linhas.forEach(linha => {
-    // Separa por | e limpa cada campo
-    const partes = linha.split(',').map(p => p.trim());
-
-    // Remove numeração do início do nome (ex: "01. Ana" → "Ana")
-    const nome = partes[0].replace(/^[\d\.\-\)\s]+/, '').trim();
-    if (nome.length < 2) return;
-
-    // Campos opcionais
-    const sexoRaw  = (partes[1] || '').toUpperCase();
-    const etniaRaw = partes[2] || '';
-
-    // Normaliza sexo: aceita M, F, MASC, FEM, MASCULINO, FEMININO
-    let sexo = null;
-    if (sexoRaw === 'M' || sexoRaw.startsWith('MAS') || sexoRaw.startsWith('MASC')) sexo = 'M';
-    else if (sexoRaw === 'F' || sexoRaw.startsWith('FEM')) sexo = 'F';
-
-    // Normaliza etnia: aceita variações com acento / capitalização
-    let etnia = null;
-    const etniaMap = {
-      branco: 'Branco', branca: 'Branco',
-      pardo: 'Pardo', parda: 'Pardo',
-      preto: 'Preto', preta: 'Preto',
-      negro: 'Preto', negra: 'Preto',
-      amarelo: 'Amarelo', amarela: 'Amarelo',
-      indigena: 'Indígena', indígena: 'Indígena', indigeno: 'Indígena',
-      nd: 'ND', 'não declarado': 'ND', 'nao declarado': 'ND'
-    };
-    if (etniaRaw) {
-      const chave = etniaRaw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      etnia = etniaMap[chave] || (ETNIA_OPTS.includes(etniaRaw) ? etniaRaw : null);
-    }
-
-    // Adiciona aluno se não existir
-    if (!db.turmas[t].includes(nome)) {
-      db.turmas[t].push(nome);
-      adicionados++;
-    }
-
-    // Salva perfil se tiver algum dado
-    if (sexo || etnia) {
-      const aid = alunoId(t, nome);
-      const existente = db.alunos_info[aid] || {};
-      db.alunos_info[aid] = {
-        sexo:  sexo  || existente.sexo  || null,
-        etnia: etnia || existente.etnia || null
-      };
-      comPerfil++;
-    }
-  });
-
+  nomes.forEach(n => { if (!db.turmas[t].includes(n)) { db.turmas[t].push(n); adicionados++; } });
   salvar(); renderizarTurmas();
   document.getElementById('nomesLote').value = '';
-
-  let msg = adicionados + ' aluno(s) adicionado(s) à turma ' + t + '!';
-  if (comPerfil > 0) msg += ' (' + comPerfil + ' com sexo/etnia)';
-  toast(msg + ' ✓');
+  toast(adicionados + ' aluno(s) adicionado(s) à turma ' + t + '! ✓');
 }
 
 function removerAluno(t, i) {
@@ -3749,9 +3612,7 @@ function dashComparativo(turmasDisp, filtroTri) {
 
   if (!dados.length) return painelMet + '<div class="empty"><span class="empty-icon">⚖️</span>Nenhum dado disponível para comparação.</div>';
 
-  const dadosOrdenados = [...dados].sort((a,b)=>b.media-a.media);
-
-  const rows = dadosOrdenados.map((d,i) => {
+  const rows = dados.sort((a,b)=>b.media-a.media).map((d,i) => {
     const cor = d.media >= 0.6 ? '#16a34a' : d.media >= 0.4 ? '#d97706' : '#dc2626';
     return `<tr>
       <td style="font-family:'DM Mono',monospace;color:var(--ink-3)">${i+1}º</td>
@@ -3763,7 +3624,7 @@ function dashComparativo(turmasDisp, filtroTri) {
     </tr>`;
   }).join('');
 
-  const barrasComp = dadosOrdenados.map(d => {
+  const barrasComp = dados.sort((a,b)=>b.media-a.media).map(d => {
     const cor = d.media >= 0.6 ? '#16a34a' : d.media >= 0.4 ? '#d97706' : '#dc2626';
     return `<div class="dash-bar-row">
       <span class="dash-bar-label">${d.t}</span>
@@ -3771,9 +3632,6 @@ function dashComparativo(turmasDisp, filtroTri) {
       <span style="font-size:11px;color:var(--ink-3)">${d.alunos}al</span>
     </div>`;
   }).join('');
-
-  // ── COMPARATIVO POR SEXO E ETNIA ─────────────────────────────────────────
-  const compSexoEtnia = _dashCompSexoEtnia(turmasDisp, filtroTri);
 
   return `${painelMet}<div class="dash-chart-wrap">
     <div class="dash-chart-title">⚖️ Ranking de Aproveitamento por Turma</div>
@@ -3785,231 +3643,6 @@ function dashComparativo(turmasDisp, filtroTri) {
       <thead><tr><th>Pos.</th><th>Turma</th><th style="text-align:center">Alunos</th><th style="text-align:center">Média</th><th style="text-align:center">≥60%</th><th style="text-align:center"><40%</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
-  </div>
-  ${compSexoEtnia}`;
-}
-
-/* ── PAINEL DE DESEMPENHO COMPARATIVO POR SEXO E ETNIA ──────────────────────── */
-function _dashCompSexoEtnia(turmasDisp, filtroTri) {
-
-  // Coleta todos os alunos do recorte com seus dados
-  const registros = [];
-  turmasDisp.forEach(t => {
-    const alunos = db.turmas[t] || [];
-    const maxT = getMaxTurma(t, filtroTri);
-    if (!maxT) return;
-    alunos.forEach(a => {
-      const aid  = alunoId(t, a);
-      const info = (db.alunos_info && db.alunos_info[aid]) || {};
-      const tot  = getTotalAluno(t, a, filtroTri);
-      const pct  = tot / maxT;
-      registros.push({ a, t, sexo: info.sexo || 'ND', etnia: info.etnia || 'ND', pct, tot, maxT });
-    });
-  });
-
-  if (!registros.length) return '';
-
-  // ── Agrupa por SEXO ──────────────────────────────────────────────────────
-  const sexoGrupos = {};
-  registros.forEach(r => {
-    if (!sexoGrupos[r.sexo]) sexoGrupos[r.sexo] = [];
-    sexoGrupos[r.sexo].push(r.pct);
-  });
-
-  const sexoCores = { M: '#3b82f6', F: '#ec4899', ND: '#94a3b8' };
-  const sexoLabels = { M: '♂ Masculino', F: '♀ Feminino', ND: '— Não inf.' };
-  const sexoOrdem = ['M', 'F', 'ND'];
-
-  const barrasSexo = sexoOrdem
-    .filter(s => sexoGrupos[s] && sexoGrupos[s].length > 0)
-    .map(s => {
-      const vals = sexoGrupos[s];
-      const media = vals.reduce((a,b)=>a+b,0) / vals.length;
-      const aprov = vals.filter(v=>v>=0.6).length;
-      const critico = vals.filter(v=>v<0.4).length;
-      const corFill = media >= 0.6 ? '#16a34a' : media >= 0.4 ? '#d97706' : '#dc2626';
-      return `<div class="comp-stat-row">
-        <span class="comp-stat-label">${sexoLabels[s]}</span>
-        <div class="comp-track">
-          <div class="comp-fill" style="width:${Math.max(4,(media*100)).toFixed(1)}%;background:${corFill}">
-            ${(media*100).toFixed(0)}%
-          </div>
-        </div>
-        <div class="comp-meta">
-          <span class="comp-meta-pct" style="color:${corFill}">${(media*100).toFixed(1)}%</span>
-          <span class="comp-meta-n">${vals.length} aluno${vals.length!==1?'s':''}</span>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;margin:-4px 0 10px 98px;flex-wrap:wrap">
-        <span style="font-size:10px;color:#16a34a">✅ ≥60%: <strong>${aprov}</strong></span>
-        <span style="font-size:10px;color:#dc2626">⚠️ &lt;40%: <strong>${critico}</strong></span>
-        <span style="font-size:10px;color:#94a3b8">📊 Qtd.: ${vals.length}</span>
-      </div>`;
-    }).join('');
-
-  // Diferença M×F
-  let insightSexo = '';
-  if (sexoGrupos['M'] && sexoGrupos['F'] && sexoGrupos['M'].length && sexoGrupos['F'].length) {
-    const mediaM = sexoGrupos['M'].reduce((a,b)=>a+b,0) / sexoGrupos['M'].length;
-    const mediaF = sexoGrupos['F'].reduce((a,b)=>a+b,0) / sexoGrupos['F'].length;
-    const diff = ((mediaF - mediaM)*100).toFixed(1);
-    const lider = mediaF >= mediaM ? 'Feminino' : 'Masculino';
-    const difabs = Math.abs(parseFloat(diff));
-    const cls = difabs < 2 ? 'comp-diff-neu' : (mediaF > mediaM ? 'comp-diff-pos' : 'comp-diff-neg');
-    const sinal = parseFloat(diff) > 0 ? '+' : '';
-    const emoji = difabs < 2 ? '≈' : (mediaF > mediaM ? '♀ ↑' : '♂ ↑');
-    insightSexo = `<div class="comp-insight">
-      <strong>Diferença de desempenho por sexo:</strong> O grupo <strong>${lider}</strong> apresenta média ${sinal}${diff}pp maior.
-      <span class="comp-diff-badge ${cls}" style="margin-left:8px">${emoji} ${sinal}${diff} pp</span>
-      ${difabs < 2 ? '<br>Os grupos apresentam desempenho <strong>estatisticamente próximo</strong>.' :
-        `<br>Recomenda-se verificar se há padrões de engajamento ou barreiras específicas ao grupo com menor aproveitamento.`}
-    </div>`;
-  }
-
-  // ── Agrupa por ETNIA ─────────────────────────────────────────────────────
-  const etniaGrupos = {};
-  registros.forEach(r => {
-    if (!etniaGrupos[r.etnia]) etniaGrupos[r.etnia] = [];
-    etniaGrupos[r.etnia].push(r.pct);
-  });
-
-  const etniaCoresComp = {
-    Branco:'#3b82f6', Pardo:'#f59e0b', Preto:'#1e293b',
-    Amarelo:'#eab308', 'Indígena':'#16a34a', ND:'#94a3b8'
-  };
-
-  const barrasEtnia = Object.entries(etniaGrupos)
-    .filter(([,v]) => v.length > 0)
-    .sort((a,b) => {
-      const ma = a[1].reduce((s,v)=>s+v,0)/a[1].length;
-      const mb = b[1].reduce((s,v)=>s+v,0)/b[1].length;
-      return mb - ma;
-    })
-    .map(([et, vals]) => {
-      const media = vals.reduce((a,b)=>a+b,0) / vals.length;
-      const aprov = vals.filter(v=>v>=0.6).length;
-      const critico = vals.filter(v=>v<0.4).length;
-      const corFill = media >= 0.6 ? '#16a34a' : media >= 0.4 ? '#d97706' : '#dc2626';
-      const corDot = etniaCoresComp[et] || '#94a3b8';
-      return `<div class="comp-stat-row">
-        <span class="comp-stat-label" style="display:flex;align-items:center;gap:5px">
-          <span style="width:8px;height:8px;border-radius:50%;background:${corDot};flex-shrink:0"></span>
-          ${et}
-        </span>
-        <div class="comp-track">
-          <div class="comp-fill" style="width:${Math.max(4,(media*100)).toFixed(1)}%;background:${corFill}">
-            ${(media*100).toFixed(0)}%
-          </div>
-        </div>
-        <div class="comp-meta">
-          <span class="comp-meta-pct" style="color:${corFill}">${(media*100).toFixed(1)}%</span>
-          <span class="comp-meta-n">${vals.length} aluno${vals.length!==1?'s':''}</span>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;margin:-4px 0 10px 98px;flex-wrap:wrap">
-        <span style="font-size:10px;color:#16a34a">✅ ≥60%: <strong>${aprov}</strong></span>
-        <span style="font-size:10px;color:#dc2626">⚠️ &lt;40%: <strong>${critico}</strong></span>
-        <span style="font-size:10px;color:#94a3b8">📊 Qtd.: ${vals.length}</span>
-      </div>`;
-    }).join('');
-
-  // Tabela cruzada: Turma × Sexo
-  const tabelaCruzada = _tabelaCruzadaTurmaSexo(turmasDisp, filtroTri);
-
-  // Verifica se há dados de sexo/etnia preenchidos
-  const temDadosSexo = registros.some(r => r.sexo !== 'ND');
-  const temDadosEtnia = registros.some(r => r.etnia !== 'ND');
-  const avisoSemDados = (!temDadosSexo && !temDadosEtnia)
-    ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:12px;color:#92400e">
-        💡 <strong>Sem dados de sexo/etnia preenchidos.</strong> Acesse <strong>Gestão de Turmas → Perfil em lote</strong> para preencher sexo e cor/etnia dos alunos e ver os gráficos comparativos.
-       </div>` : '';
-
-  return `
-  <div style="margin-top:28px">
-    <div class="comp-section-title">⚖️ Desempenho Comparativo por Sexo e Etnia</div>
-    <div class="dash-info-metodologia" style="margin-bottom:16px">
-      <div class="dash-info-titulo">ℹ️ Como interpretar — Comparativo por Sexo e Etnia</div>
-      <div class="dash-info-corpo">
-        Cada barra mostra a <strong>média de aproveitamento (%)</strong> dos alunos daquele grupo, calculada sobre o máximo de pontos disponível no período filtrado.
-        Grupos com menos de 3 alunos devem ser interpretados com cautela. Use o filtro de trimestre acima para analisar períodos específicos.
-        <strong>🟢 ≥60%</strong> bom desempenho · <strong>🟡 40–60%</strong> atenção · <strong>🔴 &lt;40%</strong> crítico.
-      </div>
-    </div>
-    ${avisoSemDados}
-    <div class="comp-grid-sexo">
-      <div class="comp-card">
-        <div class="comp-card-title">⚧ Desempenho por Sexo</div>
-        ${barrasSexo || '<div style="font-size:12px;color:#94a3b8">Nenhum dado de sexo preenchido.</div>'}
-        ${insightSexo}
-      </div>
-      <div class="comp-card">
-        <div class="comp-card-title">🌈 Desempenho por Cor / Etnia</div>
-        ${barrasEtnia || '<div style="font-size:12px;color:#94a3b8">Nenhum dado de etnia preenchido.</div>'}
-      </div>
-    </div>
-    ${tabelaCruzada}
-  </div>`;
-}
-
-/* ── TABELA CRUZADA TURMA × SEXO ─────────────────────────────────────────── */
-function _tabelaCruzadaTurmaSexo(turmasDisp, filtroTri) {
-  const linhas = turmasDisp.map(t => {
-    const alunos = db.turmas[t] || [];
-    const maxT = getMaxTurma(t, filtroTri);
-    if (!alunos.length || !maxT) return null;
-
-    const grupoM = [], grupoF = [], grupoND = [];
-    const grupoEtnia = {};
-    alunos.forEach(a => {
-      const aid  = alunoId(t, a);
-      const info = (db.alunos_info && db.alunos_info[aid]) || {};
-      const pct  = getTotalAluno(t, a, filtroTri) / maxT;
-      if (info.sexo === 'M') grupoM.push(pct);
-      else if (info.sexo === 'F') grupoF.push(pct);
-      else grupoND.push(pct);
-      const et = info.etnia || 'ND';
-      if (!grupoEtnia[et]) grupoEtnia[et] = [];
-      grupoEtnia[et].push(pct);
-    });
-
-    const media  = v => v.length ? (v.reduce((a,b)=>a+b,0)/v.length*100).toFixed(1)+'%' : '—';
-    const corPct = s => {
-      if (s === '—') return '#94a3b8';
-      const v = parseFloat(s);
-      return v >= 60 ? '#16a34a' : v >= 40 ? '#d97706' : '#dc2626';
-    };
-    const celula = (vals) => {
-      const s = media(vals);
-      return `<td style="text-align:center;font-weight:700;font-family:'DM Mono',monospace;color:${corPct(s)}">${s}</td>`;
-    };
-    return `<tr>
-      <td style="font-weight:600">${t}</td>
-      <td style="text-align:center;color:#64748b;font-size:11px">${alunos.length}</td>
-      ${celula(grupoM)}
-      ${celula(grupoF)}
-      ${celula([...grupoM,...grupoF,...grupoND])}
-    </tr>`;
-  }).filter(Boolean);
-
-  if (!linhas.length) return '';
-
-  return `<div class="comp-card" style="margin-top:14px">
-    <div class="comp-card-title">📋 Tabela Cruzada — Média por Turma e Sexo</div>
-    <div style="overflow-x:auto">
-      <table class="comp-table">
-        <thead><tr>
-          <th>Turma</th>
-          <th style="text-align:center">Alunos</th>
-          <th style="text-align:center;color:#3b82f6">♂ Masc.</th>
-          <th style="text-align:center;color:#ec4899">♀ Fem.</th>
-          <th style="text-align:center">Geral</th>
-        </tr></thead>
-        <tbody>${linhas.join('')}</tbody>
-      </table>
-    </div>
-    <div style="margin-top:10px;font-size:10px;color:#94a3b8">
-      🟢 ≥60% · 🟡 40–60% · 🔴 &lt;40% · — sem dados ou sem atividades
-    </div>
   </div>`;
 }
 
@@ -4051,36 +3684,6 @@ async function iniciarLogin() {
   setTimeout(() => sel.focus(), 100);
 }
 
-
-async function verificarSessaoAntesDeFazerLogin(profId) {
-  try {
-    const res = await sbFetch('/rest/v1/sessoes_ativas?prof_id=eq.' + encodeURIComponent(profId) + '&select=token');
-    if (!res.ok) return true;
-    const rows = await res.json();
-    if (!rows || !rows.length) return true;
-    return await mostrarModalConfirmacaoLogin();
-  } catch(e) { return true; }
-}
-function mostrarModalConfirmacaoLogin() {
-  return new Promise(resolve => {
-    const anterior = document.getElementById('modal-confirmar-login');
-    if (anterior) anterior.remove();
-    const overlay = document.createElement('div');
-    overlay.id = 'modal-confirmar-login';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.8);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease';
-    overlay.innerHTML = `<div style="background:#fff;border-radius:20px;padding:32px 28px;max-width:400px;width:100%;box-shadow:0 8px 40px rgba(15,23,42,.25);text-align:center">
-      <div style="font-size:40px;margin-bottom:14px">⚠️</div>
-      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#0f172a;margin-bottom:10px">Sessão já está ativa</div>
-      <div style="font-size:13px;color:#475569;line-height:1.65;margin-bottom:26px">Esta conta já está aberta em <strong>outro dispositivo ou navegador</strong>.<br><br>Se continuar, <strong>a sessão anterior será encerrada</strong> automaticamente.<br>Deseja prosseguir mesmo assim?</div>
-      <div style="display:flex;gap:10px;justify-content:center">
-        <button id="modal-login-cancelar" style="flex:1;padding:11px;border-radius:10px;border:1px solid #e2e8f0;background:#f8fafc;color:#334155;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✖ Cancelar</button>
-        <button id="modal-login-confirmar" style="flex:1;padding:11px;border-radius:10px;border:none;background:#1a3a5c;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">✅ Sim, entrar aqui</button>
-      </div></div>`;
-    document.body.appendChild(overlay);
-    document.getElementById('modal-login-confirmar').onclick = () => { overlay.remove(); resolve(true); };
-    document.getElementById('modal-login-cancelar').onclick  = () => { overlay.remove(); resolve(false); };
-  });
-}
 async function tentarLogin() {
   const selProf = document.getElementById('login-select-prof');
   const input = document.getElementById('login-input');
@@ -4118,9 +3721,6 @@ async function tentarLogin() {
       turmaReferencia: prof.turma_referencia || null
     };
   }
-
-  const podeContinuar = await verificarSessaoAntesDeFazerLogin(sessao.profId);
-  if (!podeContinuar) { sessao = null; btn.disabled = false; btn.textContent = '🔓 Entrar'; return; }
 
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessao));
   const screen = document.getElementById('login-screen');
