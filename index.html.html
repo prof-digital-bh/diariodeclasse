@@ -289,7 +289,7 @@ thead th.t3-col { background: #fef3c7; }
 .anot-auto-nota:disabled { background: #f8fafc; color: var(--ink-3); cursor: not-allowed; }
 .anot-lista-cols { display: flex; align-items: center; justify-content: space-between; padding: 5px 10px 5px 14px; background: var(--sky-pale); border-bottom: 1px solid var(--border); }
 .anot-lista-cols-label { font-size: 10px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .4px; }
-.anot-lista-cols-auto { font-size: 10px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .4px; width: 38px; text-align: center; }
+.anot-lista-cols-auto { font-size: 10px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .4px; width: 80px; text-align: center; }
 .anot-editor { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px; box-shadow: var(--shadow); }
 .anot-editor-nome { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; margin-bottom: 4px; }
 .anot-editor-sub { font-size: 12px; color: var(--ink-3); margin-bottom: 18px; }
@@ -303,6 +303,35 @@ thead th.t3-col { background: #fef3c7; }
 .anot-salvo { font-size: 11px; color: var(--green-mid); opacity: 0; transition: opacity .3s; }
 .anot-salvo.show { opacity: 1; }
 .anot-vazio { text-align: center; padding: 60px 24px; color: var(--ink-3); }
+
+/* ─── FOTO DO ALUNO ───────────────────────────────────────────────────────── */
+.aluno-foto-thumb {
+  width: 32px; height: 32px; border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--border-2); flex-shrink: 0; background: var(--sky-pale);
+}
+.aluno-foto-placeholder {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--sky) 0%, var(--border) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0; border: 2px dashed var(--border-2);
+  cursor: pointer; transition: border-color .15s, background .15s;
+}
+.aluno-foto-placeholder:hover { border-color: var(--ocean-light); background: var(--sky); }
+.aluno-foto-grande {
+  width: 72px; height: 72px; border-radius: 50%; object-fit: cover;
+  border: 3px solid var(--border); box-shadow: var(--shadow); flex-shrink: 0;
+}
+.aluno-foto-grande-placeholder {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--sky) 0%, var(--border) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; flex-shrink: 0; border: 3px dashed var(--border-2);
+  cursor: pointer; transition: border-color .15s, background .15s;
+}
+.aluno-foto-grande-placeholder:hover { border-color: var(--ocean-light); background: var(--sky); }
+.aluno-foto-input { display: none; }
+.anot-editor-header { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+.anot-editor-info { flex: 1; min-width: 0; }
 
 /* ─── LOGIN ─────────────────────────────────────────────────────────────── */
 #login-screen {
@@ -907,11 +936,10 @@ create table if not exists sessoes_ativas (
       <div class="anot-lista">
         <div class="anot-lista-header" style="background:linear-gradient(90deg,var(--ocean) 0%,var(--ocean-mid) 100%);color:white;padding:12px 16px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;">
           <span id="anot-turma-label">👥 Alunos</span>
-          <span class="anot-lista-header-auto">Autoaval.</span>
         </div>
         <div class="anot-lista-cols">
           <span class="anot-lista-cols-label">Aluno(a)</span>
-          <span class="anot-lista-cols-auto" id="anot-tri-label">1º Tri</span>
+          <span class="anot-lista-cols-auto" id="anot-tri-label">Autoaval.</span>
         </div>
         <div id="anotListaAlunos"></div>
       </div>
@@ -1138,7 +1166,7 @@ const TURMAS_FIXAS = ['8ºA','8ºB','8ºC','9ºA','9ºB','9ºC'];
 let sessao = null;
 
 // db: estado em memória — populado do Supabase após login
-let db = { turmas: {}, notas: {}, status: {}, atividades: {}, mapas: {}, anotacoes: {}, autoavaliacao: {}, alunos_info: {} };
+let db = { turmas: {}, notas: {}, status: {}, atividades: {}, mapas: {}, anotacoes: {}, autoavaliacao: {}, alunos_info: {}, fotos_alunos: {} };
 
 let trimestreFiltro = 1;
 let _saveTimer = null;
@@ -1390,7 +1418,7 @@ async function carregarDoSupabase() {
     }
 
     // Supabase é a ÚNICA fonte de verdade — constrói db direto dos dados do banco
-    const novoDb = { turmas: {}, notas: {}, status: {}, atividades: {}, mapas: {}, anotacoes: {}, autoavaliacao: {}, alunos_info: {} };
+    const novoDb = { turmas: {}, notas: {}, status: {}, atividades: {}, mapas: {}, anotacoes: {}, autoavaliacao: {}, alunos_info: {}, fotos_alunos: {} };
 
     if (Array.isArray(rAlunos)) {
       rAlunos.forEach(row => {
@@ -1461,6 +1489,7 @@ async function carregarDoSupabase() {
     if (!db.anotacoes)     db.anotacoes = {};
     if (!db.autoavaliacao) db.autoavaliacao = {};
     if (!db.alunos_info)   db.alunos_info = {};
+    if (!db.fotos_alunos)  db.fotos_alunos = {};
 
     const temDados = Object.keys(db.turmas).length > 0 || (Array.isArray(rStatus) && rStatus.length > 0);
     if (!temDados) await verificarDadosAntigos();
@@ -1502,6 +1531,7 @@ async function migrarDadosAntigos() {
     if (!db.atividades) db.atividades = {};
     if (!db.mapas) db.mapas = {};
     if (!db.anotacoes) db.anotacoes = {};
+    if (!db.fotos_alunos) db.fotos_alunos = {};
     await _pushSupabase();
     document.getElementById('aviso-migracao').style.display = 'none';
     toast('✅ Migração concluída!');
@@ -2290,6 +2320,40 @@ function deletarMapa(t) {
   toast('Mapa removido.');
 }
 
+// ─── FOTOS DOS ALUNOS ────────────────────────────────────────────────────────
+function triggerFotoUpload(a) {
+  // Cria um input file temporário e dispara o clique
+  const existing = document.getElementById('foto-input-editor');
+  if (existing) {
+    existing.onchange = e => carregarFotoAluno(a, existing);
+    existing.value = '';
+    existing.click();
+    return;
+  }
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.style.display = 'none';
+  input.onchange = e => carregarFotoAluno(a, input);
+  document.body.appendChild(input);
+  input.click();
+  setTimeout(() => input.remove(), 60000);
+}
+
+function carregarFotoAluno(a, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    if (!db.fotos_alunos) db.fotos_alunos = {};
+    db.fotos_alunos[a] = e.target.result;
+    salvar();
+    renderizarAnotacoes();
+    toast('📷 Foto de ' + a.split(' ')[0] + ' salva! ✓');
+  };
+  reader.readAsDataURL(file);
+}
+
 // ─── ANOTAÇÕES (turma referência dinâmica) ───────────────────────────────────
 let anotAlunoAtivo = null;
 let anotTriAtivo = 1;
@@ -2329,7 +2393,7 @@ function renderizarAnotacoes() {
 
   const triLabelsShort = {1:'1º Tri', 2:'2º Tri', 3:'3º Tri'};
   const lbl = document.getElementById('anot-tri-label');
-  if (lbl) lbl.textContent = triLabelsShort[anotTriAtivo];
+  if (lbl) lbl.textContent = 'Autoaval. · ' + triLabelsShort[anotTriAtivo];
   if (!db.autoavaliacao) db.autoavaliacao = {};
 
   lista.innerHTML = alunos.map((a, i) => {
@@ -2340,14 +2404,21 @@ function renderizarAnotacoes() {
     const autoVal = (db.autoavaliacao[a] && db.autoavaliacao[a]['t'+anotTriAtivo]) || '';
     const info = getInfoAluno(turmaRef, a);
     const perfilChips = '<div class="inline-perfil" style="margin-top:2px;gap:3px">' + chipSexo(info.sexo) + chipEtnia(info.etnia) + '</div>';
+    const fotoSrc = db.fotos_alunos && db.fotos_alunos[a] ? db.fotos_alunos[a] : null;
+    const fotoHtml = fotoSrc
+      ? '<img class="aluno-foto-thumb" src="' + fotoSrc + '" alt="Foto" onclick="triggerFotoUpload(\'' + esc(a) + '\')" title="Clique para trocar foto">'
+      : '<div class="aluno-foto-placeholder" onclick="triggerFotoUpload(\'' + esc(a) + '\')" title="Adicionar foto">👤</div>';
     return '<div class="anot-aluno-item' + (a === anotAlunoAtivo ? ' ativo' : '') + '">' +
-      '<div style="flex:1;min-width:0;cursor:pointer" onclick="abrirAnotacaoAluno(\'' + esc(a) + '\')">' +
-        '<div style="display:flex;align-items:center;gap:4px">' +
-          '<span class="anot-aluno-idx">' + String(i+1).padStart(2,'0') + '</span>' +
-          '<span class="anot-aluno-nome">' + a + '</span>' +
-          (temNota ? ' <span class="anot-badge">✓</span>' : '') +
+      '<div style="display:flex;align-items:center;gap:7px;flex:1;min-width:0;cursor:pointer" onclick="abrirAnotacaoAluno(\'' + esc(a) + '\')">' +
+        fotoHtml +
+        '<div style="min-width:0;flex:1">' +
+          '<div style="display:flex;align-items:center;gap:4px">' +
+            '<span class="anot-aluno-idx">' + String(i+1).padStart(2,'0') + '</span>' +
+            '<span class="anot-aluno-nome">' + a + '</span>' +
+            (temNota ? ' <span class="anot-badge">✓</span>' : '') +
+          '</div>' +
+          perfilChips +
         '</div>' +
-        perfilChips +
       '</div>' +
       '<div class="anot-auto-col" onclick="event.stopPropagation()">' +
         '<input type="number" min="0" max="10" step="0.1" class="anot-auto-nota" ' +
@@ -2408,12 +2479,22 @@ function renderizarEditorAnotacao(a) {
   const nomeProfAtual = sessao ? sessao.nome : 'Prof. Everton Correa';
   const infoAnot = getInfoAluno(turmaRef, a);
   const perfilBadges = '<span class="inline-perfil" style="margin-left:8px">' + chipSexo(infoAnot.sexo) + chipEtnia(infoAnot.etnia) + '</span>';
+  const fotoSrcEditor = db.fotos_alunos && db.fotos_alunos[a] ? db.fotos_alunos[a] : null;
+  const fotoEditorHtml = fotoSrcEditor
+    ? '<img class="aluno-foto-grande" src="' + fotoSrcEditor + '" alt="Foto" onclick="triggerFotoUpload(\'' + esc(a) + '\')" title="Clique para trocar foto" style="cursor:pointer">'
+    : '<div class="aluno-foto-grande-placeholder" onclick="triggerFotoUpload(\'' + esc(a) + '\')" title="Adicionar foto do aluno">📷</div>';
 
   wrap.innerHTML = '<div class="anot-editor">' +
-    '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:2px">' +
-      '<div class="anot-editor-nome">' + a + '</div>' + perfilBadges +
+    '<input type="file" accept="image/*" class="aluno-foto-input" id="foto-input-editor" onchange="carregarFotoAluno(\'' + esc(a) + '\',this)">' +
+    '<div class="anot-editor-header">' +
+      fotoEditorHtml +
+      '<div class="anot-editor-info">' +
+        '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:2px">' +
+          '<div class="anot-editor-nome">' + a + '</div>' + perfilBadges +
+        '</div>' +
+        '<div class="anot-editor-sub">' + (turmaRef||'') + ' · Relatório Descritivo · ' + nomeProfAtual + '</div>' +
+      '</div>' +
     '</div>' +
-    '<div class="anot-editor-sub">' + (turmaRef||'') + ' · Relatório Descritivo · ' + nomeProfAtual + '</div>' +
     '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">' +
     '<div class="anot-tri-tabs" style="margin-bottom:0">' + triTabs + '</div>' + btnPuxarAnterior + '</div>' +
     camposHtml +
