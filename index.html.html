@@ -257,9 +257,11 @@ thead th.t3-col { background: #fef3c7; }
 .mapa-lightbox img { max-width: 94vw; max-height: 90vh; border-radius: var(--radius-lg); box-shadow: 0 8px 60px rgba(0,0,0,.6); object-fit: contain; }
 .mapa-lightbox-close { position: fixed; top: 18px; right: 22px; background: rgba(255,255,255,.15); border: none; color: white; font-size: 22px; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s; }
 .mapa-lightbox-close:hover { background: rgba(255,255,255,.3); }
-.mapa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+.mapa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
 .mapa-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
-.mapa-card-header { background: linear-gradient(90deg, var(--ocean) 0%, var(--ocean-mid) 100%); color: white; padding: 10px 16px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+.mapa-card-header { background: linear-gradient(90deg, var(--ocean) 0%, var(--ocean-mid) 100%); color: white; padding: 11px 14px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 44px; }
+.mapa-card-header-nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mapa-card-header-status { font-size: 11px; opacity: .8; font-weight: 400; background: rgba(255,255,255,.18); border-radius: 10px; padding: 2px 9px; white-space: nowrap; flex-shrink: 0; }
 .mapa-card-body { padding: 16px; }
 
 /* ─── ANOTAÇÕES 9ºA ────────────────────────────────────────────────────── */
@@ -607,6 +609,25 @@ thead th.t3-col { background: #fef3c7; }
 .nota-ok { background:#dcfce7; color:#166534; }
 .nota-med { background:#fef3c7; color:#92400e; }
 .nota-baixo { background:#fee2e2; color:#991b1b; }
+
+/* ─── OBS EXPAND POPUP ───────────────────────────────────────────────────── */
+.obs-expand-box {
+  position: fixed; z-index: 9801;
+  background: var(--white); border: 2px solid var(--ocean-light);
+  border-radius: var(--radius-lg); box-shadow: 0 8px 32px rgba(15,23,42,.18);
+  padding: 12px; min-width: 260px; max-width: 380px;
+  animation: fadeUp .15s ease;
+}
+.obs-expand-box textarea {
+  width: 100%; min-height: 110px; resize: vertical;
+  border: 1px solid var(--border-2); border-radius: var(--radius);
+  font-family: 'DM Sans', sans-serif; font-size: 13px;
+  padding: 8px 10px; outline: none; line-height: 1.55; display: block;
+  transition: border .15s;
+}
+.obs-expand-box textarea:focus { border-color: var(--ocean-light); box-shadow: 0 0 0 3px rgba(59,130,212,.1); }
+.obs-expand-label { font-size: 10px; font-weight: 700; color: var(--ocean-mid); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 7px; display: block; }
+.obs-expand-footer { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
 
 </style>
 <body>
@@ -2278,8 +2299,8 @@ function renderizarMapeamento() {
         '<span class="mapa-drop-icon">🗺️</span><span class="mapa-drop-text">Clique ou arraste a imagem do mapa</span>' +
         '<input type="file" accept="image/*" onchange="carregarMapa(event,\'' + esc(t) + '\')">' +
         '</label>';
-    return '<div class="mapa-card"><div class="mapa-card-header"><span>📍 ' + t + '</span>' +
-      (img ? '<span style="font-size:10px;opacity:.75">✓ Mapa carregado</span>' : '<span style="font-size:10px;opacity:.6">Sem mapa</span>') +
+    return '<div class="mapa-card"><div class="mapa-card-header"><span class="mapa-card-header-nome">📍 ' + t + '</span>' +
+      (img ? '<span class="mapa-card-header-status">✓ Mapa carregado</span>' : '<span class="mapa-card-header-status">Sem mapa</span>') +
       '</div><div class="mapa-card-body">' + imgHtml + '</div></div>';
   }).join('');
 }
@@ -2823,7 +2844,7 @@ function renderizarNotas() {
       </div>
     </td>`;
     const obsVal = (nota.obs||'').replace(/"/g,'&quot;');
-    return `<tr class="${isFechado?'locked':''}"><td style="text-align:center;font-size:11px;color:var(--ink-3);font-family:'DM Mono',monospace">${String(idx+1).padStart(2,'0')}</td><td style="font-weight:500;white-space:nowrap;min-width:140px">${a}</td>${perfilCell}${cells}<td class="total-cell" data-aluno-total="${esc(t+'_'+a)}" style="border-left:2px solid var(--ocean-light);${totalStyle}">${totalTri>0?totalTri.toFixed(1):'—'}</td><td style="min-width:110px"><input type="text" value="${obsVal}" placeholder="Obs..." ${isFechado?'disabled':''} onchange="salvarObs('${esc(t)}','${esc(a)}',this.value)" style="width:100%;font-size:11px;padding:4px 6px"></td></tr>`;
+    return `<tr class="${isFechado?'locked':''}"><td style="text-align:center;font-size:11px;color:var(--ink-3);font-family:'DM Mono',monospace">${String(idx+1).padStart(2,'0')}</td><td style="font-weight:500;white-space:nowrap;min-width:140px">${a}</td>${perfilCell}${cells}<td class="total-cell" data-aluno-total="${esc(t+'_'+a)}" style="border-left:2px solid var(--ocean-light);${totalStyle}">${totalTri>0?totalTri.toFixed(1):'—'}</td><td style="min-width:110px;position:relative"><input type="text" value="${obsVal}" placeholder="Obs..." title="${obsVal}" ${isFechado?'disabled':''} onfocus="abrirObsExpand(this,'${esc(t)}','${esc(a)}')" oninput="this.title=this.value" class="obs-input-mini" style="width:100%;font-size:11px;padding:4px 6px;border:1px solid var(--border-2);border-radius:6px;background:${obsVal?'#fffbeb':'var(--white)'};cursor:${obsVal?'pointer':'text'}"></td></tr>`;
   }).join('');
 }
 
@@ -2866,6 +2887,93 @@ function salvarNota(t, aluno, key, val) {
   _atualizarTotalAluno(t, aluno);
 }
 function salvarObs(t, aluno, val) { if (!db.notas[t]) db.notas[t]={}; if (!db.notas[t][aluno]) db.notas[t][aluno]={obs:''}; db.notas[t][aluno].obs=val; salvar(); }
+
+// ─── OBS EXPAND ──────────────────────────────────────────────────────────────
+let _obsExpandAtivo = null;
+
+function abrirObsExpand(inputEl, t, aluno) {
+  // Fecha eventual popup anterior
+  fecharObsExpand(false);
+
+  const isFechado = db.status[t] === 'fechado';
+
+  // Posição do input na tela
+  const rect = inputEl.getBoundingClientRect();
+
+  const box = document.createElement('div');
+  box.className = 'obs-expand-box';
+  box.id = 'obs-expand-box';
+
+  // Posiciona abaixo do input; se ultrapassar a tela, vai para cima
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const boxH = 190; // estimativa
+  const top = spaceBelow > boxH ? rect.bottom + 4 : rect.top - boxH - 4;
+  const left = Math.min(rect.left, window.innerWidth - 390);
+
+  box.style.top  = Math.max(8, top) + 'px';
+  box.style.left = Math.max(8, left) + 'px';
+
+  const valAtual = inputEl.value;
+  box.innerHTML = `
+    <span class="obs-expand-label">✏️ Observação — ${aluno}</span>
+    <textarea id="obs-expand-ta" ${isFechado ? 'disabled' : ''}>${valAtual.replace(/</g,'&lt;')}</textarea>
+    <div class="obs-expand-footer">
+      <button onclick="fecharObsExpand(false)" style="padding:5px 12px;font-size:12px;border:1px solid var(--border-2);border-radius:8px;background:var(--white);cursor:pointer;font-family:'DM Sans',sans-serif">Cancelar</button>
+      ${!isFechado ? `<button onclick="salvarObsExpand('${esc(t)}','${esc(aluno)}')" style="padding:5px 14px;font-size:12px;border:none;border-radius:8px;background:var(--ocean-mid);color:white;cursor:pointer;font-weight:600;font-family:'DM Sans',sans-serif">✅ Salvar</button>` : ''}
+    </div>`;
+
+  document.body.appendChild(box);
+
+  // Foca no textarea e vai ao fim do texto
+  const ta = document.getElementById('obs-expand-ta');
+  if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+
+  _obsExpandAtivo = { inputEl, t, aluno };
+
+  // Fechar ao clicar fora
+  setTimeout(() => {
+    document.addEventListener('mousedown', _obsExpandClickFora, true);
+  }, 10);
+}
+
+function _obsExpandClickFora(e) {
+  const box = document.getElementById('obs-expand-box');
+  if (box && !box.contains(e.target)) fecharObsExpand(true);
+}
+
+function salvarObsExpand(t, aluno) {
+  const ta = document.getElementById('obs-expand-ta');
+  if (!ta) return;
+  const val = ta.value;
+  salvarObs(t, aluno, val);
+  // Atualiza o input mini na tabela
+  if (_obsExpandAtivo && _obsExpandAtivo.inputEl) {
+    _obsExpandAtivo.inputEl.value = val;
+    _obsExpandAtivo.inputEl.title = val;
+    _obsExpandAtivo.inputEl.style.background = val ? '#fffbeb' : 'var(--white)';
+  }
+  fecharObsExpand(false);
+  toast('Observação salva ✓');
+}
+
+function fecharObsExpand(salvarAuto) {
+  if (salvarAuto && _obsExpandAtivo) {
+    const ta = document.getElementById('obs-expand-ta');
+    if (ta && !_obsExpandAtivo.t.includes('__')) {
+      const val = ta.value;
+      salvarObs(_obsExpandAtivo.t, _obsExpandAtivo.aluno, val);
+      if (_obsExpandAtivo.inputEl) {
+        _obsExpandAtivo.inputEl.value = val;
+        _obsExpandAtivo.inputEl.title = val;
+        _obsExpandAtivo.inputEl.style.background = val ? '#fffbeb' : 'var(--white)';
+      }
+    }
+  }
+  const box = document.getElementById('obs-expand-box');
+  if (box) box.remove();
+  document.removeEventListener('mousedown', _obsExpandClickFora, true);
+  _obsExpandAtivo = null;
+}
 
 function _atualizarTotalAluno(t, aluno) {
   garantirAtividades(t);
