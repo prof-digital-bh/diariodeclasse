@@ -1261,7 +1261,8 @@ function sbFetch(path, options = {}) {
 }
 
 function alunoId(turma, nome) {
-  return (turma + '_' + nome).replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
+  const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return (norm(turma) + '_' + norm(nome)).replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
 }
 
 function notaId(turma, nome, tr, ativ) {
@@ -1353,11 +1354,15 @@ async function _deleteWhere(table, column, value) {
 }
 
 async function _pushAlunos() {
+  const seen = new Set();
   const rows = [];
   for (const turma in db.turmas) {
     db.turmas[turma].forEach((nome, i) => {
-      const info = (db.alunos_info && db.alunos_info[alunoId(turma,nome)]) || {};
-      rows.push({ id: alunoId(turma, nome), nome, turma, posicao: i,
+      const id = alunoId(turma, nome);
+      if (seen.has(id)) { console.warn('[pushAlunos] ID duplicado:', id, nome, turma); return; }
+      seen.add(id);
+      const info = (db.alunos_info && db.alunos_info[id]) || {};
+      rows.push({ id, nome, turma, posicao: i,
         sexo: info.sexo || null, etnia: info.etnia || null,
         atualizado_em: new Date().toISOString() });
     });
@@ -1382,11 +1387,9 @@ async function _pushAtividades() {
 }
 
 async function _pushNotas() {
-  const rows = [];
   const prof_id = sessao ? sessao.profId : '__everton__';
 
   // Garante que TODOS os alunos de TODAS as turmas estejam em db.notas antes de salvar
-  // Isso evita que notas recém digitadas sejam perdidas por falta de entrada em db.notas
   for (const turma in db.turmas) {
     if (!db.notas[turma]) db.notas[turma] = {};
     db.turmas[turma].forEach(nome => {
@@ -1397,12 +1400,12 @@ async function _pushNotas() {
     });
   }
 
+  // Envia por turma em chunks de 200 linhas — evita limite de payload do Supabase
   for (const turma in db.notas) {
+    const rows = [];
     for (const nome in db.notas[turma]) {
       const n = db.notas[turma][nome];
       const aid = alunoId(turma, nome);
-      // Salva SEMPRE todas as notas de todos os alunos — inclusive vazias (null)
-      // Isso garante que notas apagadas ou ainda não preenchidas sejam persistidas corretamente
       TRIMESTRES.forEach(tr => {
         for (let i = 1; i <= N_ATIV; i++) {
           const key = 't'+tr+'_a'+i;
@@ -1415,23 +1418,41 @@ async function _pushNotas() {
         }
       });
     }
+    const CHUNK = 200;
+    for (let j = 0; j < rows.length; j += CHUNK) {
+      await _upsert('notas', rows.slice(j, j + CHUNK));
+    }
   }
-  if (rows.length) await _upsert('notas', rows);
 }
 
 async function _pushAnotacoes() {
-  if (!db.anotacoes) return;
   const rows = [];
-  // Para cada turma referência com anotações
-  for (const nome in db.anotacoes) {
-    // Detecta turma do aluno
-    let turmaAluno = (sessao && sessao.turmaReferencia) || 'desconhecida';
-    for (const t in db.turmas) {
-      if (db.turmas[t].includes(nome)) { turmaAluno = t; break; }
+
+  // Itera TODOS os alunos — não só quem tem anotação de texto.
+  // Garante que autoavaliações sem texto preenchido também sejam salvas.
+  const todosAlunos = [];
+  for (const t in db.turmas) {
+    (db.turmas[t] || []).forEach(nome => todosAlunos.push({ nome, turma: t }));
+  }
+  if (db.anotacoes) {
+    for (const nome in db.anotacoes) {
+      if (!todosAlunos.find(a => a.nome === nome)) {
+        let turmaAluno = (sessao && sessao.turmaReferencia) || 'desconhecida';
+        for (const t in db.turmas) {
+          if ((db.turmas[t] || []).includes(nome)) { turmaAluno = t; break; }
+        }
+        todosAlunos.push({ nome, turma: turmaAluno });
+      }
     }
+  }
+
+  todosAlunos.forEach(({ nome, turma: turmaAluno }) => {
     TRIMESTRES.forEach(tr => {
-      const d = (db.anotacoes[nome] && db.anotacoes[nome]['t'+tr]) || {};
+      const d = (db.anotacoes && db.anotacoes[nome] && db.anotacoes[nome]['t'+tr]) || {};
       const autoVal = (db.autoavaliacao && db.autoavaliacao[nome] && db.autoavaliacao[nome]['t'+tr]);
+      const temDado = (autoVal !== undefined && autoVal !== '')
+        || Object.values(d).some(v => v && v.trim && v.trim());
+      if (!temDado) return;
       rows.push({ id: anotId(turmaAluno, nome, tr), aluno_id: alunoId(turmaAluno, nome),
         turma: turmaAluno, trimestre: tr,
         participacao: d.participacao || '', comportamento: d.comportamento || '',
@@ -1440,7 +1461,8 @@ async function _pushAnotacoes() {
         autoavaliacao: autoVal !== undefined && autoVal !== '' ? parseFloat(autoVal) || null : null,
         atualizado_em: new Date().toISOString() });
     });
-  }
+  });
+
   if (rows.length) await _upsert('anotacoes', rows);
 }
 
