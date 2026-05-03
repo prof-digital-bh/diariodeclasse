@@ -2674,7 +2674,7 @@ async function gerarRelatorioIA(nomeAluno) {
     if (auto !== undefined && auto !== '') contexto += `Autoavaliação do aluno: ${auto}/10\n`;
     // Notas
     const t = turmaRef;
-    const maxT = t ? getMaxTurma(t, tr) : 0;
+    const maxT = t ? getMaxAluno(t, nomeAluno, tr) : 0;
     const tot = t ? getTotalAluno(t, nomeAluno, tr) : 0;
     if (maxT > 0) contexto += `Aproveitamento em notas: ${(tot/maxT*100).toFixed(0)}%\n`;
     contexto += '\n';
@@ -2809,9 +2809,8 @@ function renderizarFichaAluno() {
     : `<div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:28px">👤</div>`;
 
   // Tri boxes com notas
-  const maxT_all = getMaxTurma(turma, '');
   const triBoxes = TRIMESTRES.map(tr => {
-    const maxT = getMaxTurma(turma, tr);
+    const maxT = getMaxAluno(turma, nome, tr);
     const tot = getTotalAluno(turma, nome, tr);
     const pct = maxT > 0 ? tot / maxT : -1;
     const auto = (db.autoavaliacao && db.autoavaliacao[nome] && db.autoavaliacao[nome]['t'+tr]);
@@ -2884,7 +2883,7 @@ function gerarAlertasRisco(turmasDisp, filtroTri) {
       const historico = [];
       const tris = filtroTri ? [parseInt(filtroTri)] : TRIMESTRES;
       tris.forEach(tr => {
-        const max = getMaxTurma(t, tr);
+        const max = getMaxAluno(t, nome, tr);
         const tot = getTotalAluno(t, nome, tr);
         if (max <= 0) { historico.push({tr, pct: -1}); return; }
         historico.push({tr, pct: tot/max});
@@ -3180,15 +3179,20 @@ function renderizarNotas() {
 
   corpo.innerHTML = alunos.map((a, idx) => {
     const nota = db.notas[t][a] || {};
-    // Total apenas do trimestre exibido
+    // Total apenas do trimestre exibido — ignora células vazias ('')
     let totalTri = 0;
+    let maxAlunoTri = 0;
     for (let i=1;i<=N_ATIV;i++) {
       const aNome = ativ['t'+tr][i-1].nome||'';
-      if (aNome.trim()!=='') totalTri += parseFloat(nota['t'+tr+'_a'+i])||0;
+      if (aNome.trim()==='') continue;
+      const raw = nota['t'+tr+'_a'+i];
+      if (raw === '' || raw === undefined || raw === null) continue;
+      totalTri += parseFloat(raw)||0;
+      maxAlunoTri += parseFloat(ativ['t'+tr][i-1].valor||0)||0;
     }
     let totalStyle = 'color:var(--ocean-mid)';
-    if (totalTri > 0 && valorMaxTri > 0) {
-      const pct = totalTri/valorMaxTri;
+    if (maxAlunoTri > 0) {
+      const pct = totalTri/maxAlunoTri;
       totalStyle = pct>=0.6 ? 'color:#1d4ed8;font-weight:700' : 'color:#dc2626;font-weight:700';
     }
     let cells = '';
@@ -3347,10 +3351,12 @@ function _atualizarTotalAluno(t, aluno) {
   for (let i = 1; i <= N_ATIV; i++) {
     const aNome = (ativ['t'+tr] && ativ['t'+tr][i-1] && ativ['t'+tr][i-1].nome) || '';
     const aVal = parseFloat((ativ['t'+tr] && ativ['t'+tr][i-1] && ativ['t'+tr][i-1].valor)||0)||0;
-    if (aNome.trim() !== '') {
-      totalTri += parseFloat((db.notas[t] && db.notas[t][aluno] && db.notas[t][aluno]['t'+tr+'_a'+i])||0)||0;
-      if (aVal > 0) valorMaxTri += aVal;
-    }
+    if (aNome.trim() === '') continue;
+    const raw = (db.notas[t] && db.notas[t][aluno] && db.notas[t][aluno]['t'+tr+'_a'+i]);
+    // '' = não avaliado → ignora numerador E denominador
+    if (raw === '' || raw === undefined || raw === null) continue;
+    totalTri += parseFloat(raw)||0;
+    if (aVal > 0) valorMaxTri += aVal;
   }
   const cell = document.querySelector('[data-aluno-total="' + CSS.escape(t + '_' + aluno) + '"]');
   if (!cell) return;
@@ -4088,13 +4094,19 @@ function getTotalAluno(t, nome, filtroTri) {
   tris.forEach(tr => {
     for (let i = 1; i <= N_ATIV; i++) {
       const aNome = (ativ['t'+tr] && ativ['t'+tr][i-1] && ativ['t'+tr][i-1].nome) || '';
-      if (aNome.trim() !== '') total += parseFloat((db.notas[t]&&db.notas[t][nome]&&db.notas[t][nome]['t'+tr+'_a'+i])||0)||0;
+      if (aNome.trim() === '') continue;
+      const raw = (db.notas[t]&&db.notas[t][nome]&&db.notas[t][nome]['t'+tr+'_a'+i]);
+      // '' = não avaliado (ignora numerador E denominador via getMaxAluno)
+      // '0' ou 0 = zero real (entra no cálculo)
+      if (raw === '' || raw === undefined || raw === null) continue;
+      total += parseFloat(raw) || 0;
     }
   });
   return total;
 }
 
 function getMaxTurma(t, filtroTri) {
+  // Denominador da turma: soma de todas as atividades cadastradas (para comparação entre alunos)
   garantirAtividades(t);
   const ativ = db.atividades[t] || {};
   let max = 0;
@@ -4104,6 +4116,26 @@ function getMaxTurma(t, filtroTri) {
       const aNome = (ativ['t'+tr] && ativ['t'+tr][i-1] && ativ['t'+tr][i-1].nome) || '';
       const aVal = parseFloat((ativ['t'+tr] && ativ['t'+tr][i-1] && ativ['t'+tr][i-1].valor)||0)||0;
       if (aNome.trim() !== '' && aVal > 0) max += aVal;
+    }
+  });
+  return max;
+}
+
+function getMaxAluno(t, nome, filtroTri) {
+  // Denominador individual: só atividades em que o aluno tem nota preenchida (≠ '')
+  garantirAtividades(t);
+  const ativ = db.atividades[t] || {};
+  let max = 0;
+  const tris = filtroTri ? [parseInt(filtroTri)] : TRIMESTRES;
+  tris.forEach(tr => {
+    for (let i = 1; i <= N_ATIV; i++) {
+      const aNome = (ativ['t'+tr] && ativ['t'+tr][i-1] && ativ['t'+tr][i-1].nome) || '';
+      if (aNome.trim() === '') continue;
+      const aVal = parseFloat((ativ['t'+tr] && ativ['t'+tr][i-1] && ativ['t'+tr][i-1].valor)||0)||0;
+      if (aVal <= 0) continue;
+      const raw = (db.notas[t]&&db.notas[t][nome]&&db.notas[t][nome]['t'+tr+'_a'+i]);
+      // Só entra no denominador se o aluno foi avaliado (campo não vazio)
+      if (raw !== '' && raw !== undefined && raw !== null) max += aVal;
     }
   });
   return max;
@@ -4122,12 +4154,13 @@ function dashGeral(turmasDisp, filtroTri) {
   turmasDisp.forEach(t => {
     const alunos = db.turmas[t] || [];
     totalAlunos += alunos.length;
-    const maxT = getMaxTurma(t, filtroTri);
-    if (alunos.length > 0 && maxT > 0) turmasComDados++;
+    const maxTurma = getMaxTurma(t, filtroTri);
+    if (alunos.length > 0 && maxTurma > 0) turmasComDados++;
     alunos.forEach(a => {
       const tot = getTotalAluno(t, a, filtroTri);
-      const pct = maxT > 0 ? tot / maxT : 0;
-      if (maxT > 0) {
+      const maxA = getMaxAluno(t, a, filtroTri);
+      const pct = maxA > 0 ? tot / maxA : (maxTurma > 0 ? 0 : -1);
+      if (maxA > 0) {
         qtdMedias++; somaMedias += pct;
         if (pct >= 0.6) aprovados++;
         else if (pct >= 0.4) emRisco++;
@@ -4151,7 +4184,7 @@ function dashGeral(turmasDisp, filtroTri) {
         <span style="font-size:11px;color:var(--ink-3);width:30px">${alunos.length}al.</span>
       </div>`;
     }
-    const medias = alunos.map(a => getTotalAluno(t, a, filtroTri) / maxT);
+    const medias = alunos.map(a => { const mA = getMaxAluno(t, a, filtroTri); return mA > 0 ? getTotalAluno(t, a, filtroTri) / mA : null; }).filter(v => v !== null);
     const media = medias.length ? medias.reduce((s,v)=>s+v,0)/medias.length : 0;
     const cor = media >= 0.6 ? '#16a34a' : media >= 0.4 ? '#d97706' : '#dc2626';
     return `<div class="dash-bar-row">
