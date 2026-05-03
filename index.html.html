@@ -1528,7 +1528,10 @@ async function carregarDoSupabase() {
     if (Array.isArray(rAlunos)) {
       rAlunos.forEach(row => {
         if (!novoDb.turmas[row.turma]) novoDb.turmas[row.turma] = [];
-        novoDb.turmas[row.turma].push(row.nome);
+        // Deduplicar: ignora se o nome já existe na turma (evita duplicatas vindas do banco)
+        if (!novoDb.turmas[row.turma].includes(row.nome)) {
+          novoDb.turmas[row.turma].push(row.nome);
+        }
         if (row.sexo || row.etnia) {
           const aid = alunoId(row.turma, row.nome);
           novoDb.alunos_info[aid] = { sexo: row.sexo || null, etnia: row.etnia || null };
