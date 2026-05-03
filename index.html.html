@@ -3249,19 +3249,41 @@ function exportarCSVDashboard() {
     filename = 'dashboard_perfil' + (filtroTurma?'_'+filtroTurma:'');
 
   } else if (dashTabAtivo === 'comp') {
-    linhas.push(['Posição','Turma','Qtd. Alunos','Média (%)','≥60%','<40%','Máx. Pontos'].join(';'));
-    const dados = turmasDisp.map(t => {
-      const alunos = db.turmas[t]||[];
-      const maxT   = getMaxTurma(t, filtroTri);
-      if (!alunos.length||!maxT) return null;
-      const totais = alunos.map(a => getTotalAluno(t, a, filtroTri));
-      const media  = totais.reduce((s,v)=>s+v,0)/totais.length/maxT;
-      return { t, alunos:alunos.length, media, aprovados:totais.filter(v=>v/maxT>=0.6).length, reprovados:totais.filter(v=>v/maxT<0.4).length, maxT };
-    }).filter(Boolean).sort((a,b)=>b.media-a.media);
-    dados.forEach((d,i) => {
-      linhas.push([i+1, d.t, d.alunos, (d.media*100).toFixed(1), d.aprovados, d.reprovados, d.maxT.toFixed(0)].join(';'));
-    });
-    filename = 'dashboard_comparativo' + (filtroTri?'_t'+filtroTri:'');
+    const subTab = window._dashCompSubTab || 'turmas';
+    if (subTab === 'turmas') {
+      linhas.push(['Posição','Turma','Qtd. Alunos','Média (%)','≥60%','<40%','Máx. Pontos'].join(';'));
+      const dados = turmasDisp.map(t => {
+        const alunos = db.turmas[t]||[];
+        const maxT   = getMaxTurma(t, filtroTri);
+        if (!alunos.length||!maxT) return null;
+        const totais = alunos.map(a => getTotalAluno(t, a, filtroTri));
+        const media  = totais.reduce((s,v)=>s+v,0)/totais.length/maxT;
+        return { t, alunos:alunos.length, media, aprovados:totais.filter(v=>v/maxT>=0.6).length, reprovados:totais.filter(v=>v/maxT<0.4).length, maxT };
+      }).filter(Boolean).sort((a,b)=>b.media-a.media);
+      dados.forEach((d,i) => {
+        linhas.push([i+1, d.t, d.alunos, (d.media*100).toFixed(1), d.aprovados, d.reprovados, d.maxT.toFixed(0)].join(';'));
+      });
+      filename = 'dashboard_comparativo_turmas' + (filtroTri?'_t'+filtroTri:'');
+    } else if (subTab === 'sexo') {
+      linhas.push(['Sexo','Alunos','Média (%)','≥60%','<40%'].join(';'));
+      const grupos = { M: [], F: [], '': [] };
+      turmasDisp.forEach(t => { (db.turmas[t]||[]).forEach(nome => { const s=(getInfoAluno(t,nome).sexo||''); grupos[s].push({t,nome}); }); });
+      [['M','Masculino'],['F','Feminino'],['','Não informado']].forEach(([k,label]) => {
+        if (!grupos[k].length) return;
+        const st = _grupoStats(grupos[k], turmasDisp, filtroTri);
+        linhas.push([label, grupos[k].length, st.media!==null?(st.media*100).toFixed(1):'—', st.aprovados, st.reprovados].join(';'));
+      });
+      filename = 'dashboard_comparativo_sexo' + (filtroTri?'_t'+filtroTri:'');
+    } else if (subTab === 'etnia') {
+      linhas.push(['Cor/Etnia','Alunos','Média (%)','≥60%','<40%'].join(';'));
+      const grupos = {};
+      turmasDisp.forEach(t => { (db.turmas[t]||[]).forEach(nome => { const et=(getInfoAluno(t,nome).etnia||'ND'); if(!grupos[et]) grupos[et]=[]; grupos[et].push({t,nome}); }); });
+      Object.keys(grupos).sort((a,b)=>grupos[b].length-grupos[a].length).forEach(et => {
+        const st = _grupoStats(grupos[et], turmasDisp, filtroTri);
+        linhas.push([et, grupos[et].length, st.media!==null?(st.media*100).toFixed(1):'—', st.aprovados, st.reprovados].join(';'));
+      });
+      filename = 'dashboard_comparativo_etnia' + (filtroTri?'_t'+filtroTri:'');
+    }
   }
 
   if (linhas.length <= 1) return toast('Nenhum dado para exportar.');
@@ -3542,10 +3564,10 @@ let dashTabAtivo = 'geral';
 
 function mudaDashTab(tab) {
   dashTabAtivo = tab;
+  if (tab !== 'comp') window._dashCompSubTab = 'turmas';
   document.querySelectorAll('.dash-tab').forEach(b => b.classList.remove('ativo'));
   const el = document.getElementById('dash-tab-' + tab);
   if (el) el.classList.add('ativo');
-  // Oculta filtro de trimestre na aba Perfil (não se aplica)
   const filtroTri = document.getElementById('dash-filtro-tri');
   if (filtroTri) filtroTri.style.display = tab === 'perfil' ? 'none' : 'flex';
   renderizarDashboard();
@@ -3773,6 +3795,36 @@ function dashPerfil(turmasDisp) {
 }
 
 function dashComparativo(turmasDisp, filtroTri) {
+  // ── SUB-TABS de Comparativo ───────────────────────────────────────────────
+  const subTabAtivo = window._dashCompSubTab || 'turmas';
+
+  const subTabHtml = `
+    <div style="display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap">
+      <button onclick="mudaDashCompTab('turmas')" id="comp-tab-turmas"
+        style="padding:7px 16px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s;${subTabAtivo==='turmas'?'background:#1a3a5c;color:white':'background:#f1f5f9;color:#334155'}">
+        🏫 Por Turma
+      </button>
+      <button onclick="mudaDashCompTab('sexo')" id="comp-tab-sexo"
+        style="padding:7px 16px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s;${subTabAtivo==='sexo'?'background:#1a3a5c;color:white':'background:#f1f5f9;color:#334155'}">
+        ⚧ Por Sexo
+      </button>
+      <button onclick="mudaDashCompTab('etnia')" id="comp-tab-etnia"
+        style="padding:7px 16px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s;${subTabAtivo==='etnia'?'background:#1a3a5c;color:white':'background:#f1f5f9;color:#334155'}">
+        🌈 Por Etnia/Cor
+      </button>
+    </div>`;
+
+  if (subTabAtivo === 'sexo') return subTabHtml + dashCompSexo(turmasDisp, filtroTri);
+  if (subTabAtivo === 'etnia') return subTabHtml + dashCompEtnia(turmasDisp, filtroTri);
+  return subTabHtml + dashCompTurmas(turmasDisp, filtroTri);
+}
+
+function mudaDashCompTab(sub) {
+  window._dashCompSubTab = sub;
+  renderizarDashboard();
+}
+
+function dashCompTurmas(turmasDisp, filtroTri) {
   const painelMet = `<div class="dash-info-metodologia">
     <div class="dash-info-titulo">ℹ️ Como interpretar — Comparativo entre Turmas</div>
     <div class="dash-info-corpo">
@@ -3794,7 +3846,9 @@ function dashComparativo(turmasDisp, filtroTri) {
 
   if (!dados.length) return painelMet + '<div class="empty"><span class="empty-icon">⚖️</span>Nenhum dado disponível para comparação.</div>';
 
-  const rows = dados.sort((a,b)=>b.media-a.media).map((d,i) => {
+  const dadosOrdenados = [...dados].sort((a,b)=>b.media-a.media);
+
+  const rows = dadosOrdenados.map((d,i) => {
     const cor = d.media >= 0.6 ? '#16a34a' : d.media >= 0.4 ? '#d97706' : '#dc2626';
     return `<tr>
       <td style="font-family:'DM Mono',monospace;color:var(--ink-3)">${i+1}º</td>
@@ -3806,7 +3860,7 @@ function dashComparativo(turmasDisp, filtroTri) {
     </tr>`;
   }).join('');
 
-  const barrasComp = dados.sort((a,b)=>b.media-a.media).map(d => {
+  const barrasComp = dadosOrdenados.map(d => {
     const cor = d.media >= 0.6 ? '#16a34a' : d.media >= 0.4 ? '#d97706' : '#dc2626';
     return `<div class="dash-bar-row">
       <span class="dash-bar-label">${d.t}</span>
@@ -3826,6 +3880,205 @@ function dashComparativo(turmasDisp, filtroTri) {
       <tbody>${rows}</tbody>
     </table></div>
   </div>`;
+}
+
+function _grupoStats(alunos_list, turmasDisp, filtroTri) {
+  // Recebe lista de {t, nome} e calcula media/aprovados/reprovados
+  let totalPontos = 0, totalMax = 0, cnt = 0, aprovados = 0, reprovados = 0;
+  alunos_list.forEach(({t, nome}) => {
+    const maxT = getMaxTurma(t, filtroTri);
+    if (!maxT) return;
+    const tot = getTotalAluno(t, nome, filtroTri);
+    const pct = tot / maxT;
+    totalPontos += tot;
+    totalMax += maxT;
+    cnt++;
+    if (pct >= 0.6) aprovados++;
+    if (pct < 0.4) reprovados++;
+  });
+  const media = cnt && totalMax ? totalPontos / totalMax : null;
+  return { cnt, media, aprovados, reprovados };
+}
+
+function dashCompSexo(turmasDisp, filtroTri) {
+  const painelMet = `<div class="dash-info-metodologia">
+    <div class="dash-info-titulo">ℹ️ Como interpretar — Comparativo por Sexo</div>
+    <div class="dash-info-corpo">
+      Compara o <strong>aproveitamento médio</strong> entre grupos de sexo declarado nas turmas selecionadas.<br>
+      Permite identificar diferenças de desempenho entre meninos e meninas. Alunos sem sexo declarado aparecem como "Não informado".
+    </div>
+  </div>`;
+
+  // Agrupar alunos por sexo
+  const grupos = { M: [], F: [], '': [] };
+  turmasDisp.forEach(t => {
+    (db.turmas[t] || []).forEach(nome => {
+      const info = getInfoAluno(t, nome);
+      const sexo = info.sexo || '';
+      grupos[sexo].push({ t, nome });
+    });
+  });
+
+  const configGrupos = [
+    { key: 'M', label: '♂ Masculino', cor: '#3b82f6', corClaro: '#dbeafe' },
+    { key: 'F', label: '♀ Feminino',  cor: '#ec4899', corClaro: '#fce7f3' },
+    { key: '',  label: '— Não inform.', cor: '#94a3b8', corClaro: '#f1f5f9' },
+  ].filter(g => grupos[g.key].length > 0);
+
+  if (!configGrupos.length) return painelMet + '<div class="empty"><span class="empty-icon">⚧</span>Nenhum dado de sexo disponível para comparação.</div>';
+
+  const statsGrupos = configGrupos.map(g => ({ ...g, ...(_grupoStats(grupos[g.key], turmasDisp, filtroTri)), total: grupos[g.key].length }));
+
+  // Barras de aproveitamento médio
+  const maxMedia = Math.max(...statsGrupos.filter(g => g.media !== null).map(g => g.media), 0.01);
+  const barras = statsGrupos.map(g => {
+    if (g.media === null) return `<div class="dash-bar-row"><span class="dash-bar-label">${g.label}</span><span style="font-size:11px;color:#94a3b8;margin-left:8px">Sem dados</span></div>`;
+    const pct = (g.media * 100).toFixed(1);
+    const cor = g.media >= 0.6 ? '#16a34a' : g.media >= 0.4 ? '#d97706' : '#dc2626';
+    return `<div class="dash-bar-row">
+      <span class="dash-bar-label" style="width:110px">${g.label}</span>
+      <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${pct}%;background:${cor}">${pct}%</div></div>
+      <span style="font-size:11px;color:var(--ink-3)">${g.total} aluno(s)</span>
+    </div>`;
+  }).join('');
+
+  // Cards KPI por sexo
+  const cards = statsGrupos.map(g => {
+    const mediaStr = g.media !== null ? (g.media*100).toFixed(1)+'%' : '—';
+    const cor = g.media !== null ? (g.media >= 0.6 ? '#16a34a' : g.media >= 0.4 ? '#d97706' : '#dc2626') : '#94a3b8';
+    return `<div class="dash-kpi" style="border-left:4px solid ${g.cor}">
+      <div class="dash-kpi-val" style="color:${cor};font-size:22px">${mediaStr}</div>
+      <div class="dash-kpi-lbl">${g.label}</div>
+      <div class="dash-kpi-sub">${g.total} aluno(s) · ≥60%: ${g.aprovados} · &lt;40%: ${g.reprovados}</div>
+    </div>`;
+  }).join('');
+
+  // Tabela por turma x sexo
+  let tabelaTurmaXSexo = '';
+  const turmasComDados = turmasDisp.filter(t => getMaxTurma(t, filtroTri) > 0);
+  if (turmasComDados.length > 0) {
+    const rowsTurma = turmasComDados.map(t => {
+      const maxT = getMaxTurma(t, filtroTri);
+      const cols = configGrupos.map(g => {
+        const alunosDaTurma = grupos[g.key].filter(x => x.t === t);
+        if (!alunosDaTurma.length) return '<td style="text-align:center;color:#94a3b8">—</td>';
+        const st = _grupoStats(alunosDaTurma, [t], filtroTri);
+        const mediaStr = st.media !== null ? (st.media*100).toFixed(1)+'%' : '—';
+        const cor = st.media !== null ? (st.media >= 0.6 ? '#16a34a' : st.media >= 0.4 ? '#d97706' : '#dc2626') : '#94a3b8';
+        return `<td style="text-align:center"><span style="font-weight:700;color:${cor}">${mediaStr}</span><br><span style="font-size:10px;color:#94a3b8">${alunosDaTurma.length}al</span></td>`;
+      }).join('');
+      return `<tr><td style="font-weight:600">${t}</td>${cols}</tr>`;
+    }).join('');
+    const ths = configGrupos.map(g => `<th style="text-align:center">${g.label}</th>`).join('');
+    tabelaTurmaXSexo = `<div class="dash-chart-wrap" style="margin-top:14px">
+      <div class="dash-chart-title">📋 Aproveitamento por Turma × Sexo</div>
+      <div style="overflow-x:auto"><table class="dash-table">
+        <thead><tr><th>Turma</th>${ths}</tr></thead>
+        <tbody>${rowsTurma}</tbody>
+      </table></div>
+    </div>`;
+  }
+
+  return `${painelMet}
+  <div class="dash-chart-wrap">
+    <div class="dash-chart-title">⚧ Aproveitamento Médio por Sexo</div>
+    ${barras}
+  </div>
+  <div class="dash-grid" style="margin-bottom:14px">${cards}</div>
+  ${tabelaTurmaXSexo}`;
+}
+
+function dashCompEtnia(turmasDisp, filtroTri) {
+  const painelMet = `<div class="dash-info-metodologia">
+    <div class="dash-info-titulo">ℹ️ Como interpretar — Comparativo por Etnia/Cor</div>
+    <div class="dash-info-corpo">
+      Compara o <strong>aproveitamento médio</strong> entre grupos de cor/etnia autodeclarada nas turmas selecionadas, conforme categorias do IBGE.<br>
+      Permite identificar disparidades de desempenho entre grupos étnicos. Alunos sem declaração aparecem como "ND".
+    </div>
+  </div>`;
+
+  const corEtnia = { Branco:'#3b82f6', Pardo:'#f59e0b', Preto:'#1e293b', Amarelo:'#eab308', 'Indígena':'#16a34a', ND:'#94a3b8' };
+  const grupos = {};
+  turmasDisp.forEach(t => {
+    (db.turmas[t] || []).forEach(nome => {
+      const info = getInfoAluno(t, nome);
+      const et = info.etnia || 'ND';
+      if (!grupos[et]) grupos[et] = [];
+      grupos[et].push({ t, nome });
+    });
+  });
+
+  const etnias = Object.keys(grupos).sort((a,b) => grupos[b].length - grupos[a].length);
+  if (!etnias.length) return painelMet + '<div class="empty"><span class="empty-icon">🌈</span>Nenhum dado de etnia disponível para comparação.</div>';
+
+  const statsEtnias = etnias.map(et => {
+    const st = _grupoStats(grupos[et], turmasDisp, filtroTri);
+    return { et, cor: corEtnia[et] || '#64748b', total: grupos[et].length, ...st };
+  });
+
+  // Barras
+  const barras = statsEtnias.map(g => {
+    if (g.media === null) return `<div class="dash-bar-row"><span class="dash-bar-label" style="width:110px">${g.et}</span><span style="font-size:11px;color:#94a3b8;margin-left:8px">Sem dados de nota</span><span style="font-size:11px;color:var(--ink-3);margin-left:8px">${g.total} aluno(s)</span></div>`;
+    const pct = (g.media * 100).toFixed(1);
+    const corBar = g.media >= 0.6 ? '#16a34a' : g.media >= 0.4 ? '#d97706' : '#dc2626';
+    return `<div class="dash-bar-row">
+      <span class="dash-bar-label" style="width:110px">${g.et}</span>
+      <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${pct}%;background:${corBar}">${pct}%</div></div>
+      <span style="font-size:11px;color:var(--ink-3)">${g.total} aluno(s)</span>
+    </div>`;
+  }).join('');
+
+  // Tabela resumo
+  const rowsTabela = statsEtnias.map((g, i) => {
+    const mediaStr = g.media !== null ? (g.media*100).toFixed(1)+'%' : '—';
+    const corMedia = g.media !== null ? (g.media >= 0.6 ? '#16a34a' : g.media >= 0.4 ? '#d97706' : '#dc2626') : '#94a3b8';
+    return `<tr>
+      <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${g.cor};margin-right:6px;vertical-align:middle"></span>${g.et}</td>
+      <td style="text-align:center">${g.total}</td>
+      <td style="text-align:center"><span style="font-weight:700;color:${corMedia}">${mediaStr}</span></td>
+      <td style="text-align:center"><span style="color:#16a34a;font-weight:600">${g.aprovados}</span></td>
+      <td style="text-align:center"><span style="color:#dc2626;font-weight:600">${g.reprovados}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Tabela por turma x etnia
+  let tabelaTurmaXEtnia = '';
+  const turmasComDados = turmasDisp.filter(t => getMaxTurma(t, filtroTri) > 0);
+  if (turmasComDados.length > 0 && etnias.length > 0) {
+    const rowsTurma = turmasComDados.map(t => {
+      const cols = etnias.map(et => {
+        const alunosDaTurma = grupos[et].filter(x => x.t === t);
+        if (!alunosDaTurma.length) return '<td style="text-align:center;color:#94a3b8">—</td>';
+        const st = _grupoStats(alunosDaTurma, [t], filtroTri);
+        const mediaStr = st.media !== null ? (st.media*100).toFixed(1)+'%' : '—';
+        const cor = st.media !== null ? (st.media >= 0.6 ? '#16a34a' : st.media >= 0.4 ? '#d97706' : '#dc2626') : '#94a3b8';
+        return `<td style="text-align:center"><span style="font-weight:700;color:${cor}">${mediaStr}</span><br><span style="font-size:10px;color:#94a3b8">${alunosDaTurma.length}al</span></td>`;
+      }).join('');
+      return `<tr><td style="font-weight:600">${t}</td>${cols}</tr>`;
+    }).join('');
+    const ths = etnias.map(et => `<th style="text-align:center">${et}</th>`).join('');
+    tabelaTurmaXEtnia = `<div class="dash-chart-wrap" style="margin-top:14px">
+      <div class="dash-chart-title">📋 Aproveitamento por Turma × Etnia/Cor</div>
+      <div style="overflow-x:auto"><table class="dash-table">
+        <thead><tr><th>Turma</th>${ths}</tr></thead>
+        <tbody>${rowsTurma}</tbody>
+      </table></div>
+    </div>`;
+  }
+
+  return `${painelMet}
+  <div class="dash-chart-wrap">
+    <div class="dash-chart-title">🌈 Aproveitamento Médio por Cor/Etnia</div>
+    ${barras}
+  </div>
+  <div class="dash-chart-wrap" style="margin-top:14px">
+    <div class="dash-chart-title">📊 Tabela por Grupo Étnico-Racial</div>
+    <div style="overflow-x:auto"><table class="dash-table">
+      <thead><tr><th>Cor/Etnia</th><th style="text-align:center">Alunos</th><th style="text-align:center">Média</th><th style="text-align:center">≥60%</th><th style="text-align:center"><40%</th></tr></thead>
+      <tbody>${rowsTabela}</tbody>
+    </table></div>
+  </div>
+  ${tabelaTurmaXEtnia}`;
 }
 
 // ─── LOGIN MULTI-PROFESSOR ───────────────────────────────────────────────────
