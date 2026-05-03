@@ -32,6 +32,67 @@
   --shadow-lg: 0 8px 32px rgba(15,23,42,.12);
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ─── FICHA DO ALUNO ────────────────────────────────────────────────────── */
+.ficha-wrap { padding: 4px 0; }
+.ficha-search-bar { display:flex; gap:10px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
+.ficha-search-input { flex:1; min-width:200px; padding:9px 14px; border:1px solid var(--border-2); border-radius:var(--radius); font-family:'DM Sans',sans-serif; font-size:13px; color:var(--ink); background:white; }
+.ficha-search-input:focus { outline:none; border-color:var(--ocean-mid); box-shadow:0 0 0 3px rgba(37,99,168,.12); }
+.ficha-card { background:white; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-lg); }
+.ficha-header { background:linear-gradient(135deg, var(--ocean) 0%, #0f2744 100%); padding:20px 24px; display:flex; align-items:center; gap:16px; }
+.ficha-avatar { width:56px; height:56px; border-radius:50%; background:rgba(255,255,255,.15); display:flex; align-items:center; justify-content:center; font-size:26px; flex-shrink:0; overflow:hidden; border:2px solid rgba(255,255,255,.25); }
+.ficha-avatar img { width:100%; height:100%; object-fit:cover; }
+.ficha-nome { font-family:'Syne',sans-serif; font-size:18px; font-weight:700; color:white; }
+.ficha-sub { font-size:12px; color:rgba(255,255,255,.65); margin-top:3px; }
+.ficha-tri-row { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; padding:16px 20px; background:var(--sky-pale); border-bottom:1px solid var(--border); }
+.ficha-tri-box { background:white; border:1px solid var(--border); border-radius:var(--radius); padding:12px; }
+.ficha-tri-label { font-family:'Syne',sans-serif; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--ink-3); margin-bottom:8px; }
+.ficha-nota-val { font-size:22px; font-weight:700; font-family:'DM Mono',monospace; }
+.ficha-nota-val.ok { color:var(--green-mid); }
+.ficha-nota-val.med { color:var(--amber-mid); }
+.ficha-nota-val.baixo { color:#dc2626; }
+.ficha-nota-val.nd { color:var(--ink-3); }
+.ficha-mini-label { font-size:10px; color:var(--ink-3); margin-top:1px; }
+.ficha-anot-row { padding:16px 20px; }
+.ficha-anot-tri { margin-bottom:14px; }
+.ficha-anot-tri-header { font-family:'Syne',sans-serif; font-size:12px; font-weight:700; padding:6px 10px; border-radius:6px; margin-bottom:8px; display:inline-flex; align-items:center; gap:6px; }
+.ficha-anot-campos { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.ficha-anot-campo { background:var(--sky-pale); border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:12px; }
+.ficha-anot-campo-lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--ink-3); margin-bottom:4px; }
+.ficha-anot-campo-val { color:var(--ink-2); line-height:1.5; }
+.ficha-evolucao { display:flex; align-items:center; gap:6px; margin-top:8px; }
+.ficha-evolucao-dot { width:10px; height:10px; border-radius:50%; }
+@media (max-width:600px) { .ficha-tri-row { grid-template-columns:1fr; } .ficha-anot-campos { grid-template-columns:1fr; } }
+
+/* ─── ALERTAS DE RISCO ──────────────────────────────────────────────────── */
+.alerta-risco-panel { background:white; border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:18px; box-shadow:var(--shadow); }
+.alerta-risco-header { background:linear-gradient(135deg,#7f1d1d,#991b1b); color:white; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.alerta-risco-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; }
+.alerta-risco-badge { background:rgba(255,255,255,.2); border-radius:12px; padding:2px 10px; font-size:12px; font-weight:700; }
+.alerta-risco-lista { divide-y: 1px solid var(--border); }
+.alerta-risco-item { display:flex; align-items:center; gap:12px; padding:11px 18px; border-bottom:1px solid var(--border); font-size:13px; }
+.alerta-risco-item:last-child { border-bottom:none; }
+.alerta-risco-item .nome { font-weight:600; flex:1; min-width:0; }
+.alerta-risco-item .turma-badge { font-size:10px; background:var(--sky); color:var(--ocean-mid); border-radius:8px; padding:2px 8px; font-weight:600; white-space:nowrap; }
+.alerta-risco-item .historico { display:flex; gap:4px; }
+.alerta-tri-pill { font-size:10px; font-family:'DM Mono',monospace; font-weight:700; padding:2px 7px; border-radius:8px; }
+.alerta-tri-pill.ok { background:#dcfce7; color:#166534; }
+.alerta-tri-pill.med { background:#fef3c7; color:#92400e; }
+.alerta-tri-pill.baixo { background:#fee2e2; color:#991b1b; }
+.alerta-tri-pill.nd { background:#f1f5f9; color:#64748b; }
+.alerta-risco-empty { padding:16px 20px; font-size:12px; color:var(--ink-3); text-align:center; }
+
+/* ─── BOTÃO RELATÓRIO IA ────────────────────────────────────────────────── */
+.btn-ia-relatorio { display:inline-flex; align-items:center; gap:7px; padding:8px 16px; background:linear-gradient(135deg,#1e3a8a,#1d4ed8); color:white; border:none; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all .2s; white-space:nowrap; }
+.btn-ia-relatorio:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(29,78,216,.35); }
+.btn-ia-relatorio:disabled { opacity:.6; cursor:wait; transform:none; }
+.modal-ia-overlay { position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.65);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease }
+.modal-ia-box { background:white;border-radius:16px;padding:28px;max-width:640px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:16px;max-height:85vh;overflow:hidden }
+.modal-ia-title { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; color:var(--ocean); }
+.modal-ia-content { flex:1; overflow-y:auto; font-size:13px; line-height:1.7; color:var(--ink-2); white-space:pre-wrap; background:var(--sky-pale); border:1px solid var(--border); border-radius:10px; padding:16px; min-height:120px; }
+.modal-ia-loading { display:flex; align-items:center; gap:10px; color:var(--ink-3); font-size:13px; }
+.modal-ia-loading .spinner { width:18px; height:18px; border:2px solid var(--border); border-top-color:var(--ocean-mid); border-radius:50%; animation:spin .7s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
 body {
   font-family: 'DM Sans', sans-serif;
   background: var(--sand);
@@ -1056,6 +1117,7 @@ create table if not exists sessoes_ativas (
         <button class="dash-tab" id="dash-tab-notas" onclick="mudaDashTab('notas')">📋 Notas</button>
         <button class="dash-tab" id="dash-tab-perfil" onclick="mudaDashTab('perfil')">👥 Perfil</button>
         <button class="dash-tab" id="dash-tab-comp" onclick="mudaDashTab('comp')">⚖️ Comparativo</button>
+        <button class="dash-tab" id="dash-tab-ficha" onclick="mudaDashTab('ficha')" style="background:linear-gradient(135deg,#1e3a8a,#1d4ed8);color:white;border-color:#1d4ed8">🗂️ Ficha do Aluno</button>
       </div>
     </div>
     <div id="dash-content"></div>
@@ -2519,8 +2581,11 @@ function renderizarEditorAnotacao(a) {
     '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">' +
     '<div class="anot-tri-tabs" style="margin-bottom:0">' + triTabs + '</div>' + btnPuxarAnterior + '</div>' +
     camposHtml +
-    '<div style="display:flex;align-items:center;gap:12px;margin-top:8px">' +
+    '<div style="display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap">' +
     '<span class="anot-salvo" id="anot-salvo-lbl">✓ Salvo</span>' +
+    '<button class="btn-ia-relatorio" onclick="gerarRelatorioIA(\'' + esc(a) + '\')" title="Gera um texto narrativo para boletim usando IA (API Anthropic)">' +
+      '✨ Gerar Relatório por IA' +
+    '</button>' +
     '</div></div>';
 }
 
@@ -2585,8 +2650,306 @@ function mostrarSalvoAnot() {
 
 // ─── GERAÇÃO DE RELATÓRIO (IA) ───────────────────────────────────────────────
 
+async function gerarRelatorioIA(nomeAluno) {
+  const turmaRef = getTurmaAnotacoes();
+  const campos = ['participacao','comportamento','aprendizagem','dificuldades','destaques','observacoes'];
+  const campoLabels = {
+    participacao:'Participação e Engajamento', comportamento:'Comportamento e Convivência',
+    aprendizagem:'Aprendizagem e Desenvolvimento', dificuldades:'Dificuldades Observadas',
+    destaques:'Destaques e Potenciais', observacoes:'Outras Observações'
+  };
+  const triLabels = {1:'1º Trimestre', 2:'2º Trimestre', 3:'3º Trimestre'};
 
-// ─── EXPORTAR EXCEL / PDF ANOTAÇÕES ─────────────────────────────────────────
+  // Monta contexto de dados do aluno
+  let contexto = `Aluno(a): ${nomeAluno}\nTurma: ${turmaRef || '—'}\nDisciplina: Geografia\n\n`;
+  TRIMESTRES.forEach(tr => {
+    const d = (db.anotacoes && db.anotacoes[nomeAluno] && db.anotacoes[nomeAluno]['t'+tr]) || {};
+    const temDados = Object.values(d).some(v => v && v.trim());
+    if (!temDados) return;
+    contexto += `=== ${triLabels[tr]} ===\n`;
+    campos.forEach(c => {
+      if (d[c] && d[c].trim()) contexto += `${campoLabels[c]}: ${d[c].trim()}\n`;
+    });
+    const auto = (db.autoavaliacao && db.autoavaliacao[nomeAluno] && db.autoavaliacao[nomeAluno]['t'+tr]);
+    if (auto !== undefined && auto !== '') contexto += `Autoavaliação do aluno: ${auto}/10\n`;
+    // Notas
+    const t = turmaRef;
+    const maxT = t ? getMaxTurma(t, tr) : 0;
+    const tot = t ? getTotalAluno(t, nomeAluno, tr) : 0;
+    if (maxT > 0) contexto += `Aproveitamento em notas: ${(tot/maxT*100).toFixed(0)}%\n`;
+    contexto += '\n';
+  });
+
+  // Cria modal de carregamento
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-ia-overlay';
+  overlay.id = 'modal-ia-relatorio';
+  overlay.innerHTML = `
+    <div class="modal-ia-box">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="modal-ia-title">✨ Relatório Narrativo — ${nomeAluno}</div>
+        <button onclick="document.getElementById('modal-ia-relatorio').remove()" style="background:#f1f5f9;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px">✕</button>
+      </div>
+      <div class="modal-ia-content" id="ia-relatorio-texto">
+        <div class="modal-ia-loading">
+          <div class="spinner"></div>
+          <span>Gerando relatório narrativo com IA… aguarde alguns segundos.</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="btn-copiar-relatorio" style="display:none;padding:9px 18px;background:#16a34a;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" onclick="copiarRelatorio()">📋 Copiar texto</button>
+        <button onclick="document.getElementById('modal-ia-relatorio').remove()" style="padding:9px 18px;background:#f1f5f9;color:#334155;border:none;border-radius:8px;cursor:pointer;font-size:13px">Fechar</button>
+        <span style="font-size:11px;color:#94a3b8;align-self:center;margin-left:4px">Gerado pela API Anthropic · Revise antes de usar</span>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  try {
+    const resp = await fetch(SB_URL + '/functions/v1/gerar-relatorio-ia', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SB_KEY
+      },
+      body: JSON.stringify({ contexto, nomeAluno })
+    });
+
+    const data = await resp.json();
+    const texto = data.texto || data.error || 'Não foi possível gerar o relatório.';
+
+    const el = document.getElementById('ia-relatorio-texto');
+    if (el) { el.textContent = texto; el.style.background = '#f0f9ff'; }
+    const btnCopiar = document.getElementById('btn-copiar-relatorio');
+    if (btnCopiar) { btnCopiar.style.display = ''; btnCopiar._texto = texto; }
+
+  } catch(e) {
+    const el = document.getElementById('ia-relatorio-texto');
+    if (el) {
+      el.style.background = '#fef2f2';
+      el.textContent = '⚠️ Erro ao chamar a API Anthropic. Verifique sua conexão e tente novamente.\n\nDetalhe: ' + e.message;
+    }
+  }
+}
+
+function copiarRelatorio() {
+  const btn = document.getElementById('btn-copiar-relatorio');
+  const texto = btn && btn._texto;
+  if (!texto) return;
+  navigator.clipboard.writeText(texto).then(() => {
+    btn.textContent = '✅ Copiado!';
+    setTimeout(() => { btn.textContent = '📋 Copiar texto'; }, 2000);
+  }).catch(() => toast('Não foi possível copiar automaticamente.'));
+}
+
+// ─── FICHA INDIVIDUAL DO ALUNO ────────────────────────────────────────────────
+
+function dashFicha(turmasDisp) {
+  const campoLabels = {
+    participacao:'💬 Participação', comportamento:'🤝 Comportamento',
+    aprendizagem:'📚 Aprendizagem', dificuldades:'⚠️ Dificuldades',
+    destaques:'⭐ Destaques', observacoes:'📋 Observações'
+  };
+  const triColors = {1:'#1e40af', 2:'#15803d', 3:'#b45309'};
+  const triBg = {1:'#eff6ff', 2:'#f0fdf4', 3:'#fffbeb'};
+  const triLabels = {1:'1º Trimestre', 2:'2º Trimestre', 3:'3º Trimestre'};
+
+  // Coleta todos os alunos de todas as turmas disponíveis
+  const todosAlunos = [];
+  turmasDisp.forEach(t => {
+    (db.turmas[t] || []).forEach(nome => todosAlunos.push({nome, turma: t}));
+  });
+
+  if (!todosAlunos.length) {
+    return '<div class="empty"><span class="empty-icon">🗂️</span>Nenhum aluno cadastrado nas turmas disponíveis.</div>';
+  }
+
+  // Opções do select
+  const opts = todosAlunos.map(({nome, turma}) =>
+    `<option value="${esc(nome)}|${esc(turma)}">${nome} (${turma})</option>`
+  ).join('');
+
+  return `<div class="ficha-wrap">
+    <div class="ficha-search-bar">
+      <select id="ficha-aluno-sel" onchange="renderizarFichaAluno()" style="flex:1;padding:9px 14px;border:1px solid var(--border-2);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:13px;color:var(--ink);background:white;max-width:420px">
+        <option value="">— Selecione um aluno —</option>
+        ${opts}
+      </select>
+      <span style="font-size:12px;color:var(--ink-3)">${todosAlunos.length} alunos disponíveis</span>
+    </div>
+    <div id="ficha-aluno-conteudo">
+      <div style="text-align:center;padding:40px;color:var(--ink-3)">
+        <div style="font-size:40px;margin-bottom:12px;opacity:.3">🗂️</div>
+        <div style="font-size:13px">Selecione um aluno acima para ver sua ficha longitudinal</div>
+        <div style="font-size:12px;margin-top:6px;color:var(--ink-3)">Notas + anotações + autoavaliação dos 3 trimestres em uma só visão</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderizarFichaAluno() {
+  const sel = document.getElementById('ficha-aluno-sel');
+  if (!sel || !sel.value) return;
+  const [nome, turma] = sel.value.split('|');
+  const cont = document.getElementById('ficha-aluno-conteudo');
+  if (!cont) return;
+
+  const campoLabels = {
+    participacao:'💬 Participação', comportamento:'🤝 Comportamento',
+    aprendizagem:'📚 Aprendizagem', dificuldades:'⚠️ Dificuldades',
+    destaques:'⭐ Destaques', observacoes:'📋 Observações'
+  };
+  const triColors = {1:'#1e40af', 2:'#15803d', 3:'#b45309'};
+  const triBg = {1:'#eff6ff', 2:'#f0fdf4', 3:'#fffbeb'};
+  const triLabels = {1:'1º Trimestre', 2:'2º Trimestre', 3:'3º Trimestre'};
+
+  const info = getInfoAluno(turma, nome);
+  const fotoSrc = db.fotos_alunos && db.fotos_alunos[nome] ? db.fotos_alunos[nome] : null;
+  const fotoHtml = fotoSrc
+    ? `<img src="${fotoSrc}" alt="Foto" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.3)">`
+    : `<div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:28px">👤</div>`;
+
+  // Tri boxes com notas
+  const maxT_all = getMaxTurma(turma, '');
+  const triBoxes = TRIMESTRES.map(tr => {
+    const maxT = getMaxTurma(turma, tr);
+    const tot = getTotalAluno(turma, nome, tr);
+    const pct = maxT > 0 ? tot / maxT : -1;
+    const auto = (db.autoavaliacao && db.autoavaliacao[nome] && db.autoavaliacao[nome]['t'+tr]);
+    const hasAuto = auto !== undefined && auto !== '';
+    let cls = 'nd', val = '—';
+    if (pct >= 0) {
+      val = (pct*100).toFixed(0)+'%';
+      cls = pct >= 0.6 ? 'ok' : pct >= 0.4 ? 'med' : 'baixo';
+    }
+    const anot = (db.anotacoes && db.anotacoes[nome] && db.anotacoes[nome]['t'+tr]) || {};
+    const temAnot = Object.values(anot).some(v => v && v.trim());
+    return `<div class="ficha-tri-box" style="border-top:3px solid ${triColors[tr]}">
+      <div class="ficha-tri-label">${triLabels[tr]}</div>
+      <div class="ficha-nota-val ${cls}">${val}</div>
+      <div class="ficha-mini-label">${maxT > 0 ? `${tot.toFixed(1)}/${maxT.toFixed(0)} pts` : 'Sem atividades'}</div>
+      ${hasAuto ? `<div style="margin-top:6px;font-size:11px;color:var(--ink-3)">Autoaval.: <strong style="color:var(--ink)">${auto}/10</strong></div>` : ''}
+      ${temAnot ? `<div style="margin-top:5px;font-size:10px;background:#dcfce7;color:#166534;border-radius:8px;padding:1px 7px;display:inline-block">✓ Anotações</div>` : ''}
+    </div>`;
+  }).join('');
+
+  // Anotações longitudinais
+  let anotHtml = '';
+  let temAlgumaAnot = false;
+  TRIMESTRES.forEach(tr => {
+    const d = (db.anotacoes && db.anotacoes[nome] && db.anotacoes[nome]['t'+tr]) || {};
+    const campos = Object.entries(campoLabels).filter(([k]) => d[k] && d[k].trim());
+    if (!campos.length) return;
+    temAlgumaAnot = true;
+    anotHtml += `<div class="ficha-anot-tri">
+      <div class="ficha-anot-tri-header" style="background:${triBg[tr]};color:${triColors[tr]};border:1px solid ${triColors[tr]}30">
+        ${triLabels[tr]}
+      </div>
+      <div class="ficha-anot-campos">
+        ${campos.map(([k, lbl]) => `<div class="ficha-anot-campo">
+          <div class="ficha-anot-campo-lbl">${lbl}</div>
+          <div class="ficha-anot-campo-val">${d[k].trim().replace(/</g,'&lt;')}</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  });
+
+  if (!temAlgumaAnot) {
+    anotHtml = '<div style="text-align:center;padding:20px;color:var(--ink-3);font-size:12px">Nenhuma anotação registrada ainda para este aluno.</div>';
+  }
+
+  cont.innerHTML = `<div class="ficha-card">
+    <div class="ficha-header">
+      ${fotoHtml}
+      <div>
+        <div class="ficha-nome">${nome}</div>
+        <div class="ficha-sub">${turma} · ${chipSexo(info.sexo)} ${chipEtnia(info.etnia)} · Geografia · 2026</div>
+      </div>
+    </div>
+    <div class="ficha-tri-row">${triBoxes}</div>
+    <div class="ficha-anot-row">
+      <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px">📝 Anotações por Trimestre</div>
+      ${anotHtml}
+    </div>
+  </div>`;
+}
+
+// ─── PAINEL ALERTAS DE RISCO ─────────────────────────────────────────────────
+
+function gerarAlertasRisco(turmasDisp, filtroTri) {
+  const emRisco = [];
+
+  turmasDisp.forEach(t => {
+    const alunos = db.turmas[t] || [];
+    alunos.forEach(nome => {
+      const historico = [];
+      const tris = filtroTri ? [parseInt(filtroTri)] : TRIMESTRES;
+      tris.forEach(tr => {
+        const max = getMaxTurma(t, tr);
+        const tot = getTotalAluno(t, nome, tr);
+        if (max <= 0) { historico.push({tr, pct: -1}); return; }
+        historico.push({tr, pct: tot/max});
+      });
+      const comDados = historico.filter(h => h.pct >= 0);
+      const abaixo40 = comDados.filter(h => h.pct < 0.4);
+      // Alerta: 2+ trimestres abaixo de 40%, ou único trimestre com dados abaixo de 40%
+      if (abaixo40.length >= 1 && comDados.length >= 1) {
+        emRisco.push({nome, turma: t, historico, comDados, abaixo40});
+      }
+    });
+  });
+
+  // Ordena por quantidade de trimestres críticos (mais crítico primeiro)
+  emRisco.sort((a, b) => b.abaixo40.length - a.abaixo40.length);
+
+  if (!emRisco.length) {
+    return `<div class="alerta-risco-panel" style="border-color:#dcfce7">
+      <div class="alerta-risco-header" style="background:linear-gradient(135deg,#14532d,#16a34a)">
+        <span class="alerta-risco-title">✅ Atenção Especial</span>
+        <span class="alerta-risco-badge">0 alertas</span>
+      </div>
+      <div class="alerta-risco-empty">Nenhum aluno com aproveitamento abaixo de 40% no período selecionado. 🎉</div>
+    </div>`;
+  }
+
+  const pillCls = (pct) => pct < 0 ? 'nd' : pct < 0.4 ? 'baixo' : pct < 0.6 ? 'med' : 'ok';
+  const pillVal = (pct) => pct < 0 ? '—' : (pct*100).toFixed(0)+'%';
+  const triLabels = {1:'1Tri', 2:'2Tri', 3:'3Tri'};
+
+  const itens = emRisco.map(({nome, turma, historico}) => {
+    const pills = historico.map(h =>
+      `<span class="alerta-tri-pill ${pillCls(h.pct)}" title="${triLabels[h.tr]}">${triLabels[h.tr]}: ${pillVal(h.pct)}</span>`
+    ).join('');
+    return `<div class="alerta-risco-item">
+      <span style="font-size:16px">${historico.filter(h=>h.pct>=0&&h.pct<0.4).length >= 2 ? '🔴' : '🟡'}</span>
+      <span class="nome">${nome}</span>
+      <span class="turma-badge">${turma}</span>
+      <div class="historico">${pills}</div>
+      <button style="font-size:11px;padding:3px 10px;border:1px solid var(--border-2);border-radius:6px;background:white;cursor:pointer;white-space:nowrap" onclick="irFichaAluno('${esc(nome)}','${esc(turma)}')">Ver Ficha</button>
+    </div>`;
+  }).join('');
+
+  return `<div class="alerta-risco-panel">
+    <div class="alerta-risco-header">
+      <span class="alerta-risco-title">🚨 Atenção Especial — Alunos em Risco</span>
+      <span class="alerta-risco-badge">${emRisco.length} aluno${emRisco.length>1?'s':''}</span>
+    </div>
+    <div class="alerta-risco-lista">${itens}</div>
+  </div>`;
+}
+
+function irFichaAluno(nome, turma) {
+  mudaDashTab('ficha');
+  setTimeout(() => {
+    const sel = document.getElementById('ficha-aluno-sel');
+    if (!sel) return;
+    const val = nome + '|' + turma;
+    // Procura a opção correspondente
+    for (let o of sel.options) {
+      if (o.value === val) { sel.value = val; break; }
+    }
+    renderizarFichaAluno();
+  }, 80);
+}
 function abrirModalExportExcel() {
   const turmaRef = getTurmaAnotacoes();
   const alunos = turmaRef ? (db.turmas[turmaRef] || []) : [];
@@ -3173,7 +3536,7 @@ function executarImpressao() {
 function abrirModalImpressaoDash() {
   const filtroTurma = document.getElementById('dash-sel-turma')?.value || '';
   const filtroTri   = document.getElementById('dash-sel-tri')?.value   || '';
-  const tabLabel    = { geral:'Visão Geral', notas:'Notas', perfil:'Perfil', comp:'Comparativo' }[dashTabAtivo] || dashTabAtivo;
+  const tabLabel    = { geral:'Visão Geral', notas:'Notas', perfil:'Perfil', comp:'Comparativo', ficha:'Ficha do Aluno' }[dashTabAtivo] || dashTabAtivo;
 
   let m = document.getElementById('modal-impressao-dash');
   if (!m) { m = document.createElement('div'); m.id = 'modal-impressao-dash'; document.body.appendChild(m); }
@@ -3677,7 +4040,7 @@ function mudaDashTab(tab) {
   const el = document.getElementById('dash-tab-' + tab);
   if (el) el.classList.add('ativo');
   const filtroTri = document.getElementById('dash-filtro-tri');
-  if (filtroTri) filtroTri.style.display = tab === 'perfil' ? 'none' : 'flex';
+  if (filtroTri) filtroTri.style.display = (tab === 'perfil' || tab === 'ficha') ? 'none' : 'flex';
   renderizarDashboard();
 }
 
@@ -3710,10 +4073,11 @@ function renderizarDashboard() {
   const turmasDispBase = isEverton ? Object.keys(db.turmas).sort() : (sessao ? sessao.turmas : []);
   const turmasDisp = filtroTurma ? [filtroTurma] : turmasDispBase;
 
-  if (dashTabAtivo === 'geral')  cont.innerHTML = dashGeral(turmasDisp, filtroTri);
+  if (dashTabAtivo === 'geral')  cont.innerHTML = gerarAlertasRisco(turmasDisp, filtroTri) + dashGeral(turmasDisp, filtroTri);
   if (dashTabAtivo === 'notas')  cont.innerHTML = dashNotas(turmasDisp, filtroTri);
   if (dashTabAtivo === 'perfil') cont.innerHTML = dashPerfil(turmasDisp);
   if (dashTabAtivo === 'comp')   cont.innerHTML = dashComparativo(turmasDisp, filtroTri);
+  if (dashTabAtivo === 'ficha')  cont.innerHTML = dashFicha(turmasDisp);
 }
 
 function getTotalAluno(t, nome, filtroTri) {
