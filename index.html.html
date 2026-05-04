@@ -2321,8 +2321,14 @@ function renderizarTurmas() {
     const rows = alunos.map((a, i) => {
       const info = getInfoAluno(t, a);
       const chips = '<span class="inline-perfil">' + chipSexo(info.sexo) + chipEtnia(info.etnia) + '</span>';
-      return '<div class="aluno-row" id="aluno-row-' + alunoId(t,a) + '"><span class="aluno-idx">' + String(i+1).padStart(2,'0') + '</span>' +
-        '<span class="aluno-nome">' + a + '</span>' +
+      const aid = alunoId(t, a);
+      const fotoSrc = db.fotos_alunos && db.fotos_alunos[a] ? db.fotos_alunos[a] : null;
+      const fotoThumb = fotoSrc
+        ? '<img src="' + fotoSrc + '" alt="Foto" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--ocean-light);cursor:pointer;flex-shrink:0" onclick="triggerFotoUploadTurma(\'' + esc(a) + '\')" title="Clique para trocar foto">'
+        : '<button class="chip-edit-btn" title="Adicionar foto do aluno" onclick="triggerFotoUploadTurma(\'' + esc(a) + '\')" style="width:28px;height:28px;font-size:13px;background:#f0f7ff;border-color:#93c5fd">📷</button>';
+      return '<div class="aluno-row" id="aluno-row-' + aid + '"><span class="aluno-idx">' + String(i+1).padStart(2,'0') + '</span>' +
+        fotoThumb +
+        '<span class="aluno-nome" style="margin-left:4px">' + a + '</span>' +
         chips +
         '<div style="display:flex;gap:6px">' +
         '<button class="chip-edit-btn" title="Editar sexo/etnia" onclick="abrirEdicaoInlinePerfil(\'' + esc(t) + '\',' + i + ')">✏️</button>' +
@@ -2460,6 +2466,30 @@ function carregarFotoAluno(a, input) {
     toast('📷 Foto de ' + a.split(' ')[0] + ' salva! ✓');
   };
   reader.readAsDataURL(file);
+}
+
+function triggerFotoUploadTurma(a) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.style.display = 'none';
+  input.onchange = () => {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      if (!db.fotos_alunos) db.fotos_alunos = {};
+      db.fotos_alunos[a] = e.target.result;
+      salvar();
+      renderizarTurmas();
+      renderizarAnotacoes();
+      toast('📷 Foto de ' + a.split(' ')[0] + ' salva! ✓');
+    };
+    reader.readAsDataURL(file);
+    setTimeout(() => input.remove(), 60000);
+  };
+  document.body.appendChild(input);
+  input.click();
 }
 
 // ─── ANOTAÇÕES (turma referência dinâmica) ───────────────────────────────────
@@ -3435,7 +3465,10 @@ function abrirModalImpressao() {
 
   m.innerHTML = `<div style="background:white;border-radius:16px;padding:28px;max-width:480px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3)">
     <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#1a3a5c;margin-bottom:4px">🖨️ Ajustes de Impressão</div>
-    <div style="font-size:12px;color:#64748b;margin-bottom:20px">Configure como o diário será impresso</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:4px">Configure como o diário será impresso</div>
+    <div style="font-size:12px;color:#1e40af;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;margin-bottom:16px">
+      ${t ? '📍 Turma: <strong>' + t + '</strong> — será impressa em uma folha paisagem' : '📚 <strong>Todas as turmas</strong> serão impressas — cada turma em uma folha separada em paisagem'}
+    </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
       <div>
@@ -3499,6 +3532,7 @@ function abrirModalImpressao() {
 }
 
 function executarImpressao() {
+  const turmaSelecionada = document.getElementById('selectTurmaNotas').value;
   const orientacao = document.getElementById('imp-orientacao').value;
   const papel     = document.getElementById('imp-papel').value;
   const margem    = document.getElementById('imp-margem').value;
@@ -3508,59 +3542,137 @@ function executarImpressao() {
   const showPerfil = document.getElementById('imp-perfil').checked;
   const showObs    = document.getElementById('imp-obs').checked;
 
-  // Aplica variáveis CSS de impressão
-  document.documentElement.style.setProperty('--print-orientation', `${orientacao} ${papel}`);
-  document.documentElement.style.setProperty('--print-margin', margem);
-  document.documentElement.style.setProperty('--print-font-size', fonte);
-
-  // Cabeçalho de impressão
-  const hdrEl = document.getElementById('header-print');
-  if (hdrEl) {
-    const dataStr = showData ? ` · ${new Date().toLocaleDateString('pt-BR')}` : '';
-    const tituloEl = hdrEl.querySelector('h1');
-    const subEl = hdrEl.querySelector('p');
-    if (tituloEl && !showTitulo) tituloEl.style.display = 'none';
-    if (subEl && !showTitulo) subEl.style.display = 'none';
-    // Adiciona data temporária se necessário
-    let dataEl = document.getElementById('header-print-data');
-    if (!dataEl && showData) {
-      dataEl = document.createElement('p');
-      dataEl.id = 'header-print-data';
-      dataEl.style.fontSize = '11px';
-      dataEl.textContent = 'Gerado em: ' + new Date().toLocaleString('pt-BR');
-      hdrEl.appendChild(dataEl);
-    }
-  }
-
-  // Oculta colunas de perfil/obs se desejado
-  document.querySelectorAll('.col-perfil-print').forEach(el => {
-    el.style.display = showPerfil ? '' : 'none';
-  });
-  document.querySelectorAll('.col-obs-print').forEach(el => {
-    el.style.display = showObs ? '' : 'none';
-  });
+  // Determina quais turmas imprimir
+  const isEverton = sessao && sessao.isEverton;
+  const todasTurmas = isEverton ? Object.keys(db.turmas).sort() : (sessao ? sessao.turmas : []);
+  const turmasParaImprimir = turmaSelecionada ? [turmaSelecionada] : todasTurmas;
 
   document.getElementById('modal-impressao').remove();
 
-  setTimeout(() => {
-    window.print();
-    // Restaura após impressão
-    setTimeout(() => {
-      document.documentElement.style.removeProperty('--print-orientation');
-      document.documentElement.style.removeProperty('--print-margin');
-      document.documentElement.style.removeProperty('--print-font-size');
-      document.querySelectorAll('.col-perfil-print,.col-obs-print').forEach(el => el.style.display = '');
-      const dataEl = document.getElementById('header-print-data');
-      if (dataEl) dataEl.remove();
-      const hdrEl = document.getElementById('header-print');
-      if (hdrEl) {
-        const tituloEl = hdrEl.querySelector('h1');
-        const subEl = hdrEl.querySelector('p');
-        if (tituloEl) tituloEl.style.display = '';
-        if (subEl) subEl.style.display = '';
+  const dataStr = showData ? new Date().toLocaleString('pt-BR') : '';
+  const nomeProfAtual = sessao ? sessao.nome : 'Prof. Everton Correa';
+  const triAtivo = trimestreFiltro;
+  const triLabels = {1:'1º Trimestre', 2:'2º Trimestre', 3:'3º Trimestre'};
+  const triColors = {1:'#1e40af', 2:'#15803d', 3:'#b45309'};
+  const triBg    = {1:'#dbeafe', 2:'#dcfce7', 3:'#fef3c7'};
+  const triC = triColors[triAtivo];
+  const triBgC = triBg[triAtivo];
+
+  // Gera uma seção <div class="page-break"> por turma
+  let pagesHtml = '';
+  turmasParaImprimir.forEach((t, tIdx) => {
+    garantirAtividades(t);
+    const ativ = db.atividades[t] || {};
+    const alunos = db.turmas[t] || [];
+    const isFechado = db.status[t] === 'fechado';
+
+    // Cabeçalho da turma
+    let cabecalho = '';
+    if (showTitulo) {
+      cabecalho += '<div style="margin-bottom:8px">' +
+        '<div style="font-size:15px;font-weight:800;color:#1a3a5c">E.M. Albertina Alves do Nascimento</div>' +
+        '<div style="font-size:11px;color:#475569">Geografia 2026 · ' + nomeProfAtual + (showData?' · Gerado em: '+dataStr:'') + '</div>' +
+        '</div>';
+    }
+    cabecalho += '<div style="background:linear-gradient(90deg,#1a3a5c,#2563a8);color:white;padding:6px 12px;border-radius:6px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">' +
+      '<span style="font-weight:700;font-size:13px">📍 ' + t + (isFechado?' 🔒':'') + '</span>' +
+      '<span style="font-size:11px;opacity:.85">' + triLabels[triAtivo] + ' · ' + alunos.length + ' aluno(s)</span>' +
+      '</div>';
+
+    // Cabeçalho da tabela (atividades do trimestre ativo)
+    let ths = '<th style="width:24px;background:#1a3a5c;color:white;text-align:center;font-size:9px;padding:5px 3px">#</th>' +
+              '<th style="background:#1a3a5c;color:white;text-align:left;font-size:9px;padding:5px 8px;min-width:110px">Estudante</th>';
+    if (showPerfil) ths += '<th style="background:#1a3a5c;color:white;text-align:center;font-size:9px;padding:5px 4px">Perfil</th>';
+    for (let i=1; i<=N_ATIV; i++) {
+      const aNome = (ativ['t'+triAtivo] && ativ['t'+triAtivo][i-1] && ativ['t'+triAtivo][i-1].nome) || '';
+      const aVal  = (ativ['t'+triAtivo] && ativ['t'+triAtivo][i-1] && ativ['t'+triAtivo][i-1].valor) || '';
+      if (!aNome.trim()) continue;
+      ths += '<th style="background:' + triC + ';color:white;text-align:center;font-size:8px;padding:4px 3px;max-width:60px">' +
+        aNome + (aVal?'<br><span style="font-size:8px;opacity:.8">('+aVal+'pts)</span>':'') + '</th>';
+    }
+    ths += '<th style="background:#1e3a1e;color:white;text-align:center;font-size:9px;padding:5px 6px">Total</th>';
+    if (showObs) ths += '<th style="background:#334155;color:white;text-align:left;font-size:9px;padding:5px 8px">Obs.</th>';
+
+    // Linhas de alunos
+    let linhas = '';
+    alunos.forEach((a, idx) => {
+      const nota = (db.notas[t] && db.notas[t][a]) || {};
+      const info = getInfoAluno(t, a);
+      let totalTri = 0;
+      let maxTri = 0;
+      let cells = '';
+      for (let i=1; i<=N_ATIV; i++) {
+        const aNome = (ativ['t'+triAtivo] && ativ['t'+triAtivo][i-1] && ativ['t'+triAtivo][i-1].nome) || '';
+        const aVal = parseFloat((ativ['t'+triAtivo] && ativ['t'+triAtivo][i-1] && ativ['t'+triAtivo][i-1].valor)||0)||0;
+        if (!aNome.trim()) continue;
+        const key = 't'+triAtivo+'_a'+i;
+        const raw = nota[key];
+        const n = (raw!==''&&raw!==undefined&&raw!==null) ? parseFloat(raw)||0 : null;
+        if (n !== null) { totalTri += n; maxTri += aVal; }
+        cells += '<td style="text-align:center;background:' + triBgC + ';border:1px solid #e2e8f0;padding:4px 3px;font-size:10px">' + (n!==null?n:'—') + '</td>';
       }
-    }, 1500);
-  }, 100);
+      const pct = maxTri > 0 ? totalTri/maxTri : -1;
+      const totalCor = pct >= 0.6 ? '#1d4ed8' : pct >= 0.4 ? '#d97706' : pct >= 0 ? '#dc2626' : '#475569';
+      const perfilCell = showPerfil
+        ? '<td style="text-align:center;border:1px solid #e2e8f0;padding:3px;white-space:nowrap;font-size:9px">' +
+          (info.sexo||'—') + ' · ' + (info.etnia||'—') +
+          '</td>'
+        : '';
+      const obsCell = showObs
+        ? '<td style="font-size:9px;border:1px solid #e2e8f0;padding:4px 6px;color:#475569">' + ((nota.obs||'').replace(/</g,'&lt;')) + '</td>'
+        : '';
+      const fotoSrc = db.fotos_alunos && db.fotos_alunos[a] ? db.fotos_alunos[a] : null;
+      const fotoHtml = fotoSrc
+        ? '<img src="' + fotoSrc + '" style="width:20px;height:20px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px;border:1px solid #cbd5e1">'
+        : '';
+      linhas += '<tr style="background:' + (idx%2===0?'#ffffff':'#f8fafc') + '">' +
+        '<td style="text-align:center;font-size:9px;color:#94a3b8;border:1px solid #e2e8f0;padding:4px 2px">' + String(idx+1).padStart(2,'0') + '</td>' +
+        '<td style="font-weight:500;border:1px solid #e2e8f0;padding:4px 6px;font-size:10px;white-space:nowrap">' + fotoHtml + a + '</td>' +
+        perfilCell + cells +
+        '<td style="text-align:center;font-weight:700;color:' + totalCor + ';border:1px solid #e2e8f0;padding:4px 6px;font-size:11px">' + (maxTri>0?totalTri.toFixed(1):'—') + '</td>' +
+        obsCell + '</tr>';
+    });
+
+    if (!linhas) linhas = '<tr><td colspan="20" style="text-align:center;color:#94a3b8;padding:12px;font-size:11px">Nenhum aluno cadastrado</td></tr>';
+
+    pagesHtml += '<div class="turma-page">' +
+      cabecalho +
+      '<table style="width:100%;border-collapse:collapse;font-size:' + fonte + '">' +
+      '<thead><tr>' + ths + '</tr></thead>' +
+      '<tbody>' + linhas + '</tbody>' +
+      '</table>' +
+      '</div>';
+  });
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Diário de Notas · ${nomeProfAtual}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#fff;color:#1a1a1a;font-size:${fonte}}
+.turma-page{padding:${margem};page-break-after:always;page-break-inside:avoid}
+.turma-page:last-child{page-break-after:auto}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #d1d5db}
+.btn-print{position:fixed;bottom:20px;right:20px;padding:10px 22px;background:#1a3a5c;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+@media print{
+  .btn-print{display:none}
+  .turma-page{padding:${margem};page-break-after:always}
+  @page{size:${orientacao} ${papel};margin:${margem}}
+}
+</style>
+</head>
+<body>
+${pagesHtml}
+<button class="btn-print" onclick="window.print()">🖨️ Imprimir</button>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=1100,height=800');
+  if (win) { win.document.write(html); win.document.close(); }
+  else toast('⚠️ Permita pop-ups para imprimir.');
 }
 
 // ─── IMPRESSÃO DO DASHBOARD ───────────────────────────────────────────────────
