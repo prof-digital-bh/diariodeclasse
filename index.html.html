@@ -2442,38 +2442,7 @@ function deletarMapa(t) {
 }
 
 // ─── FOTOS DOS ALUNOS ────────────────────────────────────────────────────────
-function triggerFotoUpload(a) {
-  // Cria um input file temporário e dispara o clique
-  const existing = document.getElementById('foto-input-editor');
-  if (existing) {
-    existing.onchange = e => carregarFotoAluno(a, existing);
-    existing.value = '';
-    existing.click();
-    return;
-  }
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.style.display = 'none';
-  input.onchange = e => carregarFotoAluno(a, input);
-  document.body.appendChild(input);
-  input.click();
-  setTimeout(() => input.remove(), 60000);
-}
 
-function carregarFotoAluno(a, input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    if (!db.fotos_alunos) db.fotos_alunos = {};
-    db.fotos_alunos[a] = e.target.result;
-    salvar();
-    renderizarAnotacoes();
-    toast('📷 Foto de ' + a.split(' ')[0] + ' salva! ✓');
-  };
-  reader.readAsDataURL(file);
-}
 
 function triggerFotoUploadTurma(a) {
   const input = document.createElement('input');
@@ -2566,7 +2535,7 @@ function renderizarAnotacoes() {
         '</div>' +
       '</div>' +
       '<div class="anot-auto-col" onclick="event.stopPropagation()">' +
-        '<input type="number" min="0" max="10" step="0.1" class="anot-auto-nota" ' +
+        '<input type="number" min="0" max="20" step="0.1" class="anot-auto-nota" ' +
           'value="' + esc(autoVal) + '" placeholder="—" ' +
           'onchange="salvarAutoavaliacao(\'' + esc(a) + '\',' + anotTriAtivo + ',this.value)">' +
       '</div></div>';
@@ -2732,7 +2701,7 @@ async function gerarRelatorioIA(nomeAluno) {
       if (d[c] && d[c].trim()) contexto += `${campoLabels[c]}: ${d[c].trim()}\n`;
     });
     const auto = (db.autoavaliacao && db.autoavaliacao[nomeAluno] && db.autoavaliacao[nomeAluno]['t'+tr]);
-    if (auto !== undefined && auto !== '') contexto += `Autoavaliação do aluno: ${auto}/10\n`;
+    if (auto !== undefined && auto !== '') contexto += `Autoavaliação do aluno: ${auto}/20\n`;
     // Notas
     const t = turmaRef;
     const maxT = t ? getMaxAluno(t, nomeAluno, tr) : 0;
@@ -2881,14 +2850,38 @@ function renderizarFichaAluno() {
       val = (pct*100).toFixed(0)+'%';
       cls = pct >= 0.6 ? 'ok' : pct >= 0.4 ? 'med' : 'baixo';
     }
+    const barColor = cls === 'ok' ? '#16a34a' : cls === 'med' ? '#d97706' : cls === 'baixo' ? '#dc2626' : '#cbd5e1';
+    const barWidth = pct >= 0 ? Math.min(100, pct * 100).toFixed(1) : 0;
+    const barHtml = pct >= 0 ? `
+      <div style="margin-top:10px;margin-bottom:2px">
+        <div style="height:5px;background:#e2e8f0;border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:${barWidth}%;background:${barColor};border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:3px">
+          <span style="font-size:9px;color:var(--ink-3)">${Math.round(tot)} pts</span>
+          <span style="font-size:9px;color:var(--ink-3)">${maxT.toFixed(0)} pts</span>
+        </div>
+      </div>` : '';
+    const autoBarWidth = hasAuto ? Math.min(100, (parseFloat(auto)/20)*100).toFixed(1) : 0;
+    const autoBarHtml = hasAuto ? `
+      <div style="margin-top:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+          <span style="font-size:10px;color:var(--ink-3)">Autoaval.</span>
+          <strong style="font-size:11px;color:var(--ink)">${auto}/20</strong>
+        </div>
+        <div style="height:3px;background:#e2e8f0;border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:${autoBarWidth}%;background:#6366f1;border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)"></div>
+        </div>
+      </div>` : '';
     const anot = (db.anotacoes && db.anotacoes[nome] && db.anotacoes[nome]['t'+tr]) || {};
     const temAnot = Object.values(anot).some(v => v && v.trim());
     return `<div class="ficha-tri-box" style="border-top:3px solid ${triColors[tr]}">
       <div class="ficha-tri-label">${triLabels[tr]}</div>
       <div class="ficha-nota-val ${cls}">${val}</div>
-      <div class="ficha-mini-label">${maxT > 0 ? `${tot.toFixed(1)}/${maxT.toFixed(0)} pts` : 'Sem atividades'}</div>
-      ${hasAuto ? `<div style="margin-top:6px;font-size:11px;color:var(--ink-3)">Autoaval.: <strong style="color:var(--ink)">${auto}/10</strong></div>` : ''}
-      ${temAnot ? `<div style="margin-top:5px;font-size:10px;background:#dcfce7;color:#166534;border-radius:8px;padding:1px 7px;display:inline-block">✓ Anotações</div>` : ''}
+      <div class="ficha-mini-label">${maxT > 0 ? `${Math.round(tot)}/${maxT.toFixed(0)} pts` : 'Sem atividades'}</div>
+      ${barHtml}
+      ${autoBarHtml}
+      ${temAnot ? `<div style="margin-top:8px;font-size:10px;background:#dcfce7;color:#166534;border-radius:8px;padding:1px 7px;display:inline-block">✓ Anotações</div>` : ''}
     </div>`;
   }).join('');
 
