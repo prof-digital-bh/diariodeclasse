@@ -2863,6 +2863,8 @@ function renderizarFichaAluno() {
         </div>
       </div>` : '';
     const autoBarWidth = hasAuto ? Math.min(100, (parseFloat(auto)/20)*100).toFixed(1) : 0;
+    const autoPct = hasAuto ? parseFloat(auto)/20 : -1;
+    const autoBarColor = autoPct >= 0.6 ? '#16a34a' : autoPct >= 0.4 ? '#d97706' : '#dc2626';
     const autoBarHtml = hasAuto ? `
       <div style="margin-top:8px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
@@ -2870,7 +2872,7 @@ function renderizarFichaAluno() {
           <strong style="font-size:11px;color:var(--ink)">${auto}/20</strong>
         </div>
         <div style="height:3px;background:#e2e8f0;border-radius:99px;overflow:hidden">
-          <div style="height:100%;width:${autoBarWidth}%;background:${barColor};border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)"></div>
+          <div style="height:100%;width:${autoBarWidth}%;background:${autoBarColor};border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)"></div>
         </div>
       </div>` : '';
     const anot = (db.anotacoes && db.anotacoes[nome] && db.anotacoes[nome]['t'+tr]) || {};
