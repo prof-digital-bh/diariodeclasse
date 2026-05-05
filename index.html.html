@@ -33,6 +33,124 @@
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ─── DARK MODE ──────────────────────────────────────────────────────────── */
+body.dark-mode {
+  --sand: #0f172a;
+  --white: #1e293b;
+  --ink: #e2e8f0;
+  --ink-2: #cbd5e1;
+  --ink-3: #94a3b8;
+  --border: #334155;
+  --border-2: #475569;
+  --sky: #1e3a5c;
+  --sky-pale: #162032;
+  background-color: #0f172a !important;
+  color: #e2e8f0;
+}
+body.dark-mode .app-header { background: #0a1628; background-image: linear-gradient(135deg,#0a1628 0%,#050e1a 100%); }
+body.dark-mode .app-nav { background: #1e293b; border-bottom-color: #334155; }
+body.dark-mode .nav-tab { color: #94a3b8; }
+body.dark-mode .nav-tab:hover { background: #162032; color: #e2e8f0; }
+body.dark-mode .nav-tab.active { color: #60a5fa; border-bottom-color: #60a5fa; }
+body.dark-mode .card { background: #1e293b; border-color: #334155; }
+body.dark-mode .card-title { color: #cbd5e1; }
+body.dark-mode .turma-block { background: #1e293b; border-color: #334155; }
+body.dark-mode .aluno-row:hover { background: #162032; }
+body.dark-mode .aluno-row { border-bottom-color: #334155; }
+body.dark-mode input[type=text], body.dark-mode input[type=number], body.dark-mode textarea, body.dark-mode select {
+  background: #0f172a; color: #e2e8f0; border-color: #475569;
+}
+body.dark-mode select option { background: #0f172a; color: #e2e8f0; }
+body.dark-mode .filter-bar { background: #162032; border-color: #334155; }
+body.dark-mode .toolbar-title { color: #e2e8f0; }
+body.dark-mode .btn { background: #1e293b; color: #e2e8f0; border-color: #475569; }
+body.dark-mode .btn:hover { background: #2d3f55; }
+body.dark-mode .btn-primary { background: #1d4ed8; border-color: #1d4ed8; color: white; }
+body.dark-mode .btn-success { background: #16a34a; border-color: #16a34a; color: white; }
+body.dark-mode .btn-warning { background: #d97706; border-color: #d97706; color: white; }
+body.dark-mode tbody tr:hover td { background: #162032; }
+body.dark-mode tbody tr.locked td { background: #172030; }
+body.dark-mode table thead th { background: #162032; color: #cbd5e1; border-color: #334155; }
+body.dark-mode table thead th.trimestre-header { background: var(--ocean); }
+body.dark-mode table thead th.total-header { background: #1e3a1e; }
+body.dark-mode tbody td { border-bottom-color: #334155; border-right-color: #334155; }
+body.dark-mode .nota-input { background: #0f172a; color: #e2e8f0; border-color: #475569; }
+body.dark-mode .nota-input:disabled { background: #162032; color: #64748b; }
+body.dark-mode .ficha-card { background: #1e293b; border-color: #334155; }
+body.dark-mode .ficha-tri-box { background: #0f172a; border-color: #334155; }
+body.dark-mode .ficha-anot-campo { background: #162032; border-color: #334155; }
+body.dark-mode .dash-kpi { background: #1e293b; border-color: #334155; }
+body.dark-mode .dash-chart-wrap { background: #1e293b; border-color: #334155; }
+body.dark-mode .dash-bar-track { background: #334155; }
+body.dark-mode .dash-filter-bar { background: #162032; border-color: #334155; }
+body.dark-mode .dash-tab { background: #1e293b; border-color: #475569; color: #cbd5e1; }
+body.dark-mode .dash-tab.ativo { background: var(--ocean-mid); color: white; border-color: var(--ocean-mid); }
+body.dark-mode .modal-box { background: #1e293b; }
+body.dark-mode .modal-title, body.dark-mode .modal-msg { color: #cbd5e1; }
+body.dark-mode .alerta-risco-panel { background: #1e293b; border-color: #334155; }
+body.dark-mode .alerta-risco-item { border-bottom-color: #334155; }
+body.dark-mode .alerta-risco-item .nome { color: #e2e8f0; }
+body.dark-mode .t1-bg { background: #0d1f35 !important; }
+body.dark-mode .t2-bg { background: #0d2016 !important; }
+body.dark-mode .t3-bg { background: #1f1500 !important; }
+body.dark-mode thead th.t1-col { background: #0d1f35; }
+body.dark-mode thead th.t2-col { background: #0d2016; }
+body.dark-mode thead th.t3-col { background: #1a1000; }
+body.dark-mode .obs-expand-box { background: #1e293b; border-color: var(--ocean-light); }
+body.dark-mode .obs-expand-box textarea { background: #0f172a; color: #e2e8f0; border-color: #475569; }
+body.dark-mode .ficha-search-input { background: #0f172a; color: #e2e8f0; border-color: #475569; }
+body.dark-mode .anot-editor { background: #1e293b; }
+body.dark-mode .anot-aluno-item:hover { background: #162032; }
+body.dark-mode .anot-aluno-item.ativo { background: #1a3a5c; }
+body.dark-mode .modal-ia-box { background: #1e293b; }
+body.dark-mode .modal-ia-content { background: #162032; border-color: #334155; color: #cbd5e1; }
+body.dark-mode .modal-ia-title { color: #93c5fd; }
+body.dark-mode .dash-table th { background: #162032; color: #cbd5e1; border-bottom-color: #334155; }
+body.dark-mode .dash-table td { color: #e2e8f0; border-bottom-color: #334155; }
+body.dark-mode .dash-table tr:hover td { background: #162032; }
+body.dark-mode .mapa-drop-zone { background: #162032; border-color: #475569; }
+body.dark-mode .turma-block-header { filter: brightness(0.8); }
+
+/* ─── BOTÃO DARK MODE ─────────────────────────────────────────────────────── */
+.btn-dark-mode {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.18);
+  color: white; cursor: pointer; font-size: 16px;
+  transition: all .2s; flex-shrink: 0;
+}
+.btn-dark-mode:hover { background: rgba(255,255,255,.2); transform: scale(1.08); }
+
+/* ─── ABA RELATÓRIOS ──────────────────────────────────────────────────────── */
+.rel-filtros { display:flex; gap:10px; align-items:center; background:var(--sky-pale); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 18px; margin-bottom:20px; flex-wrap:wrap; }
+.rel-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; margin-bottom:16px; box-shadow:var(--shadow); }
+.rel-card-header { background:linear-gradient(90deg,#7c3aed,#5b21b6); color:white; padding:10px 18px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.rel-card-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; }
+.rel-badge { background:rgba(255,255,255,.2); border-radius:12px; padding:2px 10px; font-size:12px; font-weight:700; }
+.rel-aluno-row { display:flex; align-items:flex-start; gap:12px; padding:11px 18px; border-bottom:1px solid var(--border); font-size:13px; flex-wrap:wrap; }
+.rel-aluno-row:last-child { border-bottom:none; }
+.rel-aluno-nome { font-weight:600; flex:1; min-width:150px; }
+.rel-pendencias { display:flex; flex-wrap:wrap; gap:5px; }
+.rel-pend-pill { font-size:10px; font-weight:700; padding:2px 9px; border-radius:10px; background:#fef3c7; color:#92400e; border:1px solid #fde68a; white-space:nowrap; }
+.rel-pend-pill.t1 { background:#eff6ff; color:#1e40af; border-color:#bfdbfe; }
+.rel-pend-pill.t2 { background:#f0fdf4; color:#166534; border-color:#bbf7d0; }
+.rel-pend-pill.t3 { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+.rel-empty { padding:18px 20px; font-size:13px; color:var(--ink-3); text-align:center; }
+.rel-summary-strip { display:flex; gap:16px; padding:10px 18px; background:var(--sky-pale); border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.rel-summary-item { font-size:11px; color:var(--ink-3); }
+.rel-summary-item strong { color:var(--ink-2); }
+.rel-print-header { display:none; }
+.rel-export-btns { display:flex; gap:8px; flex-wrap:wrap; }
+@media print {
+  .rel-filtros, .rel-export-btns, .toolbar .btn-group, .no-print { display:none !important; }
+  .rel-print-header { display:block !important; text-align:center; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:14px; }
+  .rel-card { box-shadow:none; break-inside:avoid; }
+}
+body.dark-mode .rel-filtros { background:#162032; border-color:#334155; }
+body.dark-mode .rel-card { background:#1e293b; border-color:#334155; }
+body.dark-mode .rel-aluno-row { border-bottom-color:#334155; }
+body.dark-mode .rel-summary-strip { background:#162032; border-bottom-color:#334155; }
+
 /* ─── FICHA DO ALUNO ────────────────────────────────────────────────────── */
 .ficha-wrap { padding: 4px 0; }
 .ficha-search-bar { display:flex; gap:10px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
@@ -819,6 +937,7 @@ alter table alunos add column if not exists foto text;</pre>
       <span class="save-dot" id="save-dot"></span>
       <span id="save-label">Pronto</span>
     </div>
+    <button class="btn-dark-mode" id="btn-dark-mode" onclick="toggleDarkMode()" title="Alternar modo escuro">🌙</button>
     <button class="btn-sair" onclick="sair()">⏻ Sair</button>
   </div>
 </header>
@@ -1123,6 +1242,46 @@ alter table alunos add column if not exists foto text;</pre>
       </div>
     </div>
     <div id="dash-content"></div>
+  </section>
+
+  <!-- ABA RELATÓRIOS -->
+  <section id="page-relatorios" class="page">
+    <div class="rel-print-header" id="rel-print-header"></div>
+    <div class="toolbar no-print">
+      <div class="toolbar-title">📋 Relatórios de Pendências</div>
+      <div class="btn-group rel-export-btns">
+        <button class="btn" onclick="exportarRelatorioCSV()">📥 Exportar CSV</button>
+        <button class="btn" onclick="window.print()">🖨️ Imprimir</button>
+      </div>
+    </div>
+    <div class="rel-filtros no-print">
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:11px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Turma</label>
+        <select id="rel-sel-turma" onchange="renderizarRelatorios()" style="min-width:120px">
+          <option value="">— Todas —</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:11px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Trimestre</label>
+        <select id="rel-sel-tri" onchange="renderizarRelatorios()" style="min-width:120px">
+          <option value="">Todos</option>
+          <option value="1">1º Trimestre</option>
+          <option value="2">2º Trimestre</option>
+          <option value="3">3º Trimestre</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="font-size:11px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Mostrar</label>
+        <select id="rel-sel-modo" onchange="renderizarRelatorios()" style="min-width:160px">
+          <option value="pendentes">Somente com pendências</option>
+          <option value="todos">Todos os alunos</option>
+        </select>
+      </div>
+      <span id="rel-resumo-geral" style="font-size:12px;color:var(--ink-3);margin-left:auto"></span>
+    </div>
+    <div id="rel-content">
+      <div class="empty"><span class="empty-icon">📋</span>Selecione os filtros para gerar o relatório.</div>
+    </div>
   </section>
 
 </main>
@@ -1818,6 +1977,7 @@ function construirNav() {
     tabs.push({ id: 'notas',       icon: '📊', label: 'Diário de Notas' });
     tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
     tabs.push({ id: 'anotacoes',   icon: '📝', label: 'Anotações · ' + (sessao.turmaReferencia || '—') });
+    tabs.push({ id: 'relatorios',  icon: '📋', label: 'Relatórios' });
     tabs.push({ id: 'professores', icon: '👩‍🏫', label: 'Professores' });
     tabs.push({ id: 'dashboard',   icon: '📈', label: 'dashboard.edu' });
   } else {
@@ -1826,6 +1986,7 @@ function construirNav() {
     tabs.push({ id: 'mapeamento', icon: '🗺️', label: 'Mapeamento' });
     if (sessao && sessao.turmaReferencia)
       tabs.push({ id: 'anotacoes', icon: '📝', label: 'Anotações · ' + sessao.turmaReferencia });
+    tabs.push({ id: 'relatorios', icon: '📋', label: 'Relatórios' });
     tabs.push({ id: 'dashboard',   icon: '📈', label: 'dashboard.edu' });
   }
 
@@ -1868,6 +2029,7 @@ function goTab(tab) {
   }
   if (tab === 'professores') { popularCheckboxesTurmas(); renderizarListaProfessores(); }
   if (tab === 'dashboard') { renderizarDashboard(); }
+  if (tab === 'relatorios') { popularSelectRelatorios(); renderizarRelatorios(); }
 }
 
 // ─── HELPERS SEXO / ETNIA ────────────────────────────────────────────────────
@@ -4923,6 +5085,13 @@ async function iniciar() {
   atualizarSelects();
   renderizarTurmas();
 
+  // Aplica ícone correto no botão dark mode após nav ser construída
+  if (localStorage.getItem('diario_dark_mode') === '1') {
+    document.body.classList.add('dark-mode');
+    const btn = document.getElementById('btn-dark-mode');
+    if (btn) btn.textContent = '☀️';
+  }
+
   // Restaura aba salva antes do F5 (se existir e for válida)
   const tabSalva = sessionStorage.getItem(SESSION_KEY + '_tab');
   if (tabSalva && document.getElementById('tab-' + tabSalva)) {
@@ -5027,6 +5196,223 @@ async function forcarSaida() {
   document.getElementById('login-input').value = '';
   document.getElementById('login-erro').textContent = '';
   iniciarLogin();
+}
+
+// ─── DARK MODE ────────────────────────────────────────────────────────────────
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark-mode');
+  localStorage.setItem('diario_dark_mode', isDark ? '1' : '0');
+  const btn = document.getElementById('btn-dark-mode');
+  if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+}
+
+(function aplicarDarkModeInicial() {
+  if (localStorage.getItem('diario_dark_mode') === '1') {
+    document.body.classList.add('dark-mode');
+    // O botão ainda não existe no DOM neste ponto — será corrigido no DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('btn-dark-mode');
+      if (btn) btn.textContent = '☀️';
+    });
+  }
+})();
+
+// ─── RELATÓRIOS DE PENDÊNCIAS ─────────────────────────────────────────────────
+function popularSelectRelatorios() {
+  const isEverton = sessao && sessao.isEverton;
+  const turmas = isEverton ? Object.keys(db.turmas).sort() : (sessao ? sessao.turmas : []);
+  const sel = document.getElementById('rel-sel-turma');
+  if (!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— Todas —</option>' +
+    turmas.map(t => '<option value="' + t + '">' + t + '</option>').join('');
+  if (prev && turmas.includes(prev)) sel.value = prev;
+}
+
+function renderizarRelatorios() {
+  const cont = document.getElementById('rel-content');
+  if (!cont) return;
+
+  const isEverton = sessao && sessao.isEverton;
+  const todasTurmas = isEverton ? Object.keys(db.turmas).sort() : (sessao ? sessao.turmas : []);
+  const filtroTurma = document.getElementById('rel-sel-turma')?.value || '';
+  const filtroTri   = parseInt(document.getElementById('rel-sel-tri')?.value  || '0') || 0;
+  const modo        = document.getElementById('rel-sel-modo')?.value || 'pendentes';
+
+  const turmasFiltradas = filtroTurma ? [filtroTurma] : todasTurmas;
+
+  if (!turmasFiltradas.length) {
+    cont.innerHTML = '<div class="empty"><span class="empty-icon">📋</span>Nenhuma turma disponível.</div>';
+    return;
+  }
+
+  const trisSelecionados = filtroTri ? [filtroTri] : [1, 2, 3];
+  const triLabels = { 1:'1º Tri', 2:'2º Tri', 3:'3º Tri' };
+  const triCls    = { 1:'t1', 2:'t2', 3:'t3' };
+
+  let totalAlunos = 0;
+  let totalComPend = 0;
+  let totalPend = 0;
+
+  let html = '';
+
+  turmasFiltradas.forEach(t => {
+    const alunos = db.turmas[t] || [];
+    garantirAtividades(t);
+    const ativ = db.atividades[t] || {};
+
+    // Para cada trimestre, descobre quais atividades TÊM nota para pelo menos 1 aluno
+    // Essas são as atividades "lançadas" — alunos com '-' nelas são "pendentes"
+    const ativsLancadas = {}; // { 't1_a1': true, ... }
+    trisSelecionados.forEach(tr => {
+      for (let i = 1; i <= N_ATIV; i++) {
+        const aNome = (ativ['t'+tr] && ativ['t'+tr][i-1] && ativ['t'+tr][i-1].nome) || '';
+        if (!aNome.trim()) continue;
+        const key = 't'+tr+'_a'+i;
+        // Verifica se ao menos 1 aluno tem nota lançada (não vazia, não '-')
+        const temNota = alunos.some(a => {
+          const raw = db.notas[t] && db.notas[t][a] && db.notas[t][a][key];
+          return raw !== undefined && raw !== '' && raw !== null;
+        });
+        if (temNota) ativsLancadas[key] = { tri: tr, idx: i, nome: aNome };
+      }
+    });
+
+    const atvsKeys = Object.keys(ativsLancadas);
+    if (!atvsKeys.length && modo === 'pendentes') return;
+
+    // Para cada aluno, verifica quais atividades lançadas estão sem nota
+    const listaAlunos = [];
+    alunos.forEach(a => {
+      const pendencias = [];
+      atvsKeys.forEach(key => {
+        const raw = db.notas[t] && db.notas[t][a] && db.notas[t][a][key];
+        const semNota = raw === undefined || raw === '' || raw === null;
+        if (semNota) {
+          pendencias.push({ key, ...ativsLancadas[key] });
+        }
+      });
+      if (modo === 'todos' || pendencias.length > 0) {
+        listaAlunos.push({ nome: a, pendencias });
+      }
+    });
+
+    totalAlunos += alunos.length;
+    const comPend = listaAlunos.filter(x => x.pendencias.length > 0).length;
+    totalComPend += comPend;
+    listaAlunos.forEach(x => { totalPend += x.pendencias.length; });
+
+    if (!listaAlunos.length) return;
+
+    const rows = listaAlunos.map((item, idx) => {
+      const pillsHtml = item.pendencias.length > 0
+        ? item.pendencias.map(p =>
+            '<span class="rel-pend-pill ' + triCls[p.tri] + '">' + triLabels[p.tri] + ' · ' + p.nome + '</span>'
+          ).join('')
+        : '<span style="font-size:11px;color:#16a34a;font-weight:600">✅ Sem pendências</span>';
+      const pendCount = item.pendencias.length;
+      const badgeColor = pendCount > 3 ? '#fee2e2' : pendCount > 0 ? '#fef3c7' : '#dcfce7';
+      const badgeText  = pendCount > 3 ? '#991b1b' : pendCount > 0 ? '#92400e' : '#166534';
+      return '<div class="rel-aluno-row">' +
+        '<span style="font-size:11px;color:var(--ink-3);font-family:\'DM Mono\',monospace;width:24px;flex-shrink:0">' + String(idx+1).padStart(2,'0') + '</span>' +
+        '<span class="rel-aluno-nome">' + item.nome + '</span>' +
+        (pendCount > 0 ? '<span style="font-size:10px;font-weight:700;padding:1px 8px;border-radius:10px;background:' + badgeColor + ';color:' + badgeText + ';white-space:nowrap;flex-shrink:0">' + pendCount + ' pendência(s)</span>' : '') +
+        '<div class="rel-pendencias">' + pillsHtml + '</div>' +
+        '</div>';
+    }).join('');
+
+    html += '<div class="rel-card">' +
+      '<div class="rel-card-header">' +
+        '<span class="rel-card-title">📍 ' + t + '</span>' +
+        '<div style="display:flex;gap:8px;align-items:center">' +
+          '<span class="rel-badge">' + comPend + '/' + alunos.length + ' com pendência</span>' +
+          '<span class="rel-badge" style="background:rgba(255,255,255,.12)">' + atvsKeys.length + ' atividade(s) avaliada(s)</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="rel-summary-strip">' +
+        '<span class="rel-summary-item">Turma: <strong>' + t + '</strong></span>' +
+        '<span class="rel-summary-item">Total de alunos: <strong>' + alunos.length + '</strong></span>' +
+        '<span class="rel-summary-item">Com pendência: <strong>' + comPend + '</strong></span>' +
+        '<span class="rel-summary-item">Atividades com nota lançada: <strong>' + atvsKeys.length + '</strong></span>' +
+      '</div>' +
+      '<div>' + rows + '</div>' +
+      '</div>';
+  });
+
+  if (!html) {
+    const msg = modo === 'pendentes'
+      ? '✅ Nenhuma pendência encontrada! Todos os alunos estão com as atividades entregues.'
+      : 'Nenhum dado encontrado para os filtros selecionados.';
+    cont.innerHTML = '<div class="empty"><span class="empty-icon">' + (modo==='pendentes'?'✅':'📋') + '</span>' + msg + '</div>';
+  } else {
+    cont.innerHTML = html;
+  }
+
+  // Atualiza resumo geral
+  const resumo = document.getElementById('rel-resumo-geral');
+  if (resumo) {
+    resumo.textContent = totalComPend + ' aluno(s) com pendências · ' + totalPend + ' pendências no total';
+  }
+
+  // Header de impressão
+  const ph = document.getElementById('rel-print-header');
+  if (ph) {
+    const nomeDisciplina = sessao ? (sessao.disciplina || 'GEOGRAFIA') : 'GEOGRAFIA';
+    const nomeProf = sessao ? sessao.nome : 'Prof. Everton Correa';
+    ph.innerHTML = '<div style="font-family:\'Syne\',sans-serif;font-size:18px;font-weight:700">Relatório de Pendências · ' + nomeDisciplina + '</div>' +
+      '<div style="font-size:12px;margin-top:4px">' + nomeProf + ' · ' + new Date().toLocaleDateString('pt-BR') + '</div>' +
+      (filtroTurma ? '<div style="font-size:12px;margin-top:2px">Turma: ' + filtroTurma + '</div>' : '') +
+      (filtroTri ? '<div style="font-size:12px;margin-top:2px">' + triLabels[filtroTri] + '</div>' : '');
+  }
+}
+
+function exportarRelatorioCSV() {
+  const isEverton = sessao && sessao.isEverton;
+  const todasTurmas = isEverton ? Object.keys(db.turmas).sort() : (sessao ? sessao.turmas : []);
+  const filtroTurma = document.getElementById('rel-sel-turma')?.value || '';
+  const filtroTri   = parseInt(document.getElementById('rel-sel-tri')?.value  || '0') || 0;
+  const turmasFiltradas = filtroTurma ? [filtroTurma] : todasTurmas;
+  const trisSelecionados = filtroTri ? [filtroTri] : [1, 2, 3];
+  const triLabels = { 1:'1º Tri', 2:'2º Tri', 3:'3º Tri' };
+
+  const linhas = [['Turma', 'Aluno(a)', 'Trimestre', 'Atividade Pendente']];
+
+  turmasFiltradas.forEach(t => {
+    const alunos = db.turmas[t] || [];
+    garantirAtividades(t);
+    const ativ = db.atividades[t] || {};
+
+    const ativsLancadas = {};
+    trisSelecionados.forEach(tr => {
+      for (let i = 1; i <= N_ATIV; i++) {
+        const aNome = (ativ['t'+tr] && ativ['t'+tr][i-1] && ativ['t'+tr][i-1].nome) || '';
+        if (!aNome.trim()) continue;
+        const key = 't'+tr+'_a'+i;
+        const temNota = alunos.some(a => {
+          const raw = db.notas[t] && db.notas[t][a] && db.notas[t][a][key];
+          return raw !== undefined && raw !== '' && raw !== null;
+        });
+        if (temNota) ativsLancadas[key] = { tri: tr, nome: aNome };
+      }
+    });
+
+    alunos.forEach(a => {
+      Object.entries(ativsLancadas).forEach(([key, info]) => {
+        const raw = db.notas[t] && db.notas[t][a] && db.notas[t][a][key];
+        if (raw === undefined || raw === '' || raw === null) {
+          linhas.push([t, a, triLabels[info.tri], info.nome]);
+        }
+      });
+    });
+  });
+
+  if (linhas.length <= 1) return toast('Nenhuma pendência para exportar.');
+  const blob = new Blob(['\uFEFF' + linhas.map(r => r.join(';')).join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'pendencias_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('CSV exportado! ✓');
 }
 
 // ─── TAB NAVIGATION NOS CAMPOS DE NOTA ──────────────────────────────────────
