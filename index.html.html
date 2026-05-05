@@ -745,7 +745,9 @@ create table if not exists sessoes_ativas (
   prof_id text primary key,
   token text,
   atualizado_em timestamptz default now()
-);</pre>
+);
+-- Coluna de foto nos alunos (adicione se ainda não existir):
+alter table alunos add column if not exists foto text;</pre>
       <button onclick="copiarSQL()" style="font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:white;cursor:pointer;font-family:'DM Sans',sans-serif">📋 Copiar SQL</button>
     </details>
   </div>
@@ -1362,8 +1364,10 @@ async function _pushAlunos() {
       if (seen.has(id)) { console.warn('[pushAlunos] ID duplicado:', id, nome, turma); return; }
       seen.add(id);
       const info = (db.alunos_info && db.alunos_info[id]) || {};
+      const foto = (db.fotos_alunos && db.fotos_alunos[nome]) || null;
       rows.push({ id, nome, turma, posicao: i,
         sexo: info.sexo || null, etnia: info.etnia || null,
+        foto: foto || null,
         atualizado_em: new Date().toISOString() });
     });
   }
@@ -1535,6 +1539,9 @@ async function carregarDoSupabase() {
         if (row.sexo || row.etnia) {
           const aid = alunoId(row.turma, row.nome);
           novoDb.alunos_info[aid] = { sexo: row.sexo || null, etnia: row.etnia || null };
+        }
+        if (row.foto) {
+          novoDb.fotos_alunos[row.nome] = row.foto;
         }
       });
     }
@@ -2544,8 +2551,8 @@ function renderizarAnotacoes() {
     const perfilChips = '<div class="inline-perfil" style="margin-top:2px;gap:3px">' + chipSexo(info.sexo) + chipEtnia(info.etnia) + '</div>';
     const fotoSrc = db.fotos_alunos && db.fotos_alunos[a] ? db.fotos_alunos[a] : null;
     const fotoHtml = fotoSrc
-      ? '<img class="aluno-foto-thumb" src="' + fotoSrc + '" alt="Foto" onclick="triggerFotoUpload(\'' + esc(a) + '\')" title="Clique para trocar foto">'
-      : '<div class="aluno-foto-placeholder" onclick="triggerFotoUpload(\'' + esc(a) + '\')" title="Adicionar foto">👤</div>';
+      ? '<img class="aluno-foto-thumb" src="' + fotoSrc + '" alt="Foto">'
+      : '<div class="aluno-foto-placeholder" title="Foto não cadastrada" style="cursor:default">👤</div>';
     return '<div class="anot-aluno-item' + (a === anotAlunoAtivo ? ' ativo' : '') + '">' +
       '<div style="display:flex;align-items:center;gap:7px;flex:1;min-width:0;cursor:pointer" onclick="abrirAnotacaoAluno(\'' + esc(a) + '\')">' +
         fotoHtml +
@@ -2619,11 +2626,10 @@ function renderizarEditorAnotacao(a) {
   const perfilBadges = '<span class="inline-perfil" style="margin-left:8px">' + chipSexo(infoAnot.sexo) + chipEtnia(infoAnot.etnia) + '</span>';
   const fotoSrcEditor = db.fotos_alunos && db.fotos_alunos[a] ? db.fotos_alunos[a] : null;
   const fotoEditorHtml = fotoSrcEditor
-    ? '<img class="aluno-foto-grande" src="' + fotoSrcEditor + '" alt="Foto" onclick="triggerFotoUpload(\'' + esc(a) + '\')" title="Clique para trocar foto" style="cursor:pointer">'
-    : '<div class="aluno-foto-grande-placeholder" onclick="triggerFotoUpload(\'' + esc(a) + '\')" title="Adicionar foto do aluno">📷</div>';
+    ? '<img class="aluno-foto-grande" src="' + fotoSrcEditor + '" alt="Foto">'
+    : '<div class="aluno-foto-grande-placeholder" title="Foto não cadastrada na Gestão de Turmas" style="cursor:default;opacity:.5">👤</div>';
 
   wrap.innerHTML = '<div class="anot-editor">' +
-    '<input type="file" accept="image/*" class="aluno-foto-input" id="foto-input-editor" onchange="carregarFotoAluno(\'' + esc(a) + '\',this)">' +
     '<div class="anot-editor-header">' +
       fotoEditorHtml +
       '<div class="anot-editor-info">' +
@@ -3266,7 +3272,7 @@ function renderizarNotas() {
       </div>
     </td>`;
     const obsVal = (nota.obs||'').replace(/"/g,'&quot;');
-    return `<tr class="${isFechado?'locked':''}"><td style="text-align:center;font-size:11px;color:var(--ink-3);font-family:'DM Mono',monospace">${String(idx+1).padStart(2,'0')}</td><td style="font-weight:500;white-space:nowrap;min-width:140px">${a}</td>${perfilCell}${cells}<td class="total-cell" data-aluno-total="${esc(t+'_'+a)}" style="border-left:2px solid var(--ocean-light);${totalStyle}">${totalTri>0?totalTri.toFixed(1):'—'}</td><td style="min-width:110px;position:relative"><input type="text" value="${obsVal}" placeholder="Obs..." title="${obsVal}" ${isFechado?'disabled':''} onfocus="abrirObsExpand(this,'${esc(t)}','${esc(a)}')" oninput="this.title=this.value" class="obs-input-mini" style="width:100%;font-size:11px;padding:4px 6px;border:1px solid var(--border-2);border-radius:6px;background:${obsVal?'#fffbeb':'var(--white)'};cursor:${obsVal?'pointer':'text'}"></td></tr>`;
+    return `<tr class="${isFechado?'locked':''}"><td style="text-align:center;font-size:11px;color:var(--ink-3);font-family:'DM Mono',monospace">${String(idx+1).padStart(2,'0')}</td><td style="font-weight:500;white-space:nowrap;min-width:140px">${a}</td>${perfilCell}${cells}<td class="total-cell" data-aluno-total="${esc(t+'_'+a)}" style="border-left:2px solid var(--ocean-light);${totalStyle}">${totalTri>0?Math.round(totalTri):'—'}</td><td style="min-width:110px;position:relative"><input type="text" value="${obsVal}" placeholder="Obs..." title="${obsVal}" ${isFechado?'disabled':''} onfocus="abrirObsExpand(this,'${esc(t)}','${esc(a)}')" oninput="this.title=this.value" class="obs-input-mini" style="width:100%;font-size:11px;padding:4px 6px;border:1px solid var(--border-2);border-radius:6px;background:${obsVal?'#fffbeb':'var(--white)'};cursor:${obsVal?'pointer':'text'}"></td></tr>`;
   }).join('');
 }
 
@@ -3421,7 +3427,7 @@ function _atualizarTotalAluno(t, aluno) {
     totalStyle = pct >= 0.6 ? 'color:#1d4ed8;font-weight:700' : 'color:#dc2626;font-weight:700';
   }
   cell.style.cssText = 'border-left:2px solid var(--ocean-light);' + totalStyle;
-  cell.textContent = totalTri > 0 ? totalTri.toFixed(1) : '—';
+  cell.textContent = totalTri > 0 ? Math.round(totalTri) : '—';
 }
 
 function toggleTrava() {
@@ -3629,7 +3635,7 @@ function executarImpressao() {
         '<td style="text-align:center;font-size:9px;color:#94a3b8;border:1px solid #e2e8f0;padding:4px 2px">' + String(idx+1).padStart(2,'0') + '</td>' +
         '<td style="font-weight:500;border:1px solid #e2e8f0;padding:4px 6px;font-size:10px;white-space:nowrap">' + fotoHtml + a + '</td>' +
         perfilCell + cells +
-        '<td style="text-align:center;font-weight:700;color:' + totalCor + ';border:1px solid #e2e8f0;padding:4px 6px;font-size:11px">' + (maxTri>0?totalTri.toFixed(1):'—') + '</td>' +
+        '<td style="text-align:center;font-weight:700;color:' + totalCor + ';border:1px solid #e2e8f0;padding:4px 6px;font-size:11px">' + (maxTri>0?Math.round(totalTri):'—') + '</td>' +
         obsCell + '</tr>';
     });
 
@@ -4376,7 +4382,7 @@ function dashNotas(turmasDisp, filtroTri) {
       return `<tr>
         <td style="font-family:'DM Mono',monospace;color:var(--ink-3)">${String(i+1).padStart(2,'0')}</td>
         <td style="font-weight:500">${a}</td>
-        <td style="text-align:center;font-family:'DM Mono',monospace">${tot > 0 ? tot.toFixed(1) : '—'}</td>
+        <td style="text-align:center;font-family:'DM Mono',monospace">${tot > 0 ? Math.round(tot) : '—'}</td>
         <td style="text-align:center">${maxT > 0 ? notaPill(pct) : '—'}</td>
       </tr>`;
     }).join('');
