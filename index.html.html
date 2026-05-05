@@ -3131,13 +3131,66 @@ function renderizarFichaAluno() {
     anotHtml = '<div style="text-align:center;padding:20px;color:var(--ink-3);font-size:12px">Nenhuma anotação registrada ainda para este aluno.</div>';
   }
 
+  // ── Card de aproveitamento por atividade ──────────────────────────────────
+  garantirAtividades(turma);
+  const T_COLORS = {
+    1: { bg:'#eff6ff', border:'#3b82f6', text:'#1e40af', label:'1ºTri' },
+    2: { bg:'#f0fdf4', border:'#22c55e', text:'#15803d', label:'2ºTri' },
+    3: { bg:'#fffbeb', border:'#f59e0b', text:'#b45309', label:'3ºTri' }
+  };
+  const aprovCols = TRIMESTRES.map(tr => {
+    const ativ = db.atividades[turma] && db.atividades[turma]['t'+tr] || [];
+    const nota = (db.notas[turma] && db.notas[turma][nome]) || {};
+    const tc = T_COLORS[tr];
+    const linhas = [];
+    for (let i = 1; i <= N_ATIV; i++) {
+      const aNome = (ativ[i-1] && ativ[i-1].nome) ? ativ[i-1].nome.trim() : '';
+      const aValor = parseFloat((ativ[i-1] && ativ[i-1].valor) || 0) || 0;
+      if (!aNome) continue;
+      const key = 't'+tr+'_a'+i;
+      const raw = nota[key];
+      const notaNum = (raw !== '' && raw !== undefined && raw !== null) ? parseFloat(raw) : null;
+      const pct = (notaNum !== null && aValor > 0) ? notaNum / aValor : -1;
+      const barColor = pct < 0 ? '#cbd5e1' : pct >= 0.6 ? '#16a34a' : pct >= 0.4 ? '#d97706' : '#dc2626';
+      const barW = pct >= 0 ? Math.min(100, pct * 100).toFixed(0) : 0;
+      const notaStr = notaNum !== null ? notaNum.toString() : '—';
+      const valorStr = aValor > 0 ? '/' + aValor : '';
+      linhas.push(`
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid ${tc.border}22">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:10px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px" title="${aNome}">${aNome}</div>
+            <div style="height:3px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:2px">
+              <div style="height:100%;width:${barW}%;background:${barColor};border-radius:99px"></div>
+            </div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:${barColor};white-space:nowrap;min-width:36px;text-align:right">${notaStr}${valorStr}</div>
+        </div>`);
+    }
+    const colBody = linhas.length
+      ? linhas.join('')
+      : `<div style="font-size:10px;color:var(--ink-3);padding:4px 0">Sem atividades</div>`;
+    return `<div style="flex:1;min-width:0;background:${tc.bg};border:1px solid ${tc.border}55;border-top:3px solid ${tc.border};border-radius:10px;padding:8px 10px">
+      <div style="font-size:10px;font-weight:700;color:${tc.text};text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${tc.label}</div>
+      ${colBody}
+    </div>`;
+  }).join('');
+
+  const aprovCard = `
+    <div style="flex:1;min-width:260px">
+      <div style="font-size:10px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">📊 Aproveitamento por Atividade</div>
+      <div style="display:flex;gap:8px">${aprovCols}</div>
+    </div>`;
+
   cont.innerHTML = `<div class="ficha-card">
-    <div class="ficha-header">
-      ${fotoHtml}
-      <div>
-        <div class="ficha-nome">${nome}</div>
-        <div class="ficha-sub">${turma} · ${chipSexo(info.sexo)} ${chipEtnia(info.etnia)} · Geografia · 2026</div>
+    <div class="ficha-header" style="align-items:flex-start;flex-wrap:wrap;gap:16px">
+      <div style="display:flex;align-items:center;gap:14px;flex-shrink:0">
+        ${fotoHtml}
+        <div>
+          <div class="ficha-nome">${nome}</div>
+          <div class="ficha-sub">${turma} · ${chipSexo(info.sexo)} ${chipEtnia(info.etnia)} · Geografia · 2026</div>
+        </div>
       </div>
+      ${aprovCard}
     </div>
     <div class="ficha-tri-row">${triBoxes}</div>
     <div class="ficha-anot-row">
