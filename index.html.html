@@ -1532,7 +1532,9 @@ async function _pushAlunos() {
       if (seen.has(id)) { console.warn('[pushAlunos] ID duplicado:', id, nome, turma); return; }
       seen.add(id);
       const info = (db.alunos_info && db.alunos_info[id]) || {};
-      const foto = (db.fotos_alunos && db.fotos_alunos[nome]) || null;
+      const fotoRaw = (db.fotos_alunos && db.fotos_alunos[nome]) || null;
+      // Salva apenas URLs (http...) — nunca base64 — para não inflar o banco
+      const foto = (fotoRaw && fotoRaw.startsWith('http')) ? fotoRaw : null;
       rows.push({ id, nome, turma, posicao: i,
         sexo: info.sexo || null, etnia: info.etnia || null,
         foto: foto || null,
@@ -2614,25 +2616,71 @@ function deletarMapa(t) {
 
 // ─── FOTOS DOS ALUNOS ────────────────────────────────────────────────────────
 
+// Redimensiona imagem para no máximo maxSize×maxSize px e retorna um Blob JPEG
+function _redimensionarFoto(file, maxSize = 800) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; };
+    img.onload = () => {
+      let w = img.width, h = img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w >= h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else        { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(resolve, 'image/jpeg', 0.82);
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
-function triggerFotoUploadTurma(a) {
+// Faz upload da foto para o Supabase Storage e devolve a URL pública
+async function _uploadFotoStorage(blob, nomeArquivo) {
+  const path = 'alunos/' + nomeArquivo + '.jpg';
+  const res = await fetch(SB_URL + '/storage/v1/object/fotos-alunos/' + path, {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'image/jpeg',
+      'x-upsert': 'true'
+    },
+    body: blob
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error('Storage error: ' + err);
+  }
+  // Monta URL pública
+  return SB_URL + '/storage/v1/object/public/fotos-alunos/' + path;
+}
+
+async function triggerFotoUploadTurma(a) {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'image/*';
   input.style.display = 'none';
-  input.onchange = () => {
+  input.onchange = async () => {
     const file = input.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = e => {
+    try {
+      toast('⏳ Enviando foto...');
+      const blob = await _redimensionarFoto(file, 800);
+      // Usa um slug seguro baseado no nome do aluno
+      const slug = a.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'').slice(0,60);
+      const url = await _uploadFotoStorage(blob, slug);
       if (!db.fotos_alunos) db.fotos_alunos = {};
-      db.fotos_alunos[a] = e.target.result;
+      db.fotos_alunos[a] = url;          // salva a URL, não o base64
       salvar();
       renderizarTurmas();
       renderizarAnotacoes();
       toast('📷 Foto de ' + a.split(' ')[0] + ' salva! ✓');
-    };
-    reader.readAsDataURL(file);
+    } catch(err) {
+      console.error(err);
+      toast('❌ Erro ao enviar foto: ' + err.message);
+    }
     setTimeout(() => input.remove(), 60000);
   };
   document.body.appendChild(input);
@@ -3438,7 +3486,11 @@ function renderizarNotas() {
       </div>
     </td>`;
     const obsVal = (nota.obs||'').replace(/"/g,'&quot;');
-    return `<tr class="${isFechado?'locked':''}"><td style="text-align:center;font-size:11px;color:var(--ink-3);font-family:'DM Mono',monospace">${String(idx+1).padStart(2,'0')}</td><td style="font-weight:500;white-space:nowrap;min-width:140px">${a}</td>${perfilCell}${cells}<td class="total-cell" data-aluno-total="${esc(t+'_'+a)}" style="border-left:2px solid var(--ocean-light);${totalStyle}">${totalTri>0?Math.round(totalTri):'—'}</td><td style="min-width:110px;position:relative"><input type="text" value="${obsVal}" placeholder="Obs..." title="${obsVal}" ${isFechado?'disabled':''} onfocus="abrirObsExpand(this,'${esc(t)}','${esc(a)}')" oninput="this.title=this.value" class="obs-input-mini" style="width:100%;font-size:11px;padding:4px 6px;border:1px solid var(--border-2);border-radius:6px;background:${obsVal?'#fffbeb':'var(--white)'};cursor:${obsVal?'pointer':'text'}"></td></tr>`;
+    const fotoNotaSrc = db.fotos_alunos && db.fotos_alunos[a] ? db.fotos_alunos[a] : null;
+    const fotoNotaHtml = fotoNotaSrc
+      ? `<img src="${fotoNotaSrc}" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:1.5px solid var(--ocean-light);flex-shrink:0;vertical-align:middle;margin-right:5px">`
+      : `<span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--sky);border:1.5px solid var(--border-2);flex-shrink:0;vertical-align:middle;margin-right:5px;font-size:12px;line-height:24px;text-align:center">👤</span>`;
+    return `<tr class="${isFechado?'locked':''}"><td style="text-align:center;font-size:11px;color:var(--ink-3);font-family:'DM Mono',monospace">${String(idx+1).padStart(2,'0')}</td><td style="font-weight:500;white-space:nowrap;min-width:140px"><div style="display:flex;align-items:center">${fotoNotaHtml}<span>${a}</span></div></td>${perfilCell}${cells}<td class="total-cell" data-aluno-total="${esc(t+'_'+a)}" style="border-left:2px solid var(--ocean-light);${totalStyle}">${totalTri>0?Math.round(totalTri):'—'}</td><td style="min-width:110px;position:relative"><input type="text" value="${obsVal}" placeholder="Obs..." title="${obsVal}" ${isFechado?'disabled':''} onfocus="abrirObsExpand(this,'${esc(t)}','${esc(a)}')" oninput="this.title=this.value" class="obs-input-mini" style="width:100%;font-size:11px;padding:4px 6px;border:1px solid var(--border-2);border-radius:6px;background:${obsVal?'#fffbeb':'var(--white)'};cursor:${obsVal?'pointer':'text'}"></td></tr>`;
   }).join('');
 }
 
