@@ -2870,7 +2870,7 @@ function renderizarFichaAluno() {
           <strong style="font-size:11px;color:var(--ink)">${auto}/20</strong>
         </div>
         <div style="height:3px;background:#e2e8f0;border-radius:99px;overflow:hidden">
-          <div style="height:100%;width:${autoBarWidth}%;background:#6366f1;border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)"></div>
+          <div style="height:100%;width:${autoBarWidth}%;background:${barColor};border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)"></div>
         </div>
       </div>` : '';
     const anot = (db.anotacoes && db.anotacoes[nome] && db.anotacoes[nome]['t'+tr]) || {};
