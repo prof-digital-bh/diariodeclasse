@@ -3202,23 +3202,22 @@ function renderizarFichaAluno() {
 
 // ─── PAINEL ALERTAS DE RISCO ─────────────────────────────────────────────────
 
-// Modo atual do painel: 'risco' | 'atencao' | 'destaques'
-let _painelModo = 'risco';
+// Estado de expansão dos painéis
+const _painelAberto = { risco: true, destaques: true };
 
-function _setPainelModo(modo) {
-  _painelModo = modo;
-  // Re-renderiza só o painel sem recarregar o dashboard inteiro
-  const container = document.getElementById('painel-alertas-container');
-  if (!container) return;
-  const turmasDisp = Object.keys(db.turmas || {}).sort();
-  const filtroTri = (document.getElementById('dash-filtro-tri') || {}).value || '';
-  container.innerHTML = gerarAlertasRisco(turmasDisp, filtroTri);
+function _togglePainel(id) {
+  _painelAberto[id] = !_painelAberto[id];
+  const corpo = document.getElementById('painel-corpo-' + id);
+  const seta  = document.getElementById('painel-seta-' + id);
+  if (!corpo) return;
+  corpo.style.display = _painelAberto[id] ? 'block' : 'none';
+  if (seta) seta.textContent = _painelAberto[id] ? '▲' : '▼';
 }
 
 function gerarAlertasRisco(turmasDisp, filtroTri) {
-  const destaques = [], atencao = [], risco = [];
-  const pillCls = (pct) => pct < 0 ? 'nd' : pct < 0.4 ? 'baixo' : pct < 0.6 ? 'med' : 'ok';
-  const pillVal = (pct) => pct < 0 ? '—' : (pct*100).toFixed(0)+'%';
+  const destaques = [], risco = [];
+  const pillCls = pct => pct < 0 ? 'nd' : pct < 0.4 ? 'baixo' : pct < 0.6 ? 'med' : 'ok';
+  const pillVal = pct => pct < 0 ? '—' : (pct * 100).toFixed(0) + '%';
   const triLabels = {1:'1ºTri', 2:'2ºTri', 3:'3ºTri'};
 
   turmasDisp.forEach(t => {
@@ -3233,10 +3232,8 @@ function gerarAlertasRisco(turmasDisp, filtroTri) {
       if (!comDados.length) return;
       const abaixo40 = comDados.filter(h => h.pct < 0.4);
       const acima90  = comDados.filter(h => h.pct >= 0.9);
-      const abaixo60 = comDados.filter(h => h.pct >= 0.4 && h.pct < 0.6);
-      if (acima90.length === comDados.length)          destaques.push({nome, turma:t, historico, comDados});
-      if (abaixo40.length >= 1)                         risco.push({nome, turma:t, historico, comDados, abaixo40});
-      if (abaixo60.length >= 1 && !abaixo40.length)     atencao.push({nome, turma:t, historico, comDados});
+      if (abaixo40.length >= 1) risco.push({nome, turma:t, historico, comDados, abaixo40});
+      if (acima90.length === comDados.length) destaques.push({nome, turma:t, historico, comDados});
     });
   });
 
@@ -3246,74 +3243,46 @@ function gerarAlertasRisco(turmasDisp, filtroTri) {
     return med(b.historico) - med(a.historico);
   });
 
-  // ── botões de modo ──────────────────────────────────────────────────────────
-  const btnStyle = (modo) => {
-    const ativo = _painelModo === modo;
-    const cores = {
-      destaques: ativo ? 'background:#fef08a;color:#713f12;border-color:#ca8a04' : 'background:white;color:#64748b;border-color:#e2e8f0',
-      atencao:   ativo ? 'background:#fed7aa;color:#7c2d12;border-color:#ea580c' : 'background:white;color:#64748b;border-color:#e2e8f0',
-      risco:     ativo ? 'background:#fecaca;color:#7f1d1d;border-color:#dc2626' : 'background:white;color:#64748b;border-color:#e2e8f0',
-    };
-    return `padding:6px 14px;border:1.5px solid;border-radius:20px;cursor:pointer;font-size:12px;font-weight:${ativo?700:500};transition:all .15s;${cores[modo]}`;
-  };
-
-  const botoes = `
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-      <button style="${btnStyle('destaques')}" onclick="_setPainelModo('destaques')">⭐ Destaques <span style="font-size:10px;opacity:.7">(≥90%)</span> <strong>${destaques.length}</strong></button>
-      <button style="${btnStyle('atencao')}"   onclick="_setPainelModo('atencao')">⚠️ Atenção <span style="font-size:10px;opacity:.7">(40–60%)</span> <strong>${atencao.length}</strong></button>
-      <button style="${btnStyle('risco')}"     onclick="_setPainelModo('risco')">🚨 Risco <span style="font-size:10px;opacity:.7">(&lt;40%)</span> <strong>${risco.length}</strong></button>
+  function itemHtml(nome, turma, historico, abaixo40, tipo) {
+    const pills = historico.map(h =>
+      `<span class="alerta-tri-pill ${pillCls(h.pct)}">${triLabels[h.tr]}: ${pillVal(h.pct)}</span>`
+    ).join('');
+    const emoji = tipo === 'destaques' ? '🌟' : (abaixo40 && abaixo40.length >= 2 ? '🔴' : '🟡');
+    const foto = db.fotos_alunos && db.fotos_alunos[nome];
+    const fotoEl = foto
+      ? `<img src="${foto}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;flex-shrink:0">`
+      : `<span style="font-size:18px">${emoji}</span>`;
+    return `<div class="alerta-risco-item">
+      ${fotoEl}
+      <span class="nome">${nome}</span>
+      <span class="turma-badge">${turma}</span>
+      <div class="historico">${pills}</div>
+      <button style="font-size:11px;padding:3px 10px;border:1px solid var(--border-2);border-radius:6px;background:white;cursor:pointer;white-space:nowrap" onclick="irFichaAluno('${esc(nome)}','${esc(turma)}')">Ver Ficha</button>
     </div>`;
-
-  // ── lista conforme modo ─────────────────────────────────────────────────────
-  let lista, headerGrad, headerTitle, emptyMsg;
-  if (_painelModo === 'destaques') {
-    lista = destaques;
-    headerGrad = 'linear-gradient(135deg,#713f12,#ca8a04)';
-    headerTitle = '⭐ Destaques na Geografia — Aproveitamento ≥ 90%';
-    emptyMsg = 'Nenhum aluno com aproveitamento ≥ 90% no período selecionado.';
-  } else if (_painelModo === 'atencao') {
-    lista = atencao;
-    headerGrad = 'linear-gradient(135deg,#7c2d12,#ea580c)';
-    headerTitle = '⚠️ Atenção — Aproveitamento entre 40% e 60%';
-    emptyMsg = 'Nenhum aluno nessa faixa no período selecionado.';
-  } else {
-    lista = risco;
-    headerGrad = 'linear-gradient(135deg,#7f1d1d,#dc2626)';
-    headerTitle = '🚨 Alunos em Risco — Aproveitamento < 40%';
-    emptyMsg = 'Nenhum aluno abaixo de 40% no período selecionado. 🎉';
   }
 
-  const itensHtml = lista.length
-    ? lista.map(({nome, turma, historico, abaixo40}) => {
-        const pills = historico.map(h =>
-          `<span class="alerta-tri-pill ${pillCls(h.pct)}">${triLabels[h.tr]}: ${pillVal(h.pct)}</span>`
-        ).join('');
-        const emoji = _painelModo === 'destaques' ? '🌟'
-                    : (abaixo40 && abaixo40.length >= 2) ? '🔴' : '🟡';
-        const foto = db.fotos_alunos && db.fotos_alunos[nome];
-        const fotoEl = foto
-          ? `<img src="${foto}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;flex-shrink:0">`
-          : `<span style="font-size:18px">${emoji}</span>`;
-        return `<div class="alerta-risco-item">
-          ${fotoEl}
-          <span class="nome">${nome}</span>
-          <span class="turma-badge">${turma}</span>
-          <div class="historico">${pills}</div>
-          <button style="font-size:11px;padding:3px 10px;border:1px solid var(--border-2);border-radius:6px;background:white;cursor:pointer;white-space:nowrap" onclick="irFichaAluno('${esc(nome)}','${esc(turma)}')">Ver Ficha</button>
-        </div>`;
-      }).join('')
-    : `<div class="alerta-risco-empty">${emptyMsg}</div>`;
+  function painel(id, gradiente, titulo, lista, emptyMsg, tipo) {
+    const aberto = _painelAberto[id] !== false;
+    const itensHtml = lista.length
+      ? lista.map(({nome, turma, historico, abaixo40}) => itemHtml(nome, turma, historico, abaixo40, tipo)).join('')
+      : `<div class="alerta-risco-empty">${emptyMsg}</div>`;
+    return `<div class="alerta-risco-panel" style="margin-bottom:12px">
+      <div class="alerta-risco-header" style="background:${gradiente};cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between"
+           onclick="_togglePainel('${id}')">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="alerta-risco-title">${titulo}</span>
+          <span class="alerta-risco-badge">${lista.length} aluno${lista.length!==1?'s':''}</span>
+        </div>
+        <span id="painel-seta-${id}" style="font-size:12px;opacity:.8">${aberto?'▲':'▼'}</span>
+      </div>
+      <div id="painel-corpo-${id}" style="display:${aberto?'block':'none'}">
+        <div class="alerta-risco-lista">${itensHtml}</div>
+      </div>
+    </div>`;
+  }
 
-  const borderColor = _painelModo === 'destaques' ? '#fde68a' : _painelModo === 'atencao' ? '#fed7aa' : '#fecaca';
-
-  return `<div class="alerta-risco-panel" style="border-color:${borderColor}">
-    <div class="alerta-risco-header" style="background:${headerGrad}">
-      <span class="alerta-risco-title">${headerTitle}</span>
-      <span class="alerta-risco-badge">${lista.length} aluno${lista.length!==1?'s':''}</span>
-    </div>
-    <div style="padding:14px 16px 0">${botoes}</div>
-    <div class="alerta-risco-lista">${itensHtml}</div>
-  </div>`;
+  return painel('risco',     'linear-gradient(135deg,#7f1d1d,#dc2626)', '🚨 Alunos em Risco — < 40%',        risco,     'Nenhum aluno abaixo de 40% no período selecionado. 🎉', 'risco')
+       + painel('destaques', 'linear-gradient(135deg,#713f12,#ca8a04)', '⭐ Destaques na Geografia — ≥ 90%', destaques, 'Nenhum aluno com aproveitamento ≥ 90% no período selecionado.', 'destaques');
 }
 
 function irFichaAluno(nome, turma) {
