@@ -3202,65 +3202,117 @@ function renderizarFichaAluno() {
 
 // ─── PAINEL ALERTAS DE RISCO ─────────────────────────────────────────────────
 
+// Modo atual do painel: 'risco' | 'atencao' | 'destaques'
+let _painelModo = 'risco';
+
+function _setPainelModo(modo) {
+  _painelModo = modo;
+  // Re-renderiza só o painel sem recarregar o dashboard inteiro
+  const container = document.getElementById('painel-alertas-container');
+  if (!container) return;
+  const turmasDisp = Object.keys(db.turmas || {}).sort();
+  const filtroTri = (document.getElementById('dash-filtro-tri') || {}).value || '';
+  container.innerHTML = gerarAlertasRisco(turmasDisp, filtroTri);
+}
+
 function gerarAlertasRisco(turmasDisp, filtroTri) {
-  const emRisco = [];
+  const destaques = [], atencao = [], risco = [];
+  const pillCls = (pct) => pct < 0 ? 'nd' : pct < 0.4 ? 'baixo' : pct < 0.6 ? 'med' : 'ok';
+  const pillVal = (pct) => pct < 0 ? '—' : (pct*100).toFixed(0)+'%';
+  const triLabels = {1:'1ºTri', 2:'2ºTri', 3:'3ºTri'};
 
   turmasDisp.forEach(t => {
-    const alunos = db.turmas[t] || [];
-    alunos.forEach(nome => {
-      const historico = [];
+    (db.turmas[t] || []).forEach(nome => {
       const tris = filtroTri ? [parseInt(filtroTri)] : TRIMESTRES;
-      tris.forEach(tr => {
+      const historico = tris.map(tr => {
         const max = getMaxAluno(t, nome, tr);
         const tot = getTotalAluno(t, nome, tr);
-        if (max <= 0) { historico.push({tr, pct: -1}); return; }
-        historico.push({tr, pct: tot/max});
+        return { tr, pct: max > 0 ? tot / max : -1 };
       });
       const comDados = historico.filter(h => h.pct >= 0);
+      if (!comDados.length) return;
       const abaixo40 = comDados.filter(h => h.pct < 0.4);
-      // Alerta: 2+ trimestres abaixo de 40%, ou único trimestre com dados abaixo de 40%
-      if (abaixo40.length >= 1 && comDados.length >= 1) {
-        emRisco.push({nome, turma: t, historico, comDados, abaixo40});
-      }
+      const acima90  = comDados.filter(h => h.pct >= 0.9);
+      const abaixo60 = comDados.filter(h => h.pct >= 0.4 && h.pct < 0.6);
+      if (acima90.length === comDados.length)          destaques.push({nome, turma:t, historico, comDados});
+      if (abaixo40.length >= 1)                         risco.push({nome, turma:t, historico, comDados, abaixo40});
+      if (abaixo60.length >= 1 && !abaixo40.length)     atencao.push({nome, turma:t, historico, comDados});
     });
   });
 
-  // Ordena por quantidade de trimestres críticos (mais crítico primeiro)
-  emRisco.sort((a, b) => b.abaixo40.length - a.abaixo40.length);
+  risco.sort((a,b) => b.abaixo40.length - a.abaixo40.length);
+  destaques.sort((a,b) => {
+    const med = arr => arr.filter(h=>h.pct>=0).reduce((s,h)=>s+h.pct,0) / (arr.filter(h=>h.pct>=0).length||1);
+    return med(b.historico) - med(a.historico);
+  });
 
-  if (!emRisco.length) {
-    return `<div class="alerta-risco-panel" style="border-color:#dcfce7">
-      <div class="alerta-risco-header" style="background:linear-gradient(135deg,#14532d,#16a34a)">
-        <span class="alerta-risco-title">✅ Atenção Especial</span>
-        <span class="alerta-risco-badge">0 alertas</span>
-      </div>
-      <div class="alerta-risco-empty">Nenhum aluno com aproveitamento abaixo de 40% no período selecionado. 🎉</div>
+  // ── botões de modo ──────────────────────────────────────────────────────────
+  const btnStyle = (modo) => {
+    const ativo = _painelModo === modo;
+    const cores = {
+      destaques: ativo ? 'background:#fef08a;color:#713f12;border-color:#ca8a04' : 'background:white;color:#64748b;border-color:#e2e8f0',
+      atencao:   ativo ? 'background:#fed7aa;color:#7c2d12;border-color:#ea580c' : 'background:white;color:#64748b;border-color:#e2e8f0',
+      risco:     ativo ? 'background:#fecaca;color:#7f1d1d;border-color:#dc2626' : 'background:white;color:#64748b;border-color:#e2e8f0',
+    };
+    return `padding:6px 14px;border:1.5px solid;border-radius:20px;cursor:pointer;font-size:12px;font-weight:${ativo?700:500};transition:all .15s;${cores[modo]}`;
+  };
+
+  const botoes = `
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <button style="${btnStyle('destaques')}" onclick="_setPainelModo('destaques')">⭐ Destaques <span style="font-size:10px;opacity:.7">(≥90%)</span> <strong>${destaques.length}</strong></button>
+      <button style="${btnStyle('atencao')}"   onclick="_setPainelModo('atencao')">⚠️ Atenção <span style="font-size:10px;opacity:.7">(40–60%)</span> <strong>${atencao.length}</strong></button>
+      <button style="${btnStyle('risco')}"     onclick="_setPainelModo('risco')">🚨 Risco <span style="font-size:10px;opacity:.7">(&lt;40%)</span> <strong>${risco.length}</strong></button>
     </div>`;
+
+  // ── lista conforme modo ─────────────────────────────────────────────────────
+  let lista, headerGrad, headerTitle, emptyMsg;
+  if (_painelModo === 'destaques') {
+    lista = destaques;
+    headerGrad = 'linear-gradient(135deg,#713f12,#ca8a04)';
+    headerTitle = '⭐ Destaques na Geografia — Aproveitamento ≥ 90%';
+    emptyMsg = 'Nenhum aluno com aproveitamento ≥ 90% no período selecionado.';
+  } else if (_painelModo === 'atencao') {
+    lista = atencao;
+    headerGrad = 'linear-gradient(135deg,#7c2d12,#ea580c)';
+    headerTitle = '⚠️ Atenção — Aproveitamento entre 40% e 60%';
+    emptyMsg = 'Nenhum aluno nessa faixa no período selecionado.';
+  } else {
+    lista = risco;
+    headerGrad = 'linear-gradient(135deg,#7f1d1d,#dc2626)';
+    headerTitle = '🚨 Alunos em Risco — Aproveitamento < 40%';
+    emptyMsg = 'Nenhum aluno abaixo de 40% no período selecionado. 🎉';
   }
 
-  const pillCls = (pct) => pct < 0 ? 'nd' : pct < 0.4 ? 'baixo' : pct < 0.6 ? 'med' : 'ok';
-  const pillVal = (pct) => pct < 0 ? '—' : (pct*100).toFixed(0)+'%';
-  const triLabels = {1:'1Tri', 2:'2Tri', 3:'3Tri'};
+  const itensHtml = lista.length
+    ? lista.map(({nome, turma, historico, abaixo40}) => {
+        const pills = historico.map(h =>
+          `<span class="alerta-tri-pill ${pillCls(h.pct)}">${triLabels[h.tr]}: ${pillVal(h.pct)}</span>`
+        ).join('');
+        const emoji = _painelModo === 'destaques' ? '🌟'
+                    : (abaixo40 && abaixo40.length >= 2) ? '🔴' : '🟡';
+        const foto = db.fotos_alunos && db.fotos_alunos[nome];
+        const fotoEl = foto
+          ? `<img src="${foto}" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;flex-shrink:0">`
+          : `<span style="font-size:18px">${emoji}</span>`;
+        return `<div class="alerta-risco-item">
+          ${fotoEl}
+          <span class="nome">${nome}</span>
+          <span class="turma-badge">${turma}</span>
+          <div class="historico">${pills}</div>
+          <button style="font-size:11px;padding:3px 10px;border:1px solid var(--border-2);border-radius:6px;background:white;cursor:pointer;white-space:nowrap" onclick="irFichaAluno('${esc(nome)}','${esc(turma)}')">Ver Ficha</button>
+        </div>`;
+      }).join('')
+    : `<div class="alerta-risco-empty">${emptyMsg}</div>`;
 
-  const itens = emRisco.map(({nome, turma, historico}) => {
-    const pills = historico.map(h =>
-      `<span class="alerta-tri-pill ${pillCls(h.pct)}" title="${triLabels[h.tr]}">${triLabels[h.tr]}: ${pillVal(h.pct)}</span>`
-    ).join('');
-    return `<div class="alerta-risco-item">
-      <span style="font-size:16px">${historico.filter(h=>h.pct>=0&&h.pct<0.4).length >= 2 ? '🔴' : '🟡'}</span>
-      <span class="nome">${nome}</span>
-      <span class="turma-badge">${turma}</span>
-      <div class="historico">${pills}</div>
-      <button style="font-size:11px;padding:3px 10px;border:1px solid var(--border-2);border-radius:6px;background:white;cursor:pointer;white-space:nowrap" onclick="irFichaAluno('${esc(nome)}','${esc(turma)}')">Ver Ficha</button>
-    </div>`;
-  }).join('');
+  const borderColor = _painelModo === 'destaques' ? '#fde68a' : _painelModo === 'atencao' ? '#fed7aa' : '#fecaca';
 
-  return `<div class="alerta-risco-panel">
-    <div class="alerta-risco-header">
-      <span class="alerta-risco-title">🚨 Atenção Especial — Alunos em Risco</span>
-      <span class="alerta-risco-badge">${emRisco.length} aluno${emRisco.length>1?'s':''}</span>
+  return `<div class="alerta-risco-panel" style="border-color:${borderColor}">
+    <div class="alerta-risco-header" style="background:${headerGrad}">
+      <span class="alerta-risco-title">${headerTitle}</span>
+      <span class="alerta-risco-badge">${lista.length} aluno${lista.length!==1?'s':''}</span>
     </div>
-    <div class="alerta-risco-lista">${itens}</div>
+    <div style="padding:14px 16px 0">${botoes}</div>
+    <div class="alerta-risco-lista">${itensHtml}</div>
   </div>`;
 }
 
@@ -4247,7 +4299,7 @@ function editarAluno(t, i) {
 }
 
 function salvarEdicaoAluno(t, i) {
-  const novoNome = document.getElementById('edit-aluno-nome').value.trim();
+  const novoNome = document.getElementById('edit-aluno-nome').value.trim().toUpperCase();
   const sexo = document.getElementById('edit-aluno-sexo').value;
   const etnia = document.getElementById('edit-aluno-etnia').value;
 
@@ -4255,39 +4307,50 @@ function salvarEdicaoAluno(t, i) {
 
   const nomeAntigo = db.turmas[t][i];
   const aidAntigo = alunoId(t, nomeAntigo);
-  const aidNovo = alunoId(t, novoNome);
+  const aidNovo   = alunoId(t, novoNome);
 
   // Atualiza nome na lista da turma
   db.turmas[t][i] = novoNome;
 
-  // Migra notas se o nome mudou
   if (novoNome !== nomeAntigo) {
-    if (db.notas[t] && db.notas[t][nomeAntigo]) {
+    // Notas (incluindo obs embutida)
+    if (db.notas[t] && db.notas[t][nomeAntigo] !== undefined) {
       db.notas[t][novoNome] = db.notas[t][nomeAntigo];
       delete db.notas[t][nomeAntigo];
     }
-    if (db.anotacoes && db.anotacoes[nomeAntigo]) {
+    // Anotações pedagógicas
+    if (db.anotacoes && db.anotacoes[nomeAntigo] !== undefined) {
       db.anotacoes[novoNome] = db.anotacoes[nomeAntigo];
       delete db.anotacoes[nomeAntigo];
     }
-    if (db.autoavaliacao && db.autoavaliacao[nomeAntigo]) {
+    // Autoavaliação
+    if (db.autoavaliacao && db.autoavaliacao[nomeAntigo] !== undefined) {
       db.autoavaliacao[novoNome] = db.autoavaliacao[nomeAntigo];
       delete db.autoavaliacao[nomeAntigo];
     }
-    // Migra alunos_info
-    if (db.alunos_info && db.alunos_info[aidAntigo]) {
+    // Foto (indexada por nome, não por id)
+    if (db.fotos_alunos && db.fotos_alunos[nomeAntigo] !== undefined) {
+      db.fotos_alunos[novoNome] = db.fotos_alunos[nomeAntigo];
+      delete db.fotos_alunos[nomeAntigo];
+    }
+    // Perfil (alunos_info — indexado por alunoId)
+    if (db.alunos_info && db.alunos_info[aidAntigo] !== undefined) {
       db.alunos_info[aidNovo] = db.alunos_info[aidAntigo];
       delete db.alunos_info[aidAntigo];
     }
   }
 
-  // Salva sexo/etnia
+  // Salva sexo/etnia no id correto
   if (!db.alunos_info) db.alunos_info = {};
-  db.alunos_info[aidNovo] = { sexo: sexo || null, etnia: etnia || null };
+  if (!db.alunos_info[aidNovo]) db.alunos_info[aidNovo] = {};
+  db.alunos_info[aidNovo].sexo  = sexo  || null;
+  db.alunos_info[aidNovo].etnia = etnia || null;
 
   document.getElementById('modal-editar-aluno').remove();
-  salvar(); renderizarTurmas();
-  toast('✅ Aluno atualizado com sucesso!');
+  salvar();
+  renderizarTurmas();
+  if (typeof renderizarNotas === 'function') renderizarNotas();
+  toast('✅ ' + (novoNome !== nomeAntigo ? 'Nome corrigido e dados migrados! ✓' : 'Aluno atualizado!'));
 }
 
 // ─── EDITAR PROFESSOR ─────────────────────────────────────────────────────────
@@ -4493,7 +4556,7 @@ function renderizarDashboard() {
   const turmasDispBase = isEverton ? Object.keys(db.turmas).sort() : (sessao ? sessao.turmas : []);
   const turmasDisp = filtroTurma ? [filtroTurma] : turmasDispBase;
 
-  if (dashTabAtivo === 'geral')  cont.innerHTML = gerarAlertasRisco(turmasDisp, filtroTri) + dashGeral(turmasDisp, filtroTri);
+  if (dashTabAtivo === 'geral')  cont.innerHTML = `<div id="painel-alertas-container">${gerarAlertasRisco(turmasDisp, filtroTri)}</div>` + dashGeral(turmasDisp, filtroTri);
   if (dashTabAtivo === 'notas')  cont.innerHTML = dashNotas(turmasDisp, filtroTri);
   if (dashTabAtivo === 'perfil') cont.innerHTML = dashPerfil(turmasDisp);
   if (dashTabAtivo === 'comp')   cont.innerHTML = dashComparativo(turmasDisp, filtroTri);
