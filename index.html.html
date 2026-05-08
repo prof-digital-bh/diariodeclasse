@@ -105,7 +105,6 @@ body.dark-mode .anot-aluno-item.ativo { background: #1a3a5c; }
 body.dark-mode .modal-ia-box { background: #1e293b; }
 body.dark-mode .modal-ia-content { background: #162032; border-color: #334155; color: #cbd5e1; }
 body.dark-mode .modal-ia-title { color: #93c5fd; }
-body.dark-mode .dash-table th { background: #162032; color: #cbd5e1; border-bottom-color: #334155; }
 body.dark-mode .dash-table td { color: #e2e8f0; border-bottom-color: #334155; }
 body.dark-mode .dash-table tr:hover td { background: #162032; }
 body.dark-mode .mapa-drop-zone { background: #162032; border-color: #475569; }
@@ -1129,6 +1128,9 @@ alter table alunos add column if not exists foto text;</pre>
     <div class="toolbar no-print">
       <div class="toolbar-title" id="anotacoes-toolbar-title">📝 Anotações Individuais</div>
       <div class="btn-group">
+        <button class="btn-ia-relatorio" onclick="gerarPerfilTurmaIA()" title="Gera um perfil narrativo da turma a partir das observações registradas">
+          🏫 Perfil da Turma
+        </button>
         <button class="btn btn-success" onclick="abrirModalExportExcel()">📊 Exportar Excel</button>
       </div>
     </div>
@@ -2982,6 +2984,168 @@ async function gerarRelatorioIA(nomeAluno) {
 
 function copiarRelatorio() {
   const btn = document.getElementById('btn-copiar-relatorio');
+  const texto = btn && btn._texto;
+  if (!texto) return;
+  navigator.clipboard.writeText(texto).then(() => {
+    btn.textContent = '✅ Copiado!';
+    setTimeout(() => { btn.textContent = '📋 Copiar texto'; }, 2000);
+  }).catch(() => toast('Não foi possível copiar automaticamente.'));
+}
+
+// ─── PERFIL DA TURMA (IA) ────────────────────────────────────────────────────
+async function gerarPerfilTurmaIA() {
+  const turmaRef = getTurmaAnotacoes();
+  if (!turmaRef) return toast('Nenhuma turma de referência configurada.');
+
+  const alunos = db.turmas[turmaRef] || [];
+  if (!alunos.length) return toast('Nenhum aluno na turma de referência.');
+
+  // Campos de anotação
+  const campoLabels = {
+    participacao:'Participação e Engajamento', comportamento:'Comportamento e Convivência',
+    aprendizagem:'Aprendizagem e Desenvolvimento', dificuldades:'Dificuldades Observadas',
+    destaques:'Destaques e Potenciais', observacoes:'Outras Observações'
+  };
+  const campos = Object.keys(campoLabels);
+  const triLabels = {1:'1º Trimestre', 2:'2º Trimestre', 3:'3º Trimestre'};
+
+  // Verifica se há anotações suficientes
+  const alunosComAnot = alunos.filter(a =>
+    db.anotacoes && db.anotacoes[a] &&
+    TRIMESTRES.some(tr => { const d = db.anotacoes[a]['t'+tr] || {}; return Object.values(d).some(v => v && v.trim()); })
+  );
+
+  if (!alunosComAnot.length) return toast('Nenhuma anotação registrada na turma ainda.');
+
+  // Monta contexto consolidado da turma
+  let contexto = `Turma: ${turmaRef}\nDisciplina: Geografia\nTotal de alunos: ${alunos.length}\nAlunos com anotações: ${alunosComAnot.length}\n\n`;
+
+  // Estatísticas gerais de notas da turma
+  const triStats = {};
+  TRIMESTRES.forEach(tr => {
+    const comNota = alunos.filter(a => {
+      const max = getTotalAluno ? getMaxAluno(turmaRef, a, tr) : 0;
+      return max > 0;
+    });
+    if (comNota.length > 0) {
+      const medias = comNota.map(a => {
+        const max = getMaxAluno(turmaRef, a, tr);
+        const tot = getTotalAluno(turmaRef, a, tr);
+        return max > 0 ? tot / max : -1;
+      }).filter(v => v >= 0);
+      if (medias.length) {
+        const media = medias.reduce((s,v)=>s+v,0) / medias.length;
+        const aprovados = medias.filter(v => v >= 0.6).length;
+        const risco = medias.filter(v => v < 0.4).length;
+        triStats[tr] = { media: (media*100).toFixed(0), aprovados, risco, total: medias.length };
+      }
+    }
+  });
+
+  if (Object.keys(triStats).length) {
+    contexto += '=== Desempenho em Notas ===\n';
+    Object.entries(triStats).forEach(([tr, st]) => {
+      contexto += `${triLabels[tr]}: média ${st.media}% · ${st.aprovados}/${st.total} alunos acima de 60% · ${st.risco} em risco\n`;
+    });
+    contexto += '\n';
+  }
+
+  // Consolida observações por categoria
+  const obsConsolidadas = {};
+  campos.forEach(c => { obsConsolidadas[c] = []; });
+
+  alunosComAnot.forEach(a => {
+    TRIMESTRES.forEach(tr => {
+      const d = (db.anotacoes[a] && db.anotacoes[a]['t'+tr]) || {};
+      campos.forEach(c => {
+        if (d[c] && d[c].trim()) {
+          obsConsolidadas[c].push(d[c].trim());
+        }
+      });
+    });
+  });
+
+  contexto += '=== Observações Consolidadas da Turma ===\n';
+  campos.forEach(c => {
+    if (obsConsolidadas[c].length) {
+      contexto += `\n[${campoLabels[c]}] (${obsConsolidadas[c].length} registros):\n`;
+      // Inclui até 8 obs por campo para não estourar tokens
+      obsConsolidadas[c].slice(0, 8).forEach(obs => {
+        contexto += `• ${obs.substring(0, 200)}\n`;
+      });
+    }
+  });
+
+  const nomeProfAtual = sessao ? sessao.nome : 'Prof. Everton Correa';
+
+  // Cria modal
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-ia-overlay';
+  overlay.id = 'modal-perfil-turma';
+  overlay.innerHTML = `
+    <div class="modal-ia-box" style="max-width:700px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div class="modal-ia-title">🏫 Perfil da Turma — ${turmaRef}</div>
+          <div style="font-size:11px;color:var(--ink-3);margin-top:2px">${alunosComAnot.length} de ${alunos.length} alunos com anotações · Geografia · ${nomeProfAtual}</div>
+        </div>
+        <button onclick="document.getElementById('modal-perfil-turma').remove()" style="background:#f1f5f9;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px">✕</button>
+      </div>
+      <div class="modal-ia-content" id="perfil-turma-texto">
+        <div class="modal-ia-loading">
+          <div class="spinner"></div>
+          <span>Gerando perfil narrativo da turma com IA… aguarde alguns segundos.</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button id="btn-copiar-perfil" style="display:none;padding:9px 18px;background:#16a34a;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" onclick="copiarPerfilTurma()">📋 Copiar texto</button>
+        <button onclick="document.getElementById('modal-perfil-turma').remove()" style="padding:9px 18px;background:#f1f5f9;color:#334155;border:none;border-radius:8px;cursor:pointer;font-size:13px">Fechar</button>
+        <span style="font-size:11px;color:#94a3b8;align-self:center;margin-left:4px">Gerado pela API Anthropic · Revise antes de usar</span>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const prompt = `Você é um assessor pedagógico auxiliando o(a) ${nomeProfAtual} na disciplina de Geografia.
+Com base nas observações abaixo sobre a turma ${turmaRef}, escreva um PERFIL DESCRITIVO DA TURMA em texto corrido, com no máximo 10 linhas.
+O texto deve ser claro, objetivo e em linguagem escolar profissional (adequado para boletim ou relatório pedagógico).
+Aborde: clima geral da turma, engajamento, pontos fortes coletivos, dificuldades mais frequentes e perspectivas.
+NÃO cite nomes de alunos individualmente. Escreva em terceira pessoa ("A turma…", "Os estudantes…").
+NÃO use tópicos ou bullets — apenas parágrafos fluídos.
+
+${contexto}`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await resp.json();
+    const texto = (data.content && data.content[0] && data.content[0].text)
+      ? data.content[0].text
+      : (data.error ? ('Erro: ' + (data.error.message || JSON.stringify(data.error))) : 'Não foi possível gerar o perfil.');
+
+    const el = document.getElementById('perfil-turma-texto');
+    if (el) { el.textContent = texto; el.style.background = '#f0f9ff'; }
+    const btnCopiar = document.getElementById('btn-copiar-perfil');
+    if (btnCopiar) { btnCopiar.style.display = ''; btnCopiar._texto = texto; }
+
+  } catch(e) {
+    const el = document.getElementById('perfil-turma-texto');
+    if (el) {
+      el.style.background = '#fef2f2';
+      el.textContent = '⚠️ Erro ao chamar a API Anthropic. Verifique sua conexão e tente novamente.\n\nDetalhe: ' + e.message;
+    }
+  }
+}
+
+function copiarPerfilTurma() {
+  const btn = document.getElementById('btn-copiar-perfil');
   const texto = btn && btn._texto;
   if (!texto) return;
   navigator.clipboard.writeText(texto).then(() => {
