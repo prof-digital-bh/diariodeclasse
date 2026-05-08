@@ -1084,6 +1084,7 @@ alter table alunos add column if not exists foto text;</pre>
         <button id="btnTrava" class="btn btn-warning" onclick="toggleTrava()" style="display:none"></button>
         <button class="btn btn-success" onclick="exportarCSV()">📥 Exportar CSV</button>
         <button class="btn" onclick="abrirModalImpressao()">🖨️ Imprimir</button>
+        <button class="btn-ia-relatorio" onclick="gerarPerfilTurmaIA()" id="btn-perfil-turma" title="Gera perfil narrativo de todas as turmas com base nas observações dos alunos">🌍 Perfil das Turmas</button>
       </div>
     </div>
     <div class="filter-bar no-print" id="notas-filter-bar">
@@ -1130,6 +1131,7 @@ alter table alunos add column if not exists foto text;</pre>
     <div class="toolbar no-print">
       <div class="toolbar-title" id="anotacoes-toolbar-title">📝 Anotações Individuais</div>
       <div class="btn-group">
+        
         <button class="btn btn-success" onclick="abrirModalExportExcel()">📊 Exportar Excel</button>
       </div>
     </div>
@@ -2989,6 +2991,194 @@ function copiarRelatorio() {
     btn.textContent = '✅ Copiado!';
     setTimeout(() => { btn.textContent = '📋 Copiar texto'; }, 2000);
   }).catch(() => toast('Não foi possível copiar automaticamente.'));
+}
+
+// ─── PERFIL NARRATIVO DAS TURMAS ─────────────────────────────────────────────
+
+async function gerarPerfilTurmaIA() {
+  const isEverton = sessao && sessao.isEverton;
+  const todasTurmas = isEverton
+    ? Object.keys(db.turmas).sort()
+    : (sessao ? sessao.turmas : Object.keys(db.turmas).sort());
+
+  if (!todasTurmas.length) { toast('Nenhuma turma disponível.'); return; }
+
+  // Cria modal com seletor de turmas + área de resultados
+  const opcoesHtml = ['<option value="__todas__">— Todas as turmas —</option>']
+    .concat(todasTurmas.map(t => `<option value="${t}">${t}</option>`))
+    .join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-ia-overlay';
+  overlay.id = 'modal-ia-perfil-turma';
+  overlay.innerHTML = `
+    <div class="modal-ia-box" style="max-width:700px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div class="modal-ia-title">🌍 Perfil Narrativo das Turmas</div>
+        <button onclick="document.getElementById('modal-ia-perfil-turma').remove()" style="background:#f1f5f9;border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:16px">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label style="font-size:12px;font-weight:600;color:var(--ink-3)">Turma:</label>
+        <select id="perfil-sel-turma" style="padding:6px 10px;border:1px solid var(--border-2);border-radius:8px;font-size:13px;background:var(--white);color:var(--ink)">${opcoesHtml}</select>
+        <button onclick="executarPerfilTurma()" style="padding:7px 16px;background:linear-gradient(135deg,#1e3a8a,#1d4ed8);color:white;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">▶ Gerar</button>
+      </div>
+      <div class="modal-ia-content" id="ia-perfil-turma-texto" style="min-height:160px">
+        <span style="color:var(--ink-3);font-size:13px">Selecione uma turma ou todas e clique em Gerar.</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button id="btn-copiar-perfil-turma" style="display:none;padding:9px 18px;background:#16a34a;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" onclick="copiarPerfilTurma()">📋 Copiar texto</button>
+        <button id="btn-imprimir-perfil-turma" style="display:none;padding:9px 18px;background:#1e40af;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" onclick="imprimirPerfilTurma()">🖨️ Imprimir</button>
+        <button onclick="document.getElementById('modal-ia-perfil-turma').remove()" style="padding:9px 18px;background:#f1f5f9;color:#334155;border:none;border-radius:8px;cursor:pointer;font-size:13px">Fechar</button>
+        <span style="font-size:11px;color:#94a3b8;margin-left:4px">API Anthropic · Revise antes de usar</span>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function executarPerfilTurma() {
+  const sel = document.getElementById('perfil-sel-turma');
+  const escolha = sel ? sel.value : '__todas__';
+  const isEverton = sessao && sessao.isEverton;
+  const todasTurmas = isEverton
+    ? Object.keys(db.turmas).sort()
+    : (sessao ? sessao.turmas : Object.keys(db.turmas).sort());
+  const turmasFiltrar = escolha === '__todas__' ? todasTurmas : [escolha];
+
+  const el = document.getElementById('ia-perfil-turma-texto');
+  const btnCopiar = document.getElementById('btn-copiar-perfil-turma');
+  const btnImprimir = document.getElementById('btn-imprimir-perfil-turma');
+  if (btnCopiar) btnCopiar.style.display = 'none';
+  if (btnImprimir) btnImprimir.style.display = 'none';
+
+  const triLabels = {1:'1º Tri', 2:'2º Tri', 3:'3º Tri'};
+  const resultados = [];   // { turma, status, texto }
+
+  // Processa cada turma sequencialmente
+  for (const turma of turmasFiltrar) {
+    const alunos = db.turmas[turma] || [];
+    let contexto = `Turma: ${turma}\nDisciplina: Geografia\nTotal de alunos: ${alunos.length}\n\n`;
+    let temDados = false;
+
+    alunos.forEach(nome => {
+      TRIMESTRES.forEach(tr => {
+        const d = (db.anotacoes && db.anotacoes[nome] && db.anotacoes[nome]['t'+tr]) || {};
+        const obs = d.observacoes || '';
+        if (obs.trim()) {
+          temDados = true;
+          contexto += `• ${nome} (${triLabels[tr]}): ${obs.trim()}\n`;
+        }
+      });
+    });
+
+    if (!temDados) {
+      resultados.push({ turma, status: 'sem_dados', texto: '' });
+      continue;
+    }
+
+    contexto += `\nINSTRUÇÃO: Com base nas observações acima, escreva um perfil geral da turma ${turma}. `;
+    contexto += `Seja direto, objetivo e conciso. Máximo de 10 linhas. Sem listas, sem subtítulos. `;
+    contexto += `Texto corrido em parágrafo único. Destaque padrões coletivos de comportamento, engajamento e aprendizagem.`;
+
+    // Atualiza modal com progresso
+    if (el) {
+      el.innerHTML = `<div class="modal-ia-loading"><div class="spinner"></div><span>Gerando perfil da turma <strong>${turma}</strong>…</span></div>`;
+    }
+
+    try {
+      const resp = await fetch(SB_URL + '/functions/v1/gerar-relatorio-ia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
+        body: JSON.stringify({ contexto, nomeAluno: 'Turma ' + turma })
+      });
+      const data = await resp.json();
+      const texto = data.texto || data.error || 'Não foi possível gerar o perfil.';
+      resultados.push({ turma, status: 'ok', texto });
+    } catch(e) {
+      resultados.push({ turma, status: 'erro', texto: 'Erro: ' + e.message });
+    }
+  }
+
+  // Renderiza todos os resultados no modal
+  const html = resultados.map(r => {
+    if (r.status === 'sem_dados') {
+      return `<div style="margin-bottom:18px"><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ocean);margin-bottom:6px;padding-bottom:4px;border-bottom:2px solid var(--border)">Turma ${r.turma}</div><div style="font-size:12px;color:var(--ink-3);font-style:italic">Nenhuma observação registrada para esta turma.</div></div>`;
+    }
+    if (r.status === 'erro') {
+      return `<div style="margin-bottom:18px"><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#991b1b;margin-bottom:6px">Turma ${r.turma}</div><div style="font-size:12px;color:#991b1b">${r.texto}</div></div>`;
+    }
+    return `<div style="margin-bottom:20px"><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ocean);margin-bottom:6px;padding-bottom:4px;border-bottom:2px solid var(--border)">Turma ${r.turma}</div><div style="font-size:13px;line-height:1.7;color:var(--ink-2)">${r.texto}</div></div>`;
+  }).join('');
+
+  if (el) { el.innerHTML = html; el.style.background = '#f0f9ff'; }
+
+  // Armazena texto completo para copiar/imprimir
+  const textoCompleto = resultados
+    .filter(r => r.status === 'ok')
+    .map(r => `TURMA ${r.turma}\n${r.texto}`)
+    .join('\n\n---\n\n');
+
+  if (btnCopiar) { btnCopiar.style.display = ''; btnCopiar._texto = textoCompleto; }
+  if (btnImprimir) { btnImprimir.style.display = ''; btnImprimir._resultados = resultados; btnImprimir._escolha = escolha; }
+}
+
+function copiarPerfilTurma() {
+  const btn = document.getElementById('btn-copiar-perfil-turma');
+  const texto = btn && btn._texto;
+  if (!texto) return;
+  navigator.clipboard.writeText(texto).then(() => {
+    btn.textContent = '✅ Copiado!';
+    setTimeout(() => { btn.textContent = '📋 Copiar texto'; }, 2000);
+  }).catch(() => toast('Não foi possível copiar automaticamente.'));
+}
+
+function imprimirPerfilTurma() {
+  const btn = document.getElementById('btn-imprimir-perfil-turma');
+  const resultados = btn && btn._resultados;
+  const escolha = btn && btn._escolha;
+  if (!resultados) return;
+
+  const nomeProf = sessao ? sessao.nome : 'Prof. Everton Correa';
+  const disciplina = sessao ? (sessao.disciplina || 'GEOGRAFIA') : 'GEOGRAFIA';
+  const titulo = escolha === '__todas__' ? 'Todas as Turmas' : 'Turma ' + escolha;
+  const data = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+
+  const blocos = resultados.map(r => {
+    if (r.status === 'sem_dados') {
+      return `<div class="bloco"><h2>Turma ${r.turma}</h2><p class="sem-dados">Nenhuma observação registrada para esta turma.</p></div>`;
+    }
+    if (r.status === 'erro') {
+      return `<div class="bloco"><h2>Turma ${r.turma}</h2><p class="erro">${r.texto}</p></div>`;
+    }
+    return `<div class="bloco"><h2>Turma ${r.turma}</h2><p>${r.texto}</p></div>`;
+  }).join('');
+
+  const win = window.open('', '_blank', 'width=800,height=700');
+  win.document.write(`<!DOCTYPE html><html lang="pt-br"><head><meta charset="UTF-8">
+<title>Perfil das Turmas · ${disciplina}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap');
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'DM Sans',sans-serif; color:#0f172a; background:#fff; padding:40px 48px; max-width:800px; margin:0 auto; }
+  .cabecalho { border-bottom:3px solid #1a3a5c; padding-bottom:14px; margin-bottom:28px; }
+  .cabecalho h1 { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; color:#1a3a5c; }
+  .cabecalho .meta { font-size:12px; color:#64748b; margin-top:5px; }
+  .bloco { margin-bottom:26px; break-inside:avoid; }
+  .bloco h2 { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; color:#1a3a5c; border-bottom:1px solid #e2e8f0; padding-bottom:5px; margin-bottom:9px; }
+  .bloco p { font-size:13px; line-height:1.75; color:#334155; }
+  .sem-dados { color:#94a3b8; font-style:italic; }
+  .erro { color:#991b1b; }
+  .rodape { margin-top:36px; padding-top:12px; border-top:1px solid #e2e8f0; font-size:11px; color:#94a3b8; text-align:center; }
+  @media print { body { padding:20px 28px; } }
+</style></head><body>
+<div class="cabecalho">
+  <h1>🌍 Perfil Narrativo das Turmas · ${disciplina}</h1>
+  <div class="meta">${nomeProf} &nbsp;·&nbsp; ${titulo} &nbsp;·&nbsp; ${data}</div>
+</div>
+${blocos}
+<div class="rodape">Gerado pelo Diário de Notas 2026 · API Anthropic · Revise antes de usar</div>
+</body></html>`);
+  win.document.close();
+  setTimeout(() => { win.focus(); win.print(); }, 600);
 }
 
 // ─── FICHA INDIVIDUAL DO ALUNO ────────────────────────────────────────────────
