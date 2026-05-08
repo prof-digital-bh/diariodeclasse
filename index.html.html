@@ -3051,38 +3051,72 @@ async function executarPerfilTurma() {
   if (btnImprimir) btnImprimir.style.display = 'none';
 
   const triLabels = {1:'1º Tri', 2:'2º Tri', 3:'3º Tri'};
-  const resultados = [];   // { turma, status, texto }
+  const campoLabels = {
+    participacao:'Participação', comportamento:'Comportamento',
+    aprendizagem:'Aprendizagem', dificuldades:'Dificuldades',
+    destaques:'Destaques', observacoes:'Observações'
+  };
+  const resultados = [];
 
-  // Processa cada turma sequencialmente
   for (const turma of turmasFiltrar) {
     const alunos = db.turmas[turma] || [];
-    let contexto = `Turma: ${turma}\nDisciplina: Geografia\nTotal de alunos: ${alunos.length}\n\n`;
+    if (!alunos.length) { resultados.push({ turma, status: 'sem_dados', texto: '' }); continue; }
+
+    // Atualiza progresso
+    if (el) el.innerHTML = `<div class="modal-ia-loading"><div class="spinner"></div><span>Gerando perfil da turma <strong>${turma}</strong>…</span></div>`;
+
+    // ── Monta bloco de dados por aluno ─────────────────────────────────────
     let temDados = false;
+    let blocoAlunos = '';
 
     alunos.forEach(nome => {
+      let linhasAluno = '';
+
       TRIMESTRES.forEach(tr => {
         const d = (db.anotacoes && db.anotacoes[nome] && db.anotacoes[nome]['t'+tr]) || {};
-        const obs = d.observacoes || '';
-        if (obs.trim()) {
-          temDados = true;
-          contexto += `• ${nome} (${triLabels[tr]}): ${obs.trim()}\n`;
-        }
+        const temAnot = Object.values(d).some(v => v && v.trim());
+        const maxT = getMaxAluno(turma, nome, tr);
+        const tot  = getTotalAluno(turma, nome, tr);
+        const pct  = maxT > 0 ? Math.round((tot / maxT) * 100) : null;
+
+        if (!temAnot && pct === null) return;
+        temDados = true;
+
+        linhasAluno += `  [${triLabels[tr]}]`;
+        if (pct !== null) linhasAluno += ` Aproveitamento: ${pct}%`;
+        linhasAluno += '\n';
+
+        Object.entries(campoLabels).forEach(([key, lbl]) => {
+          const val = d[key] && d[key].trim();
+          if (val) linhasAluno += `    ${lbl}: ${val}\n`;
+        });
       });
+
+      if (linhasAluno) blocoAlunos += `\nAluno: ${nome}\n${linhasAluno}`;
     });
 
-    if (!temDados) {
-      resultados.push({ turma, status: 'sem_dados', texto: '' });
-      continue;
-    }
+    // ── Média geral da turma por trimestre ─────────────────────────────────
+    let blocoMedias = '\nMédias da turma por trimestre:\n';
+    TRIMESTRES.forEach(tr => {
+      const maxT = getMaxTurma(turma, tr);
+      if (maxT <= 0) return;
+      const totais = alunos.map(a => getTotalAluno(turma, a, tr));
+      const avaliados = totais.filter(v => v > 0);
+      if (!avaliados.length) return;
+      const media = avaliados.reduce((s,v) => s+v, 0) / avaliados.length;
+      blocoMedias += `  ${triLabels[tr]}: ${Math.round((media/maxT)*100)}% (${avaliados.length} alunos avaliados)\n`;
+    });
 
-    contexto += `\nINSTRUÇÃO: Com base nas observações acima, escreva um perfil geral da turma ${turma}. `;
-    contexto += `Seja direto, objetivo e conciso. Máximo de 10 linhas. Sem listas, sem subtítulos. `;
-    contexto += `Texto corrido em parágrafo único. Destaque padrões coletivos de comportamento, engajamento e aprendizagem.`;
+    if (!temDados) { resultados.push({ turma, status: 'sem_dados', texto: '' }); continue; }
 
-    // Atualiza modal com progresso
-    if (el) {
-      el.innerHTML = `<div class="modal-ia-loading"><div class="spinner"></div><span>Gerando perfil da turma <strong>${turma}</strong>…</span></div>`;
-    }
+    const contexto =
+      `Turma: ${turma} | Disciplina: Geografia | Total de alunos: ${alunos.length}\n` +
+      blocoMedias +
+      `\nObservações individuais dos alunos:\n${blocoAlunos}\n` +
+      `\nINSTRUÇÃO: Com base nas observações e no aproveitamento acima, escreva um perfil geral da turma ${turma}. ` +
+      `Integre os dados de desempenho (médias) com as observações qualitativas. ` +
+      `Seja direto, objetivo e conciso. Máximo de 10 linhas. Sem listas, sem subtítulos. ` +
+      `Texto corrido em parágrafo único. Não mencione alunos individualmente.`;
 
     try {
       const resp = await fetch(SB_URL + '/functions/v1/gerar-relatorio-ia', {
@@ -3098,24 +3132,17 @@ async function executarPerfilTurma() {
     }
   }
 
-  // Renderiza todos os resultados no modal
+  // Renderiza resultados
   const html = resultados.map(r => {
-    if (r.status === 'sem_dados') {
-      return `<div style="margin-bottom:18px"><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ocean);margin-bottom:6px;padding-bottom:4px;border-bottom:2px solid var(--border)">Turma ${r.turma}</div><div style="font-size:12px;color:var(--ink-3);font-style:italic">Nenhuma observação registrada para esta turma.</div></div>`;
-    }
-    if (r.status === 'erro') {
-      return `<div style="margin-bottom:18px"><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#991b1b;margin-bottom:6px">Turma ${r.turma}</div><div style="font-size:12px;color:#991b1b">${r.texto}</div></div>`;
-    }
-    return `<div style="margin-bottom:20px"><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ocean);margin-bottom:6px;padding-bottom:4px;border-bottom:2px solid var(--border)">Turma ${r.turma}</div><div style="font-size:13px;line-height:1.7;color:var(--ink-2)">${r.texto}</div></div>`;
+    if (r.status === 'sem_dados') return `<div style="margin-bottom:18px"><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ocean);margin-bottom:6px;padding-bottom:4px;border-bottom:2px solid var(--border)">Turma ${r.turma}</div><div style="font-size:12px;color:var(--ink-3);font-style:italic">Nenhuma anotação ou nota registrada para esta turma.</div></div>`;
+    if (r.status === 'erro') return `<div style="margin-bottom:18px"><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#991b1b;margin-bottom:6px">Turma ${r.turma}</div><div style="font-size:12px;color:#991b1b">${r.texto}</div></div>`;
+    return `<div style="margin-bottom:20px"><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ocean);margin-bottom:6px;padding-bottom:4px;border-bottom:2px solid var(--border)">Turma ${r.turma}</div><div style="font-size:13px;line-height:1.75;color:var(--ink-2)">${r.texto}</div></div>`;
   }).join('');
 
   if (el) { el.innerHTML = html; el.style.background = '#f0f9ff'; }
 
-  // Armazena texto completo para copiar/imprimir
-  const textoCompleto = resultados
-    .filter(r => r.status === 'ok')
-    .map(r => `TURMA ${r.turma}\n${r.texto}`)
-    .join('\n\n---\n\n');
+  const textoCompleto = resultados.filter(r => r.status === 'ok')
+    .map(r => `TURMA ${r.turma}\n${r.texto}`).join('\n\n---\n\n');
 
   if (btnCopiar) { btnCopiar.style.display = ''; btnCopiar._texto = textoCompleto; }
   if (btnImprimir) { btnImprimir.style.display = ''; btnImprimir._resultados = resultados; btnImprimir._escolha = escolha; }
