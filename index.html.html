@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Diário de Notas 2026 · Prof. Everton Correa</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231a3a5c'/%3E%3Ccircle cx='32' cy='32' r='30' fill='none' stroke='%2360a5fa' stroke-width='1.5'/%3E%3Cellipse cx='32' cy='32' rx='12' ry='30' fill='none' stroke='%2360a5fa' stroke-width='1.2'/%3E%3Cellipse cx='32' cy='32' rx='22' ry='30' fill='none' stroke='%2360a5fa' stroke-width='1'/%3E%3Cline x1='2' y1='32' x2='62' y2='32' stroke='%2360a5fa' stroke-width='1.2'/%3E%3Cline x1='5' y1='20' x2='59' y2='20' stroke='%2360a5fa' stroke-width='0.9'/%3E%3Cline x1='5' y1='44' x2='59' y2='44' stroke='%2360a5fa' stroke-width='0.9'/%3E%3Cellipse cx='32' cy='32' rx='30' ry='9' fill='none' stroke='%2360a5fa' stroke-width='0.7'/%3E%3C!-- continentes simplificados --%3E%3Cpath d='M18 22 Q20 18 25 20 Q28 17 30 21 Q26 24 22 23 Z' fill='%2316a34a' opacity='0.85'/%3E%3Cpath d='M33 19 Q37 16 41 19 Q43 23 40 25 Q36 24 33 22 Z' fill='%2316a34a' opacity='0.85'/%3E%3Cpath d='M14 28 Q17 26 20 29 Q19 34 16 33 Q13 31 14 28 Z' fill='%2316a34a' opacity='0.85'/%3E%3Cpath d='M22 34 Q26 32 29 35 Q30 40 27 42 Q23 41 22 38 Z' fill='%2316a34a' opacity='0.85'/%3E%3Cpath d='M36 28 Q42 26 46 30 Q47 36 43 38 Q38 37 36 33 Z' fill='%2316a34a' opacity='0.85'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -2960,7 +2961,7 @@ async function gerarRelatorioIA(nomeAluno) {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + SB_KEY
       },
-      body: JSON.stringify({ contexto, nomeAluno })
+      body: JSON.stringify({ contexto: contexto + '\n\nINSTRUÇÃO IMPORTANTE: O relatório narrativo deve ter no máximo 10 linhas. Seja objetivo e conciso.', nomeAluno })
     });
 
     const data = await resp.json();
