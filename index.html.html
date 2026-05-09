@@ -6139,7 +6139,8 @@ async function gsFormatarAba(token, spreadsheetId, sheetId, trisSelecionados, to
   });
 
   // Congelar 2 primeiras linhas e 2 primeiras colunas
-  requests.push({ updateSheetProperties: { properties: { sheetId, gridProperties: { frozenRowCount:2, frozenColumnCount:2 }}, fields:'gridProperties.frozenRowCount,gridProperties.frozenColumnCount' } });
+  // Congela apenas as 2 primeiras linhas (não colunas — conflita com mesclagem)
+  requests.push({ updateSheetProperties: { properties: { sheetId, gridProperties: { frozenRowCount:2, frozenColumnCount:0 }}, fields:'gridProperties.frozenRowCount,gridProperties.frozenColumnCount' } });
 
   // Auto-resize
   requests.push({ autoResizeDimensions: { dimensions: { sheetId, dimension:'COLUMNS', startIndex:0, endIndex: totalCols } } });
@@ -6334,7 +6335,12 @@ async function gsExecutarSincronizacao() {
     }
 
     gsLogAdd('🎉 Sincronização concluída! Abra a planilha para conferir.', '🎉');
+    // Remove o ícone spinner do último item se existir
+    const allItems = document.querySelectorAll('#gs-progress-log .gsheets-log-spinner');
+    allItems.forEach(s => s.remove());
     document.getElementById('gs-btn-sincronizar').textContent = '✅ Concluído';
+    document.getElementById('gs-btn-sincronizar').disabled = false;
+    document.getElementById('gs-btn-sincronizar').onclick = fecharModalGSheets;
     document.getElementById('gs-btn-sincronizar').style.background = '#16a34a';
 
     // Link direto para a planilha
