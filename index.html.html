@@ -5963,7 +5963,7 @@ function gsAutenticar(clientId) {
     const existing = gsTokenValido();
     if (existing) { resolve(existing); return; }
 
-    const redirectUri = window.location.origin + window.location.pathname;
+    const redirectUri = window.location.origin + "/";
     const scope = encodeURIComponent('https://www.googleapis.com/auth/spreadsheets');
     const state  = 'gs_' + Math.random().toString(36).slice(2);
     const url = 'https://accounts.google.com/o/oauth2/v2/auth'
