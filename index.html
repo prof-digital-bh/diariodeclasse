@@ -440,9 +440,11 @@ thead th.t3-col { background: #fef3c7; }
 .mapa-lightbox-close:hover { background: rgba(255,255,255,.3); }
 .mapa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
 .mapa-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
-.mapa-card-header { background: linear-gradient(90deg, var(--ocean) 0%, var(--ocean-mid) 100%); color: white; padding: 11px 14px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 44px; }
-.mapa-card-header-nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mapa-card-header-status { font-size: 11px; opacity: .8; font-weight: 400; background: rgba(255,255,255,.18); border-radius: 10px; padding: 2px 9px; white-space: nowrap; flex-shrink: 0; }
+.mapa-card-header { background: linear-gradient(90deg, var(--ocean) 0%, var(--ocean-mid) 100%); color: white; padding: 8px 12px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 38px; }
+.mapa-card-header-nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.mapa-card-header-status { font-size: 10px; opacity: .85; font-weight: 400; background: rgba(255,255,255,.18); border-radius: 10px; padding: 2px 8px; white-space: nowrap; flex-shrink: 0; }
+.mapa-img-trocar { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 10px; width: 100%; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: var(--radius); padding: 7px 12px; cursor: pointer; font-size: 12px; font-weight: 500; transition: background .15s; }
+.mapa-img-trocar:hover { background: #dbeafe; }
 .mapa-card-body { padding: 16px; }
 
 /* ─── ANOTAÇÕES 9ºA ────────────────────────────────────────────────────── */
@@ -2612,7 +2614,7 @@ function renderizarMapeamento() {
   grid.innerHTML = turmas.map(t => {
     const img = db.mapas && db.mapas[t] ? db.mapas[t] : null;
     const imgHtml = img
-      ? '<div class="mapa-img-wrap"><img src="' + img + '" alt="Mapa ' + t + '" onclick="abrirLightbox(\'' + esc(t) + '\')"><button class="mapa-img-del" onclick="deletarMapa(\'' + esc(t) + '\')">🗑️ Remover mapa</button></div>'
+      ? '<div class="mapa-img-wrap"><img src="' + img + '" alt="Mapa ' + t + '" onclick="abrirLightbox(\'' + esc(t) + '\')"><button class="mapa-img-trocar" onclick="trocarMapa(\'' + esc(t) + '\')">🔄 Trocar mapa</button><input type="file" id="trocar-input-' + esc(t) + '" accept="image/*" style="display:none" onchange="carregarMapa(event,\'' + esc(t) + '\')"></div>'
       : '<label class="mapa-drop-zone" ondragover="event.preventDefault();this.classList.add(\'drag-over\')" ondragleave="this.classList.remove(\'drag-over\')" ondrop="dropMapa(event,\'' + esc(t) + '\')">' +
         '<span class="mapa-drop-icon">🗺️</span><span class="mapa-drop-text">Clique ou arraste a imagem do mapa</span>' +
         '<input type="file" accept="image/*" onchange="carregarMapa(event,\'' + esc(t) + '\')">' +
@@ -2657,6 +2659,11 @@ function deletarMapa(t) {
   salvar(); renderizarMapeamento();
   try { _deleteWhere('mapas', 'turma', t); } catch(e) {}
   toast('Mapa removido.');
+}
+
+function trocarMapa(t) {
+  const input = document.getElementById('trocar-input-' + t);
+  if (input) input.click();
 }
 
 // ─── FOTOS DOS ALUNOS ────────────────────────────────────────────────────────
