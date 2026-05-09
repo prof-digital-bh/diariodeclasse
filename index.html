@@ -5884,21 +5884,54 @@ document.addEventListener('keydown', function(e) {
   const el = document.activeElement;
   if (!el || !el.classList.contains('nota-input')) return;
 
-  // Coleta todos os nota-input visíveis e habilitados na tabela de notas
   const corpo = document.getElementById('corpoNotas');
   if (!corpo || !corpo.contains(el)) return;
 
   e.preventDefault();
-  const inputs = Array.from(corpo.querySelectorAll('input.nota-input:not([disabled])'));
-  const idx = inputs.indexOf(el);
-  if (idx === -1) return;
 
-  // Shift+Tab volta, Tab avança
-  const next = e.shiftKey ? inputs[idx - 1] : inputs[idx + 1];
-  if (next) {
-    next.focus();
-    next.select();
+  // Determina a posição (linha x coluna) do input atual dentro do tbody
+  const tdAtual = el.closest('td');
+  const trAtual = el.closest('tr');
+  if (!tdAtual || !trAtual) return;
+
+  // Índice da coluna do td atual dentro da sua tr
+  const tdsLinha = Array.from(trAtual.querySelectorAll('td'));
+  const colIdx = tdsLinha.indexOf(tdAtual);
+
+  // Todas as linhas do tbody
+  const linhas = Array.from(corpo.querySelectorAll('tr'));
+  const linhaIdx = linhas.indexOf(trAtual);
+
+  // Direção: Tab = baixo, Shift+Tab = cima
+  const direcao = e.shiftKey ? -1 : 1;
+
+  // Tenta encontrar um input habilitado na mesma coluna, nas próximas linhas
+  let buscaLinha = linhaIdx + direcao;
+  while (buscaLinha >= 0 && buscaLinha < linhas.length) {
+    const tdsAlvo = linhas[buscaLinha].querySelectorAll('td');
+    const tdAlvo  = tdsAlvo[colIdx];
+    if (tdAlvo) {
+      const inputAlvo = tdAlvo.querySelector('input.nota-input:not([disabled])');
+      if (inputAlvo) { inputAlvo.focus(); inputAlvo.select(); return; }
+    }
+    buscaLinha += direcao;
   }
+
+  // Chegou no fim (ou início) da coluna — avança para a próxima coluna
+  // Coleta todos os inputs habilitados na ordem DOM (horizontal) e pega o próximo após o atual
+  const todosInputs = Array.from(corpo.querySelectorAll('input.nota-input:not([disabled])'));
+  const idxAtual = todosInputs.indexOf(el);
+  if (idxAtual === -1) return;
+
+  // Avançando: próxima coluna = primeiro input após o atual; Recuando: anterior ao atual
+  let proximoIdx = e.shiftKey ? idxAtual - 1 : idxAtual + 1;
+
+  // Comportamento circular
+  if (proximoIdx < 0) proximoIdx = todosInputs.length - 1;
+  if (proximoIdx >= todosInputs.length) proximoIdx = 0;
+
+  const proximo = todosInputs[proximoIdx];
+  if (proximo) { proximo.focus(); proximo.select(); }
 });
 
 // Verifica se precisa de setup antes de tudo
