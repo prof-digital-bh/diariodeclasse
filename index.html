@@ -2037,19 +2037,19 @@ function construirNav() {
   if (isEverton) {
     tabs.push({ id: 'turmas',      icon: '🏫', label: 'Gestão de Turmas' });
     tabs.push({ id: 'notas',       icon: '📊', label: 'Diário de Notas' });
-    tabs.push({ id: 'relatorios',  icon: '📋', label: 'Relatórios' });
-    tabs.push({ id: 'anotacoes',   icon: '📝', label: 'Anotações · ' + (sessao.turmaReferencia || '—') });
     tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
+    tabs.push({ id: 'relatorios',  icon: '📋', label: 'Pendências' });
+    tabs.push({ id: 'anotacoes',   icon: '📝', label: 'Anotações · ' + (sessao.turmaReferencia || '—') });
+    tabs.push({ id: 'dashboard',   icon: '📈', label: 'Dashboard.Geo' });
     tabs.push({ id: 'professores', icon: '👩‍🏫', label: 'Professores' });
-    tabs.push({ id: 'dashboard',   icon: '📈', label: 'dashboard.edu' });
   } else {
     tabs.push({ id: 'turmas',      icon: '📚', label: 'Minhas Turmas' });
     tabs.push({ id: 'notas',       icon: '📊', label: 'Diário de Notas' });
-    tabs.push({ id: 'relatorios',  icon: '📋', label: 'Relatórios' });
+    tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
+    tabs.push({ id: 'relatorios',  icon: '📋', label: 'Pendências' });
     if (sessao && sessao.turmaReferencia)
       tabs.push({ id: 'anotacoes', icon: '📝', label: 'Anotações · ' + sessao.turmaReferencia });
-    tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
-    tabs.push({ id: 'dashboard',   icon: '📈', label: 'dashboard.edu' });
+    tabs.push({ id: 'dashboard',   icon: '📈', label: 'Dashboard.Geo' });
   }
 
   nav.innerHTML = tabs.map((t, i) =>
@@ -4324,7 +4324,7 @@ function executarImpressaoDash() {
 
   const win = window.open('', '_blank', 'width=900,height=700');
   win.document.write(`<!DOCTYPE html><html lang="pt-br"><head><meta charset="UTF-8">
-  <title>dashboard.edu · ${tabLabel}</title>
+  <title>Dashboard.Geo · ${tabLabel}</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&family=DM+Mono&display=swap" rel="stylesheet">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -4355,7 +4355,7 @@ function executarImpressaoDash() {
     .btn-print{margin-top:20px;padding:9px 22px;background:#1a3a5c;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px}
     @media print{.btn-print{display:none}body{padding:10px}@page{size:${orientacao} ${papel};margin:8mm}}
   </style></head><body>
-  <h1>dashboard.edu · ${tabLabel}</h1>
+  <h1>Dashboard.Geo · ${tabLabel}</h1>
   <div class="sub">${profNome} · E.M. Albertina Alves do Nascimento · 2026${filtroTurma?' · '+filtroTurma:''}${filtroTri?' · '+filtroTri+'º Trimestre':''}</div>
   ${htmlFinal}
   ${rodapeHtml}
