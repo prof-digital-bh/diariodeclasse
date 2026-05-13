@@ -894,6 +894,72 @@ body.dark-mode .gsheets-step { background:#162032; border-color:#334155; }
 body.dark-mode .gsheets-field input { background:#0f172a; color:#e2e8f0; border-color:#475569; }
 body.dark-mode .gsheets-progress { background:#162032; border-color:#334155; }
 body.dark-mode .gsheets-progress-item { border-bottom-color:#334155; }
+
+/* ─── MÓDULO NOTA FISCAL / CNPJ ────────────────────────────────────────── */
+.nf-section { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:24px; }
+@media(max-width:700px){ .nf-section { grid-template-columns:1fr; } }
+
+.nf-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow); }
+.nf-card-header { padding:12px 18px; display:flex; align-items:center; gap:10px; }
+.nf-card-header.empresa { background:linear-gradient(90deg,#1e3a8a,#1d4ed8); color:white; }
+.nf-card-header.lanc { background:linear-gradient(90deg,#065f46,#059669); color:white; }
+.nf-card-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; }
+.nf-card-body { padding:18px; }
+
+/* Campo CNPJ */
+.nf-input-cnpj { font-family:'DM Mono',monospace; font-size:15px; letter-spacing:1px; }
+
+/* Dropdown lista de empresas no lançamento */
+.nf-empresa-dropdown { position:relative; }
+.nf-empresa-list {
+  position:absolute; top:100%; left:0; right:0; z-index:500;
+  background:var(--white); border:1px solid var(--ocean-mid);
+  border-top:none; border-radius:0 0 var(--radius) var(--radius);
+  max-height:220px; overflow-y:auto; box-shadow:var(--shadow-lg);
+  display:none;
+}
+.nf-empresa-list.show { display:block; }
+.nf-empresa-item {
+  padding:9px 14px; cursor:pointer; border-bottom:1px solid var(--border);
+  transition:background .12s; font-size:13px;
+}
+.nf-empresa-item:last-child { border-bottom:none; }
+.nf-empresa-item:hover { background:var(--sky-pale); }
+.nf-empresa-item .nf-ei-nome { font-weight:600; color:var(--ink); }
+.nf-empresa-item .nf-ei-cnpj { font-family:'DM Mono',monospace; font-size:11px; color:var(--ink-3); margin-top:1px; }
+
+/* Lista de NFs lançadas */
+.nf-lista-wrap { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow); }
+.nf-lista-header { background:linear-gradient(90deg,var(--ocean),var(--ocean-mid)); color:white; padding:12px 18px; display:flex; align-items:center; justify-content:space-between; }
+.nf-lista-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; }
+.nf-lista-badge { background:rgba(255,255,255,.2); border-radius:12px; padding:2px 10px; font-size:12px; font-weight:700; }
+.nf-row { display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid var(--border); font-size:13px; flex-wrap:wrap; }
+.nf-row:last-child { border-bottom:none; }
+.nf-row:hover { background:var(--sky-pale); }
+.nf-row-num { font-family:'DM Mono',monospace; font-weight:700; color:var(--ocean-mid); min-width:60px; }
+.nf-row-empresa { font-weight:600; flex:1; min-width:120px; }
+.nf-row-cnpj { font-family:'DM Mono',monospace; font-size:11px; color:var(--ink-3); }
+.nf-row-valor { font-family:'DM Mono',monospace; font-weight:700; color:var(--green-mid); min-width:90px; text-align:right; }
+.nf-row-data { font-size:11px; color:var(--ink-3); white-space:nowrap; }
+.nf-empty { padding:32px; text-align:center; color:var(--ink-3); font-size:13px; }
+
+/* Lista de empresas cadastradas */
+.nf-emp-row { display:flex; align-items:center; gap:10px; padding:9px 14px; border-bottom:1px solid var(--border); font-size:13px; }
+.nf-emp-row:last-child { border-bottom:none; }
+.nf-emp-row:hover { background:var(--sky-pale); }
+.nf-emp-nome { font-weight:600; flex:1; min-width:0; }
+.nf-emp-cnpj { font-family:'DM Mono',monospace; font-size:11px; color:var(--ink-3); }
+
+/* Dark mode NF */
+body.dark-mode .nf-card { background:#1e293b; border-color:#334155; }
+body.dark-mode .nf-empresa-list { background:#1e293b; border-color:#475569; }
+body.dark-mode .nf-empresa-item:hover { background:#162032; }
+body.dark-mode .nf-empresa-item .nf-ei-nome { color:#e2e8f0; }
+body.dark-mode .nf-lista-wrap { background:#1e293b; border-color:#334155; }
+body.dark-mode .nf-row { border-bottom-color:#334155; }
+body.dark-mode .nf-row:hover { background:#162032; }
+body.dark-mode .nf-emp-row { border-bottom-color:#334155; }
+body.dark-mode .nf-emp-row:hover { background:#162032; }
 </style>
 <body>
 
@@ -1380,6 +1446,127 @@ alter table alunos add column if not exists foto text;</pre>
 
     <div id="rel-content">
       <div class="empty"><span class="empty-icon">📋</span>Selecione os filtros para gerar o relatório.</div>
+    </div>
+  </section>
+
+  <!-- ABA NOTA FISCAL -->
+  <section id="page-notafiscal" class="page">
+    <div class="toolbar no-print">
+      <div class="toolbar-title">🧾 Notas Fiscais</div>
+      <div class="btn-group">
+        <button class="btn btn-success" onclick="nfExportarCSV()">📥 Exportar CSV</button>
+      </div>
+    </div>
+
+    <div class="nf-section">
+      <!-- Card: Cadastro de Empresa -->
+      <div class="nf-card" id="nf-card-empresa">
+        <div class="nf-card-header empresa">
+          <span style="font-size:18px">🏢</span>
+          <div class="nf-card-title" id="nf-empresa-titulo">Cadastrar Empresa</div>
+        </div>
+        <div class="nf-card-body">
+          <input type="hidden" id="nf-empresa-edit-id">
+          <div class="field">
+            <label>CNPJ</label>
+            <input type="text" id="nf-empresa-cnpj" class="nf-input-cnpj" placeholder="00.000.000/0000-00" maxlength="18"
+              oninput="nfMascaraCNPJ(this)" onkeydown="if(event.key==='Enter') document.getElementById('nf-empresa-nome').focus()">
+          </div>
+          <div class="field">
+            <label>Razão Social / Nome da Empresa</label>
+            <input type="text" id="nf-empresa-nome" placeholder="Ex: Papelaria Central Ltda"
+              onkeydown="if(event.key==='Enter') document.getElementById('nf-empresa-fone').focus()">
+          </div>
+          <div class="field">
+            <label>Telefone <span style="font-weight:400;color:var(--ink-3)">(opcional)</span></label>
+            <input type="text" id="nf-empresa-fone" placeholder="(00) 00000-0000" maxlength="15"
+              oninput="nfMascaraTelefone(this)">
+          </div>
+          <div class="field">
+            <label>E-mail <span style="font-weight:400;color:var(--ink-3)">(opcional)</span></label>
+            <input type="text" id="nf-empresa-email" placeholder="contato@empresa.com.br">
+          </div>
+          <div class="field">
+            <label>Endereço <span style="font-weight:400;color:var(--ink-3)">(opcional)</span></label>
+            <input type="text" id="nf-empresa-endereco" placeholder="Rua, número, cidade...">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="btn btn-primary" style="flex:1" onclick="nfSalvarEmpresa()">✅ Salvar Empresa</button>
+            <button class="btn" id="nf-btn-cancelar-edicao" style="display:none" onclick="nfCancelarEdicao()">✕ Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Empresas Cadastradas -->
+      <div class="nf-card">
+        <div class="nf-card-header empresa" style="background:linear-gradient(90deg,#312e81,#4338ca)">
+          <span style="font-size:18px">📋</span>
+          <div class="nf-card-title">Empresas Cadastradas</div>
+          <span id="nf-emp-badge" class="nf-lista-badge" style="margin-left:auto">0</span>
+        </div>
+        <div id="nf-lista-empresas" style="max-height:320px;overflow-y:auto">
+          <div class="nf-empty">Nenhuma empresa cadastrada ainda.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card: Lançar Nota Fiscal -->
+    <div class="nf-card" style="margin-bottom:24px">
+      <div class="nf-card-header lanc">
+        <span style="font-size:18px">📝</span>
+        <div class="nf-card-title">Lançar Nota Fiscal</div>
+      </div>
+      <div class="nf-card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="grid2">
+          <div class="field" style="margin-bottom:0">
+            <label>Número da NF</label>
+            <input type="text" id="nf-lanc-numero" placeholder="Ex: 001234" style="font-family:'DM Mono',monospace">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Data de Emissão</label>
+            <input type="date" id="nf-lanc-data">
+          </div>
+        </div>
+        <div class="field" style="margin-top:14px">
+          <label>Empresa Emissora</label>
+          <div class="nf-empresa-dropdown">
+            <input type="text" id="nf-lanc-empresa-busca" placeholder="🔍 Digite o nome ou CNPJ para buscar..."
+              autocomplete="off" oninput="nfFiltrarEmpresas()" onfocus="nfFiltrarEmpresas()" onblur="setTimeout(()=>nfFecharDropdown(),200)">
+            <div class="nf-empresa-list" id="nf-empresa-list"></div>
+          </div>
+          <input type="hidden" id="nf-lanc-empresa-id">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:4px" class="grid2">
+          <div class="field" style="margin-bottom:0">
+            <label>CNPJ (preenchido auto)</label>
+            <input type="text" id="nf-lanc-cnpj" class="nf-input-cnpj" placeholder="00.000.000/0000-00" readonly
+              style="background:var(--sky-pale);cursor:not-allowed">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Valor (R$)</label>
+            <input type="text" id="nf-lanc-valor" placeholder="0,00" style="font-family:'DM Mono',monospace"
+              oninput="nfMascaraValor(this)">
+          </div>
+          <div class="field" style="margin-bottom:0">
+            <label>Descrição / Serviço</label>
+            <input type="text" id="nf-lanc-descricao" placeholder="Ex: Material didático">
+          </div>
+        </div>
+        <button class="btn btn-success" style="margin-top:16px;width:100%;font-size:14px;padding:11px" onclick="nfLancarNota()">
+          ✅ Lançar Nota Fiscal
+        </button>
+      </div>
+    </div>
+
+    <!-- Lista de NFs lançadas -->
+    <div class="nf-lista-wrap">
+      <div class="nf-lista-header">
+        <span class="nf-lista-title">🧾 Notas Lançadas</span>
+        <span class="nf-lista-badge" id="nf-total-badge">0</span>
+      </div>
+      <div id="nf-lista-notas">
+        <div class="nf-empty">Nenhuma nota fiscal lançada ainda.</div>
+      </div>
     </div>
   </section>
 
@@ -2082,6 +2269,7 @@ function construirNav() {
     tabs.push({ id: 'anotacoes',   icon: '📝', label: 'Anotações · ' + (sessao.turmaReferencia || '—') });
     tabs.push({ id: 'dashboard',   icon: '📈', label: 'Dashboard.Geo' });
     tabs.push({ id: 'professores', icon: '👩‍🏫', label: 'Professores' });
+    tabs.push({ id: 'notafiscal',  icon: '🧾', label: 'Nota Fiscal' });
   } else {
     tabs.push({ id: 'turmas',      icon: '📚', label: 'Minhas Turmas' });
     tabs.push({ id: 'notas',       icon: '📊', label: 'Diário de Notas' });
@@ -2132,6 +2320,7 @@ function goTab(tab) {
   if (tab === 'professores') { popularCheckboxesTurmas(); renderizarListaProfessores(); }
   if (tab === 'dashboard') { renderizarDashboard(); }
   if (tab === 'relatorios') { popularSelectRelatorios(); renderizarRelatorios(); }
+  if (tab === 'notafiscal') { nfInicializar(); }
 }
 
 // ─── HELPERS SEXO / ETNIA ────────────────────────────────────────────────────
@@ -6517,6 +6706,305 @@ function gsHideErro() {
   if (el) el.style.display = 'none';
 }
 // ─── FIM INTEGRAÇÃO GOOGLE SHEETS ────────────────────────────────────────
-</script>
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MÓDULO NOTA FISCAL — Cadastro de Empresas e Lançamento de NF
+// Dados armazenados em localStorage (prefixo: nf_)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Persistência local (localStorage) ──────────────────────────────────────
+function nfCarregarEmpresas() {
+  try { return JSON.parse(localStorage.getItem('nf_empresas') || '[]'); } catch { return []; }
+}
+function nfSalvarEmpresas(lista) {
+  localStorage.setItem('nf_empresas', JSON.stringify(lista));
+}
+function nfCarregarNotas() {
+  try { return JSON.parse(localStorage.getItem('nf_notas') || '[]'); } catch { return []; }
+}
+function nfSalvarNotas(lista) {
+  localStorage.setItem('nf_notas', JSON.stringify(lista));
+}
+
+// ── Máscaras de input ───────────────────────────────────────────────────────
+function nfMascaraCNPJ(input) {
+  // Permite apenas dígitos, aplica a máscara XX.XXX.XXX/XXXX-XX
+  let v = input.value.replace(/\D/g, '').slice(0, 14);
+  if (v.length > 12) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, '$1.$2.$3/$4-$5');
+  else if (v.length > 8) v = v.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4})/, '$1.$2.$3/$4');
+  else if (v.length > 5) v = v.replace(/^(\d{2})(\d{3})(\d{0,3})/, '$1.$2.$3');
+  else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,3})/, '$1.$2');
+  input.value = v;
+}
+
+function nfMascaraTelefone(input) {
+  let v = input.value.replace(/\D/g, '').slice(0, 11);
+  if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+  else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+  input.value = v;
+}
+
+function nfMascaraValor(input) {
+  let v = input.value.replace(/\D/g, '');
+  if (!v) { input.value = ''; return; }
+  v = (parseInt(v) / 100).toFixed(2);
+  input.value = v.replace('.', ',');
+}
+
+// ── Validação CNPJ (dígitos verificadores) ─────────────────────────────────
+function nfValidarCNPJ(cnpj) {
+  const n = cnpj.replace(/\D/g, '');
+  if (n.length !== 14 || /^(\d)\1+$/.test(n)) return false;
+  const calc = (s, p) => {
+    let t = 0;
+    for (let i = 0; i < s.length; i++) { t += parseInt(s[i]) * p; p = p === 2 ? 9 : p - 1; }
+    const r = t % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  const d1 = calc(n.slice(0, 12), 5);
+  const d2 = calc(n.slice(0, 13), 6);
+  return parseInt(n[12]) === d1 && parseInt(n[13]) === d2;
+}
+
+// ── Cadastro de Empresa ─────────────────────────────────────────────────────
+function nfSalvarEmpresa() {
+  const cnpj  = document.getElementById('nf-empresa-cnpj').value.trim();
+  const nome  = document.getElementById('nf-empresa-nome').value.trim();
+  const fone  = document.getElementById('nf-empresa-fone').value.trim();
+  const email = document.getElementById('nf-empresa-email').value.trim();
+  const end   = document.getElementById('nf-empresa-endereco').value.trim();
+  const editId = document.getElementById('nf-empresa-edit-id').value;
+
+  if (!cnpj) return toast('⚠️ Informe o CNPJ da empresa.');
+  if (cnpj.replace(/\D/g,'').length !== 14) return toast('⚠️ CNPJ incompleto (14 dígitos).');
+  if (!nfValidarCNPJ(cnpj)) return toast('⚠️ CNPJ inválido. Verifique os dígitos.');
+  if (!nome) return toast('⚠️ Informe a Razão Social da empresa.');
+
+  const empresas = nfCarregarEmpresas();
+
+  if (editId) {
+    // Edição
+    const idx = empresas.findIndex(e => e.id === editId);
+    if (idx !== -1) {
+      // Verifica CNPJ duplicado em outra empresa
+      const dup = empresas.find(e => e.cnpj === cnpj && e.id !== editId);
+      if (dup) return toast('⚠️ CNPJ já cadastrado para: ' + dup.nome);
+      empresas[idx] = { ...empresas[idx], cnpj, nome, fone, email, endereco: end };
+      nfSalvarEmpresas(empresas);
+      toast('✅ Empresa atualizada com sucesso!');
+      nfCancelarEdicao();
+    }
+  } else {
+    // Novo cadastro — verifica duplicata
+    if (empresas.find(e => e.cnpj === cnpj)) return toast('⚠️ CNPJ já cadastrado. Use o botão ✏️ para editar.');
+    const nova = { id: 'emp_' + Date.now(), cnpj, nome, fone, email, endereco: end, criadoEm: new Date().toISOString() };
+    empresas.push(nova);
+    nfSalvarEmpresas(empresas);
+    toast('✅ Empresa "' + nome + '" cadastrada!');
+    nfLimparFormEmpresa();
+  }
+
+  nfRenderizarEmpresas();
+}
+
+function nfLimparFormEmpresa() {
+  ['nf-empresa-cnpj','nf-empresa-nome','nf-empresa-fone','nf-empresa-email','nf-empresa-endereco','nf-empresa-edit-id']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+}
+
+function nfCancelarEdicao() {
+  nfLimparFormEmpresa();
+  document.getElementById('nf-empresa-titulo').textContent = 'Cadastrar Empresa';
+  document.getElementById('nf-btn-cancelar-edicao').style.display = 'none';
+}
+
+function nfEditarEmpresa(id) {
+  const empresas = nfCarregarEmpresas();
+  const emp = empresas.find(e => e.id === id);
+  if (!emp) return;
+  document.getElementById('nf-empresa-edit-id').value = emp.id;
+  document.getElementById('nf-empresa-cnpj').value    = emp.cnpj;
+  document.getElementById('nf-empresa-nome').value    = emp.nome;
+  document.getElementById('nf-empresa-fone').value    = emp.fone || '';
+  document.getElementById('nf-empresa-email').value   = emp.email || '';
+  document.getElementById('nf-empresa-endereco').value = emp.endereco || '';
+  document.getElementById('nf-empresa-titulo').textContent = '✏️ Editar Empresa';
+  document.getElementById('nf-btn-cancelar-edicao').style.display = '';
+  // Scroll até o form
+  document.getElementById('nf-card-empresa').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function nfExcluirEmpresa(id, nome) {
+  abrirModal('🏢', 'Remover empresa?', '<strong>' + nome + '</strong> será removida do cadastro. Notas já lançadas não serão afetadas.', () => {
+    const lista = nfCarregarEmpresas().filter(e => e.id !== id);
+    nfSalvarEmpresas(lista);
+    nfRenderizarEmpresas();
+    toast('Empresa removida.');
+  });
+}
+
+function nfRenderizarEmpresas() {
+  const cont  = document.getElementById('nf-lista-empresas');
+  const badge = document.getElementById('nf-emp-badge');
+  if (!cont) return;
+  const lista = nfCarregarEmpresas();
+  badge.textContent = lista.length;
+  if (!lista.length) {
+    cont.innerHTML = '<div class="nf-empty">Nenhuma empresa cadastrada ainda.</div>';
+    return;
+  }
+  cont.innerHTML = lista.map(e => `
+    <div class="nf-emp-row">
+      <div style="flex:1;min-width:0">
+        <div class="nf-emp-nome">${e.nome}</div>
+        <div class="nf-emp-cnpj">${e.cnpj}${e.fone ? ' · ' + e.fone : ''}</div>
+      </div>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;background:#f0f9ff;border-color:#93c5fd;color:#1e40af"
+          onclick="nfEditarEmpresa('${e.id}')">✏️</button>
+        <button class="btn btn-sm btn-danger" style="padding:4px 8px;font-size:11px"
+          onclick="nfExcluirEmpresa('${e.id}','${e.nome.replace(/'/g,"\\'")}')" >🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── Dropdown de Busca de Empresas no Lançamento ────────────────────────────
+function nfFiltrarEmpresas() {
+  const q   = (document.getElementById('nf-lanc-empresa-busca').value || '').toLowerCase();
+  const box = document.getElementById('nf-empresa-list');
+  const empresas = nfCarregarEmpresas();
+  const resultado = q
+    ? empresas.filter(e => e.nome.toLowerCase().includes(q) || e.cnpj.replace(/\D/g,'').includes(q.replace(/\D/g,'')))
+    : empresas;
+
+  if (!resultado.length) {
+    box.innerHTML = '<div class="nf-empresa-item" style="color:var(--ink-3);cursor:default">Nenhuma empresa encontrada</div>';
+  } else {
+    box.innerHTML = resultado.map(e => `
+      <div class="nf-empresa-item" onmousedown="nfSelecionarEmpresa('${e.id}')">
+        <div class="nf-ei-nome">${e.nome}</div>
+        <div class="nf-ei-cnpj">${e.cnpj}</div>
+      </div>`).join('');
+  }
+  box.classList.add('show');
+}
+
+function nfSelecionarEmpresa(id) {
+  const emp = nfCarregarEmpresas().find(e => e.id === id);
+  if (!emp) return;
+  document.getElementById('nf-lanc-empresa-busca').value = emp.nome;
+  document.getElementById('nf-lanc-empresa-id').value   = emp.id;
+  document.getElementById('nf-lanc-cnpj').value         = emp.cnpj;
+  nfFecharDropdown();
+}
+
+function nfFecharDropdown() {
+  const box = document.getElementById('nf-empresa-list');
+  if (box) box.classList.remove('show');
+}
+
+// ── Lançar Nota Fiscal ──────────────────────────────────────────────────────
+function nfLancarNota() {
+  const num     = document.getElementById('nf-lanc-numero').value.trim();
+  const data    = document.getElementById('nf-lanc-data').value;
+  const empId   = document.getElementById('nf-lanc-empresa-id').value;
+  const empNome = document.getElementById('nf-lanc-empresa-busca').value.trim();
+  const cnpj    = document.getElementById('nf-lanc-cnpj').value.trim();
+  const valorRaw= document.getElementById('nf-lanc-valor').value.replace(/\./g,'').replace(',','.');
+  const valor   = parseFloat(valorRaw) || 0;
+  const descr   = document.getElementById('nf-lanc-descricao').value.trim();
+
+  if (!num)   return toast('⚠️ Informe o número da NF.');
+  if (!data)  return toast('⚠️ Informe a data de emissão.');
+  if (!empId) return toast('⚠️ Selecione uma empresa da lista.');
+  if (valor <= 0) return toast('⚠️ Informe o valor da nota.');
+
+  const notas = nfCarregarNotas();
+  if (notas.find(n => n.numero === num)) return toast('⚠️ Já existe uma NF com o número ' + num + '.');
+
+  notas.unshift({
+    id: 'nf_' + Date.now(), numero: num, data, empId,
+    empNome, cnpj, valor, descricao: descr, lancadoEm: new Date().toISOString()
+  });
+  nfSalvarNotas(notas);
+  toast('✅ NF ' + num + ' lançada com sucesso!');
+
+  // Limpa form de lançamento
+  ['nf-lanc-numero','nf-lanc-empresa-busca','nf-lanc-empresa-id','nf-lanc-cnpj','nf-lanc-valor','nf-lanc-descricao']
+    .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('nf-lanc-data').value = new Date().toISOString().split('T')[0];
+
+  nfRenderizarNotas();
+}
+
+function nfExcluirNota(id, num) {
+  abrirModal('🧾', 'Excluir NF?', 'A nota fiscal <strong>Nº ' + num + '</strong> será removida permanentemente.', () => {
+    const lista = nfCarregarNotas().filter(n => n.id !== id);
+    nfSalvarNotas(lista);
+    nfRenderizarNotas();
+    toast('NF excluída.');
+  });
+}
+
+function nfFormatarValor(v) {
+  return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+function nfFormatarData(d) {
+  if (!d) return '—';
+  const [y,m,dia] = d.split('-');
+  return dia + '/' + m + '/' + y;
+}
+
+function nfRenderizarNotas() {
+  const cont  = document.getElementById('nf-lista-notas');
+  const badge = document.getElementById('nf-total-badge');
+  if (!cont) return;
+  const notas = nfCarregarNotas();
+  badge.textContent = notas.length;
+  if (!notas.length) {
+    cont.innerHTML = '<div class="nf-empty">Nenhuma nota fiscal lançada ainda.</div>';
+    return;
+  }
+  cont.innerHTML = notas.map(n => `
+    <div class="nf-row">
+      <span class="nf-row-num">Nº ${n.numero}</span>
+      <div style="flex:1;min-width:120px">
+        <div class="nf-row-empresa">${n.empNome}</div>
+        <div class="nf-row-cnpj">${n.cnpj}${n.descricao ? ' · ' + n.descricao : ''}</div>
+      </div>
+      <span class="nf-row-data">${nfFormatarData(n.data)}</span>
+      <span class="nf-row-valor">${nfFormatarValor(n.valor)}</span>
+      <button class="btn btn-sm btn-danger" style="padding:4px 8px;font-size:11px;flex-shrink:0"
+        onclick="nfExcluirNota('${n.id}','${n.numero}')">🗑️</button>
+    </div>`).join('');
+}
+
+function nfExportarCSV() {
+  const notas = nfCarregarNotas();
+  if (!notas.length) return toast('Nenhuma nota para exportar.');
+  const header = 'Número;Data;Empresa;CNPJ;Valor;Descrição;Lançado em';
+  const linhas = notas.map(n =>
+    [n.numero, nfFormatarData(n.data), n.empNome, n.cnpj,
+     Number(n.valor).toFixed(2).replace('.',','), n.descricao || '', nfFormatarData(n.lancadoEm?.split('T')[0])]
+    .map(c => '"' + String(c).replace(/"/g,'""') + '"').join(';')
+  );
+  const blob = new Blob([header + '\n' + linhas.join('\n')], { type:'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'notas_fiscais_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ── Inicializar aba NF (chamado ao abrir a aba) ────────────────────────────
+function nfInicializar() {
+  // Define data de hoje como padrão no campo data
+  const dataHoje = new Date().toISOString().split('T')[0];
+  const inputData = document.getElementById('nf-lanc-data');
+  if (inputData && !inputData.value) inputData.value = dataHoje;
+  nfRenderizarEmpresas();
+  nfRenderizarNotas();
+}
+
 </body>
 </html>
