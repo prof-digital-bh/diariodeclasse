@@ -1475,6 +1475,11 @@ alter table alunos add column if not exists foto text;</pre>
           <div class="field">
             <label>Razão Social / Nome da Empresa</label>
             <input type="text" id="nf-empresa-nome" placeholder="Ex: Papelaria Central Ltda"
+              onkeydown="if(event.key==='Enter') document.getElementById('nf-empresa-responsavel').focus()">
+          </div>
+          <div class="field">
+            <label>Responsável <span style="font-weight:400;color:var(--ink-3)">(opcional)</span></label>
+            <input type="text" id="nf-empresa-responsavel" placeholder="Ex: João Silva"
               onkeydown="if(event.key==='Enter') document.getElementById('nf-empresa-fone').focus()">
           </div>
           <div class="field">
@@ -6771,6 +6776,7 @@ function nfValidarCNPJ(cnpj) {
 function nfSalvarEmpresa() {
   const cnpj  = document.getElementById('nf-empresa-cnpj').value.trim();
   const nome  = document.getElementById('nf-empresa-nome').value.trim();
+  const resp  = document.getElementById('nf-empresa-responsavel')?.value.trim() || '';
   const fone  = document.getElementById('nf-empresa-fone').value.trim();
   const email = document.getElementById('nf-empresa-email').value.trim();
   const end   = document.getElementById('nf-empresa-endereco').value.trim();
@@ -6798,7 +6804,7 @@ function nfSalvarEmpresa() {
   } else {
     // Novo cadastro — verifica duplicata
     if (empresas.find(e => e.cnpj === cnpj)) return toast('⚠️ CNPJ já cadastrado. Use o botão ✏️ para editar.');
-    const nova = { id: 'emp_' + Date.now(), cnpj, nome, fone, email, endereco: end, criadoEm: new Date().toISOString() };
+    const nova = { id: 'emp_' + Date.now(), cnpj, nome, responsavel: resp, fone, email, endereco: end, criadoEm: new Date().toISOString() };
     empresas.push(nova);
     nfSalvarEmpresas(empresas);
     toast('✅ Empresa "' + nome + '" cadastrada!');
@@ -6809,7 +6815,7 @@ function nfSalvarEmpresa() {
 }
 
 function nfLimparFormEmpresa() {
-  ['nf-empresa-cnpj','nf-empresa-nome','nf-empresa-fone','nf-empresa-email','nf-empresa-endereco','nf-empresa-edit-id']
+  ['nf-empresa-cnpj','nf-empresa-nome','nf-empresa-responsavel','nf-empresa-fone','nf-empresa-email','nf-empresa-endereco','nf-empresa-edit-id']
     .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
 }
 
@@ -6854,19 +6860,124 @@ function nfRenderizarEmpresas() {
     cont.innerHTML = '<div class="nf-empty">Nenhuma empresa cadastrada ainda.</div>';
     return;
   }
-  cont.innerHTML = lista.map(e => `
-    <div class="nf-emp-row">
-      <div style="flex:1;min-width:0">
-        <div class="nf-emp-nome">${e.nome}</div>
-        <div class="nf-emp-cnpj">${e.cnpj}${e.fone ? ' · ' + e.fone : ''}</div>
+  // Tabela estilo da imagem: #, Razão Social, CNPJ, Responsável, Ações
+  cont.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="background:var(--sky-pale);border-bottom:2px solid var(--border)">
+          <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-3);width:32px">#</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-3)">Razão Social</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-3)">CNPJ/CPF</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-3)">Responsável</th>
+          <th style="padding:8px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-3)">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${lista.map((e, i) => `
+          <tr style="border-bottom:1px solid var(--border);transition:background .12s" onmouseover="this.style.background='var(--sky-pale)'" onmouseout="this.style.background=''">
+            <td style="padding:9px 10px;color:var(--ink-3);font-family:'DM Mono',monospace;font-size:11px">${i+1}</td>
+            <td style="padding:9px 10px;font-weight:600;color:var(--ink)">${e.nome}</td>
+            <td style="padding:9px 10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--ink-2)">${e.cnpj}</td>
+            <td style="padding:9px 10px;font-size:12px;color:var(--ink-3)">${e.responsavel || '—'}</td>
+            <td style="padding:9px 10px;text-align:center">
+              <div style="display:flex;gap:5px;justify-content:center">
+                <button class="btn btn-sm" style="padding:4px 10px;font-size:11px;background:#f0f9ff;border-color:#93c5fd;color:#1e40af"
+                  onclick="nfAbrirModalEdicao('${e.id}')">✏️ Editar</button>
+                <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
+                  onclick="nfExcluirEmpresa('${e.id}','${e.nome.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">✕</button>
+              </div>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ── Modal de edição flutuante ────────────────────────────────────────────────
+function nfAbrirModalEdicao(id) {
+  const empresas = nfCarregarEmpresas();
+  const emp = empresas.find(e => e.id === id);
+  if (!emp) return;
+
+  // Remove modal anterior se houver
+  const anterior = document.getElementById('nf-modal-edicao');
+  if (anterior) anterior.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'nf-modal-edicao';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease';
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+
+  overlay.innerHTML = `
+    <div style="background:var(--white);border-radius:16px;padding:28px;max-width:520px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--ocean)">✏️ Editar Empresa</div>
+        <button onclick="document.getElementById('nf-modal-edicao').remove()" style="background:transparent;border:none;font-size:20px;cursor:pointer;color:var(--ink-3);line-height:1">✕</button>
       </div>
-      <div style="display:flex;gap:5px;flex-shrink:0">
-        <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;background:#f0f9ff;border-color:#93c5fd;color:#1e40af"
-          onclick="nfEditarEmpresa('${e.id}')">✏️</button>
-        <button class="btn btn-sm btn-danger" style="padding:4px 8px;font-size:11px"
-          onclick="nfExcluirEmpresa('${e.id}','${e.nome.replace(/'/g,"\\'")}')" >🗑️</button>
+
+      <div class="field" style="margin-bottom:0">
+        <label>CNPJ</label>
+        <input type="text" id="nf-edit-cnpj" class="nf-input-cnpj" value="${emp.cnpj}" maxlength="18"
+          oninput="nfMascaraCNPJ(this)" placeholder="00.000.000/0000-00">
       </div>
-    </div>`).join('');
+      <div class="field" style="margin-bottom:0">
+        <label>Razão Social / Nome da Empresa</label>
+        <input type="text" id="nf-edit-nome" value="${emp.nome.replace(/"/g,'&quot;')}" placeholder="Ex: Papelaria Central Ltda">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Responsável</label>
+        <input type="text" id="nf-edit-responsavel" value="${emp.responsavel || ''}" placeholder="Ex: João Silva">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field" style="margin-bottom:0">
+          <label>Telefone</label>
+          <input type="text" id="nf-edit-fone" value="${emp.fone || ''}" maxlength="15" oninput="nfMascaraTelefone(this)" placeholder="(00) 00000-0000">
+        </div>
+        <div class="field" style="margin-bottom:0">
+          <label>E-mail</label>
+          <input type="text" id="nf-edit-email" value="${emp.email || ''}" placeholder="contato@empresa.com.br">
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Endereço</label>
+        <input type="text" id="nf-edit-endereco" value="${emp.endereco || ''}" placeholder="Rua, número, cidade...">
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-primary" style="flex:1;padding:10px" onclick="nfSalvarEdicaoModal('${emp.id}')">✅ Salvar Alterações</button>
+        <button class="btn" style="padding:10px 16px" onclick="document.getElementById('nf-modal-edicao').remove()">Cancelar</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  // Foca no campo nome
+  setTimeout(() => document.getElementById('nf-edit-nome')?.focus(), 50);
+}
+
+function nfSalvarEdicaoModal(id) {
+  const cnpj  = (document.getElementById('nf-edit-cnpj')?.value || '').trim();
+  const nome  = (document.getElementById('nf-edit-nome')?.value || '').trim();
+  const resp  = (document.getElementById('nf-edit-responsavel')?.value || '').trim();
+  const fone  = (document.getElementById('nf-edit-fone')?.value || '').trim();
+  const email = (document.getElementById('nf-edit-email')?.value || '').trim();
+  const end   = (document.getElementById('nf-edit-endereco')?.value || '').trim();
+
+  if (!cnpj) return toast('⚠️ Informe o CNPJ.');
+  if (cnpj.replace(/\D/g,'').length !== 14) return toast('⚠️ CNPJ incompleto (14 dígitos).');
+  if (!nfValidarCNPJ(cnpj)) return toast('⚠️ CNPJ inválido. Verifique os dígitos.');
+  if (!nome) return toast('⚠️ Informe a Razão Social.');
+
+  const empresas = nfCarregarEmpresas();
+  const idx = empresas.findIndex(e => e.id === id);
+  if (idx === -1) return toast('❌ Empresa não encontrada.');
+
+  const dup = empresas.find(e => e.cnpj === cnpj && e.id !== id);
+  if (dup) return toast('⚠️ CNPJ já cadastrado para: ' + dup.nome);
+
+  empresas[idx] = { ...empresas[idx], cnpj, nome, responsavel: resp, fone, email, endereco: end };
+  nfSalvarEmpresas(empresas);
+  document.getElementById('nf-modal-edicao')?.remove();
+  toast('✅ Empresa atualizada com sucesso!');
+  nfRenderizarEmpresas();
 }
 
 // ── Dropdown de Busca de Empresas no Lançamento ────────────────────────────
