@@ -6213,7 +6213,8 @@ function gsMontarDadosTurma(turma, trisSelecionados) {
 async function gsFormatarAba(token, spreadsheetId, sheetId, trisSelecionados, totalCols) {
   // Batch 1: mesclagem + cores (sem congelamento — conflita com merge)
   const reqFormato = [
-    { mergeCells: { range: { sheetId, startRowIndex:0, endRowIndex:1, startColumnIndex:0, endColumnIndex: totalCols }, mergeType:'MERGE_ALL' } },
+    // Só mescla se houver mais de 1 coluna (API rejeita merge de célula única)
+    ...(totalCols > 1 ? [{ mergeCells: { range: { sheetId, startRowIndex:0, endRowIndex:1, startColumnIndex:0, endColumnIndex: totalCols }, mergeType:'MERGE_ALL' } }] : []),
     { repeatCell: {
         range: { sheetId, startRowIndex:0, endRowIndex:1 },
         cell: { userEnteredFormat: {
