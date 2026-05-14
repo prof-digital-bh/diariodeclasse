@@ -3073,7 +3073,7 @@ async function gerarRelatorioIA(nomeAluno) {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + SB_KEY
       },
-      body: JSON.stringify({ contexto: contexto + '\n\nINSTRUÇÃO IMPORTANTE: O relatório narrativo deve ter no máximo 10 linhas. Seja objetivo e conciso.', nomeAluno })
+      body: JSON.stringify({ contexto: contexto + '\n\nINSTRUÇÃO IMPORTANTE: Escreva exatamente UM parágrafo corrido, sem títulos, sem tópicos e sem bullet points, destinado ao boletim escolar. O parágrafo deve ter no máximo 6 linhas, ser coeso, coerente e evitar repetições. Use linguagem acessível e profissional, adequada para os responsáveis do aluno lerem no boletim.', nomeAluno })
     });
 
     const data = await resp.json();
