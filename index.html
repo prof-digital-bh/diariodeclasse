@@ -3220,6 +3220,12 @@ async function gerarRelatorioIA(nomeAluno) {
     const data = await resp.json();
     const texto = data.texto || data.error || 'Não foi possível gerar o relatório.';
 
+    // Salva no db para reaproveitamento
+    if (!db.relatoriosIA) db.relatoriosIA = {};
+    if (!db.relatoriosIA[nomeAluno]) db.relatoriosIA[nomeAluno] = {};
+    db.relatoriosIA[nomeAluno]['individual'] = { texto, geradoEm: new Date().toISOString() };
+    salvarDb();
+
     const el = document.getElementById('ia-relatorio-texto');
     if (el) { el.textContent = texto; el.style.background = '#f0f9ff'; }
     const btnCopiar = document.getElementById('btn-copiar-relatorio');
@@ -3993,13 +3999,16 @@ function abrirModalExportExcel() {
       <button onclick="selecionarTodosExcel(true)" style="font-size:11px;padding:4px 10px;border:1px solid #cbd5e1;border-radius:6px;background:white;cursor:pointer">Selecionar todos</button>
       <button onclick="selecionarTodosExcel(false)" style="font-size:11px;padding:4px 10px;border:1px solid #cbd5e1;border-radius:6px;background:white;cursor:pointer">Limpar seleção</button>
       <span style="font-size:11px;color:#64748b;align-self:center;margin-left:4px">${comAnot.length} de ${alunos.length} com anotações</span>
+      ${(() => { const comIA = alunos.filter(a => db.relatoriosIA && db.relatoriosIA[a] && Object.keys(db.relatoriosIA[a]).length > 0); return comIA.length > 0 ? `<span style="font-size:11px;background:#ede9fe;color:#6d28d9;border-radius:10px;padding:2px 8px;font-weight:600;align-self:center">✨ ${comIA.length} com IA salvo</span>` : ''; })()}
     </div>
     <div style="flex:1;overflow-y:auto;border:1px solid #e2e8f0;border-radius:10px;padding:4px;max-height:300px">${alunosCheckboxes}</div>
-    <div style="display:flex;gap:8px;flex-shrink:0;border-top:1px solid #e2e8f0;padding-top:14px">
-      <button onclick="executarExportExcel()" style="flex:1;padding:10px;background:#16a34a;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">📊 Baixar Excel</button>
-      <button onclick="executarExportPDF()" style="flex:1;padding:10px;background:#1a3a5c;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">📄 Baixar PDF</button>
+    <div style="display:flex;gap:8px;flex-shrink:0;border-top:1px solid #e2e8f0;padding-top:14px;flex-wrap:wrap">
+      <button onclick="executarExportExcel()" style="flex:1;min-width:120px;padding:10px;background:#16a34a;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">📊 Baixar Excel</button>
+      <button onclick="executarExportPDF()" style="flex:1;min-width:120px;padding:10px;background:#1a3a5c;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">📄 Baixar PDF</button>
+      <button onclick="executarExportRelatorioIA()" id="btn-export-ia" style="flex:1;min-width:140px;padding:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">✨ Relatório IA</button>
       <button onclick="fecharModalExportExcel()" style="padding:10px 18px;background:#f1f5f9;color:#334155;border:none;border-radius:8px;cursor:pointer;font-size:13px">Cancelar</button>
     </div>
+    <div style="font-size:11px;color:#94a3b8;text-align:center;margin-top:-8px">✨ Relatório IA: gera textos narrativos via Anthropic para cada aluno selecionado e exporta em PDF ou Excel</div>
   </div>`;
 }
 
@@ -4069,6 +4078,184 @@ function executarExportPDF() {
   const html = '<!DOCTYPE html><html lang="pt-br"><head><meta charset="UTF-8"><title>Anotações ' + turmaRef + '</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;padding:28px;color:#1a1a1a;font-size:12px}h1{font-size:16px;color:#1a3a5c;margin-bottom:2px}.sub{font-size:11px;color:#64748b;margin-bottom:20px}table{width:100%;border-collapse:collapse}th{text-align:left}.btn{margin-top:20px;padding:9px 20px;background:#1a3a5c;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px}@media print{.btn{display:none}body{padding:0}}</style></head><body><h1>Anotações Individuais · ' + turmaRef + '</h1><div class="sub">Geografia · ' + nomeProfAtual + ' · 2026 · Gerado em ' + dataHoje + '</div><table><thead><tr>' + cabThs + '</tr></thead><tbody>' + linhasHtml + '</tbody></table><button class="btn" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button></body></html>';
   const win = window.open('', '_blank', 'width=900,height=700');
   win.document.write(html); win.document.close(); fecharModalExportExcel();
+}
+
+// ─── EXPORTAR RELATÓRIO IA ───────────────────────────────────────────────────
+async function executarExportRelatorioIA() {
+  const alunosSel = [...document.querySelectorAll('.chk-aluno-excel:checked')].map(c => c.value);
+  const trisSel   = [...document.querySelectorAll('.chk-tri-excel:checked')].map(c => parseInt(c.value));
+  if (!alunosSel.length) return toast('Selecione ao menos um aluno.');
+  if (!trisSel.length)   return toast('Selecione ao menos um trimestre.');
+
+  const turmaRef = getTurmaAnotacoes() || '—';
+  const campos   = ['participacao','comportamento','aprendizagem','dificuldades','destaques','observacoes'];
+  const campoLabels = { participacao:'Participação e Engajamento', comportamento:'Comportamento e Convivência', aprendizagem:'Aprendizagem e Desenvolvimento', dificuldades:'Dificuldades Observadas', destaques:'Destaques e Potenciais', observacoes:'Outras Observações' };
+  const triLabels = {1:'1º Trimestre', 2:'2º Trimestre', 3:'3º Trimestre'};
+
+  // Fecha o modal de exportação e abre o de progresso
+  fecharModalExportExcel();
+
+  // Modal de progresso
+  const overlay = document.createElement('div');
+  overlay.id    = 'modal-ia-lote';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.65);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease';
+  overlay.innerHTML = `
+    <div style="background:white;border-radius:16px;padding:28px;max-width:540px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:16px;max-height:90vh;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:#6366f1">✨ Gerando Relatórios IA</div>
+        <span id="ia-lote-contador" style="font-size:12px;color:#64748b">0 / ${alunosSel.length}</span>
+      </div>
+      <div id="ia-lote-barra-wrap" style="background:#e2e8f0;border-radius:99px;height:8px;overflow:hidden">
+        <div id="ia-lote-barra" style="height:100%;width:0%;background:linear-gradient(90deg,#6366f1,#8b5cf6);transition:width .4s ease;border-radius:99px"></div>
+      </div>
+      <div id="ia-lote-log" style="flex:1;overflow-y:auto;max-height:280px;font-size:12px;display:flex;flex-direction:column;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="ia-lote-acoes" style="display:none">
+        <button id="ia-lote-btn-excel" style="display:none;flex:1;padding:10px;background:#16a34a;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" onclick="_finalizarRelatorioIAExcel()">📊 Baixar Excel</button>
+        <button id="ia-lote-btn-pdf"   style="display:none;flex:1;padding:10px;background:#1a3a5c;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600" onclick="_finalizarRelatorioIAPDF()">📄 Baixar PDF</button>
+        <button onclick="document.getElementById('modal-ia-lote').remove()" style="padding:10px 18px;background:#f1f5f9;color:#334155;border:none;border-radius:8px;cursor:pointer;font-size:13px">Fechar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  // Armazena resultados globalmente para uso pelos botões de download
+  window._iaLoteResultados = [];
+
+  function logItem(nome, status, texto) {
+    const cor = status === 'ok' ? '#16a34a' : status === 'erro' ? '#dc2626' : '#6366f1';
+    const icone = status === 'ok' ? '✅' : status === 'erro' ? '❌' : '⏳';
+    const div = document.getElementById('ia-lote-log');
+    if (!div) return;
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:6px;background:white;border:1px solid #e2e8f0';
+    item.innerHTML = `<span style="font-size:14px;flex-shrink:0">${icone}</span><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12px;color:#1a3a5c">${nome}</div>${texto ? '<div style="font-size:11px;color:#64748b;margin-top:2px;line-height:1.4;white-space:pre-wrap">' + (texto.length > 120 ? texto.slice(0,120)+'…' : texto) + '</div>' : ''}</div>`;
+    div.appendChild(item);
+    div.scrollTop = div.scrollHeight;
+  }
+
+  let concluidos = 0;
+  for (const nomeAluno of alunosSel) {
+    logItem(nomeAluno, 'loading', 'Gerando com IA…');
+
+    // Monta contexto igual à função gerarRelatorioIA
+    let contexto = `Aluno(a): ${nomeAluno}\nTurma: ${turmaRef}\nDisciplina: Geografia\n\n`;
+    trisSel.forEach(tr => {
+      const d = (db.anotacoes && db.anotacoes[nomeAluno] && db.anotacoes[nomeAluno]['t'+tr]) || {};
+      const temDados = Object.values(d).some(v => v && v.trim());
+      if (!temDados) return;
+      contexto += `=== ${triLabels[tr]} ===\n`;
+      campos.forEach(c => { if (d[c] && d[c].trim()) contexto += `${campoLabels[c]}: ${d[c].trim()}\n`; });
+      const auto = (db.autoavaliacao && db.autoavaliacao[nomeAluno] && db.autoavaliacao[nomeAluno]['t'+tr]);
+      if (auto !== undefined && auto !== '') contexto += `Autoavaliação do aluno: ${auto}/20\n`;
+      const t = turmaRef;
+      const maxT = t ? getMaxAluno(t, nomeAluno, tr) : 0;
+      const tot  = t ? getTotalAluno(t, nomeAluno, tr) : 0;
+      if (maxT > 0) contexto += `Aproveitamento em notas: ${(tot/maxT*100).toFixed(0)}%\n`;
+      contexto += '\n';
+    });
+
+    try {
+      const resp = await fetch(SB_URL + '/functions/v1/gerar-relatorio-ia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY },
+        body: JSON.stringify({ contexto: contexto + '\n\nINSTRUÇÃO IMPORTANTE: Escreva exatamente UM parágrafo corrido, sem títulos, sem tópicos e sem bullet points, destinado ao boletim escolar. O parágrafo deve ter no máximo 6 linhas, ser coeso, coerente e evitar repetições. Use linguagem acessível e profissional, adequada para os responsáveis do aluno lerem no boletim.', nomeAluno })
+      });
+      const data = await resp.json();
+      const texto = data.texto || data.error || 'Não foi possível gerar o relatório.';
+
+      // Salva no db para reaproveitamento
+      if (!db.relatoriosIA) db.relatoriosIA = {};
+      if (!db.relatoriosIA[nomeAluno]) db.relatoriosIA[nomeAluno] = {};
+      const chave = 't' + trisSel.join('');
+      db.relatoriosIA[nomeAluno][chave] = { texto, geradoEm: new Date().toISOString() };
+      salvarDb();
+
+      window._iaLoteResultados.push({ nome: nomeAluno, texto, ok: true });
+      // Atualiza o log (substitui o item ⏳ pelo ✅)
+      const logDiv = document.getElementById('ia-lote-log');
+      if (logDiv && logDiv.lastChild) logDiv.removeChild(logDiv.lastChild);
+      logItem(nomeAluno, 'ok', texto);
+    } catch(e) {
+      window._iaLoteResultados.push({ nome: nomeAluno, texto: '⚠️ Erro: ' + e.message, ok: false });
+      const logDiv = document.getElementById('ia-lote-log');
+      if (logDiv && logDiv.lastChild) logDiv.removeChild(logDiv.lastChild);
+      logItem(nomeAluno, 'erro', e.message);
+    }
+
+    concluidos++;
+    const pct = Math.round(concluidos / alunosSel.length * 100);
+    const barra = document.getElementById('ia-lote-barra');
+    if (barra) barra.style.width = pct + '%';
+    const contador = document.getElementById('ia-lote-contador');
+    if (contador) contador.textContent = concluidos + ' / ' + alunosSel.length;
+  }
+
+  // Mostra botões de download
+  const acoes = document.getElementById('ia-lote-acoes');
+  if (acoes) acoes.style.display = 'flex';
+  const btnExcel = document.getElementById('ia-lote-btn-excel');
+  if (btnExcel) btnExcel.style.display = '';
+  const btnPdf = document.getElementById('ia-lote-btn-pdf');
+  if (btnPdf) btnPdf.style.display = '';
+
+  // Referências para os downloads
+  window._iaLoteTurma    = turmaRef;
+  window._iaLoteTrisSel  = trisSel;
+  window._iaLoteTriLabels = triLabels;
+
+  toast('Relatórios IA gerados! Escolha o formato para baixar ✓');
+}
+
+function _finalizarRelatorioIAExcel() {
+  const resultados = window._iaLoteResultados || [];
+  if (!resultados.length) return toast('Nenhum resultado disponível.');
+  if (typeof XLSX === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = _finalizarRelatorioIAExcel;
+    document.head.appendChild(s);
+    return;
+  }
+  const turmaRef = window._iaLoteTurma || '—';
+  const cabecalho = ['#', 'Aluno(a)', 'Relatório Narrativo (IA)', 'Status'];
+  const linhas = resultados.map((r, i) => [i+1, r.nome, r.texto, r.ok ? 'Gerado' : 'Erro']);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([cabecalho, ...linhas]);
+  ws['!cols'] = [{ wch: 4 }, { wch: 30 }, { wch: 80 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'Relatórios IA · ' + turmaRef);
+  XLSX.writeFile(wb, 'relatorio_ia_' + turmaRef.replace(/\W/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  toast('Excel com relatórios IA exportado! ✓');
+}
+
+function _finalizarRelatorioIAPDF() {
+  const resultados = window._iaLoteResultados || [];
+  if (!resultados.length) return toast('Nenhum resultado disponível.');
+  const turmaRef    = window._iaLoteTurma || '—';
+  const nomeProfAtual = sessao ? sessao.nome : 'Prof. Everton Correa';
+  const dataHoje    = new Date().toLocaleDateString('pt-BR');
+
+  const linhasHtml = resultados.map((r, i) => `
+    <div style="page-break-inside:avoid;margin-bottom:20px;background:${r.ok?'#f0f4ff':'#fef2f2'};border:1px solid ${r.ok?'#c7d2fe':'#fca5a5'};border-left:4px solid ${r.ok?'#6366f1':'#dc2626'};border-radius:10px;padding:16px 18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:11px;font-family:monospace;color:#94a3b8;width:22px">${String(i+1).padStart(2,'0')}</span>
+        <strong style="font-size:14px;color:#1a3a5c">${r.nome}</strong>
+        ${r.ok ? '<span style="font-size:10px;background:#e0e7ff;color:#3730a3;border-radius:99px;padding:2px 8px;font-weight:600">✨ IA</span>' : '<span style="font-size:10px;background:#fee2e2;color:#991b1b;border-radius:99px;padding:2px 8px;font-weight:600">❌ Erro</span>'}
+      </div>
+      <p style="font-size:13px;line-height:1.75;color:#1e293b;margin:0">${r.texto.replace(/</g,'&lt;')}</p>
+    </div>`).join('');
+
+  const html = `<!DOCTYPE html><html lang="pt-br"><head><meta charset="UTF-8"><title>Relatórios IA · ${turmaRef}</title>
+    <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;padding:32px;color:#1a1a1a}h1{font-size:18px;color:#1a3a5c;margin-bottom:4px}.sub{font-size:12px;color:#64748b;margin-bottom:24px;padding-bottom:12px;border-bottom:2px solid #e2e8f0}.btn{margin-top:24px;padding:10px 22px;background:#6366f1;color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px}@media print{.btn{display:none}body{padding:12px}}</style>
+    </head><body>
+    <h1>✨ Relatórios Narrativos (IA) · ${turmaRef}</h1>
+    <div class="sub">Geografia · ${nomeProfAtual} · 2026 · Gerado em ${dataHoje} · ${resultados.length} aluno(s)</div>
+    ${linhasHtml}
+    <button class="btn" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+    </body></html>`;
+
+  const win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(html);
+  win.document.close();
+  toast('PDF de relatórios IA aberto! ✓');
 }
 
 // ─── NOTAS ───────────────────────────────────────────────────────────────────
