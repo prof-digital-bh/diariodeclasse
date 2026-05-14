@@ -182,6 +182,23 @@ body.dark-mode .rel-summary-strip { background:#162032; border-bottom-color:#334
 .ficha-anot-campo-val { color:var(--ink-2); line-height:1.5; }
 .ficha-evolucao { display:flex; align-items:center; gap:6px; margin-top:8px; }
 .ficha-evolucao-dot { width:10px; height:10px; border-radius:50%; }
+
+/* ── Análise IA ── */
+.ficha-ia-wrap { padding:16px 20px; border-top:1px solid var(--border); }
+.ficha-ia-header { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.ficha-ia-title { font-family:'Syne',sans-serif; font-size:12px; font-weight:700; color:var(--ink-3); text-transform:uppercase; letter-spacing:.5px; }
+.ficha-ia-badge { font-size:10px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:white; border-radius:99px; padding:2px 8px; font-weight:600; }
+.ficha-ia-card { background:linear-gradient(135deg,#f0f4ff 0%,#faf5ff 100%); border:1px solid #c7d2fe; border-left:4px solid #6366f1; border-radius:12px; padding:16px 18px; position:relative; overflow:hidden; }
+body.dark-mode .ficha-ia-card { background:linear-gradient(135deg,#1e1b4b 0%,#2e1065 100%); border-color:#4c1d95; }
+.ficha-ia-card::before { content:''; position:absolute; top:-20px; right:-20px; width:80px; height:80px; background:radial-gradient(circle,rgba(99,102,241,.15),transparent 70%); border-radius:50%; pointer-events:none; }
+.ficha-ia-text { font-size:13px; line-height:1.75; color:var(--ink); white-space:pre-line; }
+.ficha-ia-skeleton { display:flex; flex-direction:column; gap:8px; }
+.ficha-ia-skeleton-line { height:12px; border-radius:6px; background:linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.ficha-ia-btn { margin-top:10px; font-size:11px; padding:5px 12px; border:1px solid #6366f1; border-radius:8px; background:white; color:#6366f1; cursor:pointer; font-weight:600; transition:all .2s; }
+.ficha-ia-btn:hover { background:#6366f1; color:white; }
+body.dark-mode .ficha-ia-btn { background:#1e1b4b; color:#a5b4fc; border-color:#4c1d95; }
+body.dark-mode .ficha-ia-btn:hover { background:#4c1d95; color:white; }
 @media (max-width:600px) { .ficha-tri-row { grid-template-columns:1fr; } .ficha-anot-campos { grid-template-columns:1fr; } }
 
 /* ─── ALERTAS DE RISCO ──────────────────────────────────────────────────── */
@@ -3508,7 +3525,182 @@ function renderizarFichaAluno() {
       <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px">📝 Anotações por Trimestre</div>
       ${anotHtml}
     </div>
+    <div class="ficha-ia-wrap">
+      <div class="ficha-ia-header">
+        <span class="ficha-ia-title">✨ Análise & Metas</span>
+        <span class="ficha-ia-badge">IA</span>
+      </div>
+      <div id="ficha-ia-conteudo">
+        <div class="ficha-ia-card">
+          <div class="ficha-ia-skeleton">
+            <div class="ficha-ia-skeleton-line" style="width:75%"></div>
+            <div class="ficha-ia-skeleton-line" style="width:100%"></div>
+            <div class="ficha-ia-skeleton-line" style="width:55%"></div>
+            <div class="ficha-ia-skeleton-line" style="width:90%"></div>
+            <div class="ficha-ia-skeleton-line" style="width:70%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>`;
+
+  // Monta dados para análise e chama IA
+  const dadosParaIA = montarDadosParaIA(turma, nome);
+  gerarAnaliseIA(dadosParaIA, nome);
+}
+
+// ── Monta objeto com dados do aluno para enviar à IA ──────────────────────────
+function montarDadosParaIA(turma, nome) {
+  garantirAtividades(turma);
+  const turmaRef = (sessao && sessao.turmaReferencia) || null;
+  const ehTurmaRef = turma === turmaRef;
+
+  // Observação geral da aba de notas (campo obs — qualquer turma)
+  const nota = (db.notas[turma] && db.notas[turma][nome]) || {};
+  const obsNotasGeral = (nota.obs || '').trim();
+
+  const resultado = { nome, turma, ehTurmaRef, obsNotasGeral, trimestres: [] };
+
+  TRIMESTRES.forEach(tr => {
+    const ativ = (db.atividades[turma] && db.atividades[turma]['t'+tr]) || [];
+    const maxT  = getMaxAluno(turma, nome, tr);
+    const totT  = getTotalAluno(turma, nome, tr);
+    const pctT  = maxT > 0 ? totT / maxT : -1;
+
+    const atividades = [];
+    for (let i = 1; i <= N_ATIV; i++) {
+      const aNome  = (ativ[i-1] && ativ[i-1].nome) ? ativ[i-1].nome.trim() : '';
+      const aValor = parseFloat((ativ[i-1] && ativ[i-1].valor) || 0) || 0;
+      if (!aNome) continue;
+      const raw = nota['t'+tr+'_a'+i];
+      const notaNum = (raw !== '' && raw !== undefined && raw !== null) ? parseFloat(raw) : null;
+      const pct = (notaNum !== null && aValor > 0) ? notaNum / aValor : -1;
+      atividades.push({ nome: aNome, valor: aValor, obtido: notaNum, pct: pct >= 0 ? Math.round(pct*100) : null });
+    }
+
+    // Anotações qualitativas: apenas se esta for a turma de referência do professor
+    const anot = ehTurmaRef
+      ? ((db.anotacoes && db.anotacoes[nome] && db.anotacoes[nome]['t'+tr]) || {})
+      : {};
+
+    resultado.trimestres.push({
+      tri: tr,
+      totalObtido: maxT > 0 ? Math.round(totT) : null,
+      totalMax: maxT > 0 ? Math.round(maxT) : null,
+      percentual: pctT >= 0 ? Math.round(pctT * 100) : null,
+      atividades,
+      comportamento: anot.comportamento || '',
+      participacao:  anot.participacao  || '',
+      aprendizagem:  anot.aprendizagem  || '',
+      dificuldades:  anot.dificuldades  || '',
+      destaques:     anot.destaques     || '',
+      observacoes:   anot.observacoes   || ''
+    });
+  });
+  return resultado;
+}
+
+// ── Chama a API do Claude e exibe análise ─────────────────────────────────────
+async function gerarAnaliseIA(dados, nomeAluno) {
+  const el = document.getElementById('ficha-ia-conteudo');
+  if (!el) return;
+
+  // Monta prompt com os dados reais
+  const trisComDados = dados.trimestres.filter(t => t.percentual !== null);
+  if (!trisComDados.length) {
+    el.innerHTML = `<div class="ficha-ia-card"><p class="ficha-ia-text" style="color:var(--ink-3);font-style:italic">Ainda não há notas registradas para gerar uma análise.</p></div>`;
+    return;
+  }
+
+  // Monta bloco de desempenho por trimestre com observações contextuais
+  const resumoTris = dados.trimestres.map(t => {
+    if (t.percentual === null) return `  ${t.tri}º Trimestre: sem dados`;
+    const atStr = t.atividades.filter(a => a.pct !== null)
+      .map(a => `    - ${a.nome}: ${a.pct}% (${a.obtido}/${a.valor}pts)`)
+      .join('\n');
+
+    // Anotações qualitativas da aba Anotações (somente turma referência)
+    const camposAnot = [
+      t.participacao  ? `Participação: ${t.participacao}`   : '',
+      t.comportamento ? `Comportamento: ${t.comportamento}` : '',
+      t.aprendizagem  ? `Aprendizagem: ${t.aprendizagem}`   : '',
+      t.dificuldades  ? `Dificuldades: ${t.dificuldades}`   : '',
+      t.destaques     ? `Destaques: ${t.destaques}`         : '',
+      t.observacoes   ? `Outras obs.: ${t.observacoes}`     : ''
+    ].filter(Boolean);
+    const anotStr = camposAnot.length
+      ? '\n    [Anotações do professor]\n' + camposAnot.map(c => `    • ${c}`).join('\n')
+      : '';
+
+    return `  ${t.tri}º Trimestre: ${t.percentual}% (${t.totalObtido}/${t.totalMax} pts)\n${atStr}${anotStr}`;
+  }).join('\n');
+
+  // Observação do diário de notas (campo "obs" da aba Notas — disponível para todas as turmas)
+  const obsNotasStr = dados.obsNotasGeral
+    ? `\nObservação do diário de notas: "${dados.obsNotasGeral}"`
+    : '';
+
+  const turmaCtx = dados.ehTurmaRef
+    ? `(turma de referência — anotações individuais incluídas)`
+    : `(turma ${dados.turma} — apenas observação do diário de notas)`;
+
+  const prompt = `Você é um professor de Geografia analisando o desempenho de um aluno para motivá-lo e orientá-lo.
+
+Aluno: "${nomeAluno}" — ${turmaCtx}
+
+DESEMPENHO POR TRIMESTRE:
+${resumoTris}
+${obsNotasStr}
+
+REFERÊNCIA: 60% é o mínimo esperado em cada trimestre e em cada atividade individualmente. Metas progressivas:
+- Próximo de 60%: buscar 80%
+- Próximo de 80%: buscar 90%
+- Próximo de 90%: buscar 100%
+
+Com base em TODOS os dados acima (notas, percentuais por atividade, observação do diário e anotações qualitativas quando disponíveis), escreva um texto de 4 a 5 parágrafos, caloroso e direto — SEM títulos, SEM bullet points, SEM markdown, SEM asteriscos — apenas parágrafos corridos.
+
+O texto deve:
+1. Reconhecer o desempenho atual com honestidade e empatia, citando o aproveitamento geral
+2. Destacar atividades ou momentos positivos (acima de 80%)
+3. Apontar claramente onde está abaixo de 60%, atividade por atividade quando relevante
+4. Propor uma meta concreta e alcançável para o próximo trimestre
+5. Se houver observações sobre comportamento, participação, dificuldades ou o diário de notas, integrá-las de forma natural e encorajadora — fale sobre comprometimento e responsabilidade sem expor negativamente o aluno
+
+Use linguagem próxima, de professor que acredita no aluno.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) throw new Error('API error ' + response.status);
+    const data = await response.json();
+    const texto = (data.content && data.content[0] && data.content[0].text) || '';
+
+    if (!el) return;
+    el.innerHTML = `
+      <div class="ficha-ia-card">
+        <p class="ficha-ia-text">${texto.replace(/</g,'&lt;').replace(/\n\n/g,'</p><p class="ficha-ia-text" style="margin-top:10px">').replace(/\n/g,' ')}</p>
+        <button class="ficha-ia-btn" onclick="gerarAnaliseIA(window._fichaDadosIA, '${esc(nomeAluno)}')">🔄 Gerar nova análise</button>
+      </div>`;
+    window._fichaDadosIA = dados;
+
+  } catch (err) {
+    console.error('Análise IA falhou:', err);
+    if (!el) return;
+    el.innerHTML = `
+      <div class="ficha-ia-card" style="border-left-color:#dc2626">
+        <p class="ficha-ia-text" style="color:var(--ink-3);font-style:italic">Não foi possível gerar a análise no momento. Verifique sua conexão.</p>
+        <button class="ficha-ia-btn" style="border-color:#dc2626;color:#dc2626" onclick="gerarAnaliseIA(window._fichaDadosIA, '${esc(nomeAluno)}')">🔄 Tentar novamente</button>
+      </div>`;
+    window._fichaDadosIA = dados;
+  }
 }
 
 // ─── PAINEL ALERTAS DE RISCO ─────────────────────────────────────────────────
