@@ -2815,7 +2815,7 @@ function _redimensionarFoto(file, maxSize = 800) {
 async function _uploadFotoStorage(blob, nomeArquivo) {
   const path = 'alunos/' + nomeArquivo + '.jpg';
   const res = await fetch(SB_URL + '/storage/v1/object/fotos-alunos/' + path, {
-    method: 'POST',
+    method: 'PUT',
     headers: {
       'Authorization': 'Bearer ' + SB_KEY,
       'Content-Type': 'image/jpeg',
