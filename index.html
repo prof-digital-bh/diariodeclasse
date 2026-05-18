@@ -2673,7 +2673,10 @@ function renderizarTurmas() {
       const aid = alunoId(t, a);
       const fotoSrc = db.fotos_alunos && db.fotos_alunos[a] ? db.fotos_alunos[a] : null;
       const fotoThumb = fotoSrc
-        ? '<img src="' + fotoSrc + '" alt="Foto" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--ocean-light);cursor:pointer;flex-shrink:0" onclick="triggerFotoUploadTurma(\'' + esc(a) + '\')" title="Clique para trocar foto">'
+        ? '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">' +
+          '<img src="' + fotoSrc + '" alt="Foto" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid var(--ocean-light);cursor:pointer" onclick="triggerFotoUploadTurma(\'' + esc(a) + '\')" title="Clique para trocar foto">' +
+          '<button class="chip-edit-btn" title="Excluir foto" onclick="deletarFotoAluno(\'' + esc(a) + '\')" style="width:20px;height:20px;font-size:10px;background:#fee2e2;border-color:#fca5a5;color:#991b1b;padding:0">✕</button>' +
+          '</div>'
         : '<button class="chip-edit-btn" title="Adicionar foto do aluno" onclick="triggerFotoUploadTurma(\'' + esc(a) + '\')" style="width:28px;height:28px;font-size:13px;background:#f0f7ff;border-color:#93c5fd">📷</button>';
       return '<div class="aluno-row" id="aluno-row-' + aid + '"><span class="aluno-idx">' + String(i+1).padStart(2,'0') + '</span>' +
         fotoThumb +
@@ -2859,6 +2862,27 @@ async function triggerFotoUploadTurma(a) {
   };
   document.body.appendChild(input);
   input.click();
+}
+
+async function deletarFotoAluno(a) {
+  if (!confirm('Remover a foto de ' + a + '?')) return;
+  // Remove do Storage
+  const slug = a.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'').slice(0,60);
+  const path = 'alunos/' + slug + '.jpg';
+  try {
+    await fetch(SB_URL + '/storage/v1/object/fotos-alunos/' + path, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY }
+    });
+  } catch(e) { console.warn('Erro ao deletar do Storage:', e); }
+  // Remove do db local
+  if (db.fotos_alunos) delete db.fotos_alunos[a];
+  // Remove do Supabase
+  try { await _deleteWhere('fotos_alunos', 'nome', a); } catch(e) {}
+  salvar();
+  renderizarTurmas();
+  renderizarAnotacoes();
+  toast('🗑️ Foto de ' + a.split(' ')[0] + ' removida ✓');
 }
 
 // ─── ANOTAÇÕES (turma referência dinâmica) ───────────────────────────────────
