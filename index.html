@@ -1818,10 +1818,30 @@ async function _pushStatus() {
 
 async function _pushMapas() {
   if (!db.mapas) return;
-  const rows = Object.keys(db.mapas).filter(t => db.mapas[t]).map(turma => ({
-    turma, imagem: db.mapas[turma], atualizado_em: new Date().toISOString()
-  }));
+  // Só salva entradas que já são URL (http...) — base64 nunca vai para o banco
+  const rows = Object.keys(db.mapas)
+    .filter(t => db.mapas[t] && db.mapas[t].startsWith('http'))
+    .map(turma => ({ turma, imagem: db.mapas[turma], atualizado_em: new Date().toISOString() }));
   if (rows.length) await _upsert('mapas', rows);
+}
+
+async function _uploadMapaStorage(blob, turma) {
+  const slug = turma.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');
+  const path = 'mapas/' + slug + '.jpg';
+  const res = await fetch(SB_URL + '/storage/v1/object/mapas-turmas/' + path, {
+    method: 'PUT',
+    headers: {
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'image/jpeg',
+      'x-upsert': 'true'
+    },
+    body: blob
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error('Storage error: ' + err);
+  }
+  return SB_URL + '/storage/v1/object/public/mapas-turmas/' + path;
 }
 
 async function carregarDoSupabase() {
@@ -2750,20 +2770,38 @@ function renderizarMapeamento() {
   }).join('');
 }
 
-function carregarMapa(event, t) {
+async function carregarMapa(event, t) {
   const file = event.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => { if (!db.mapas) db.mapas = {}; db.mapas[t] = e.target.result; salvar(); renderizarMapeamento(); toast('Mapa da turma ' + t + ' salvo! ✓'); };
-  reader.readAsDataURL(file);
+  try {
+    toast('\u23f3 Enviando mapa...');
+    const blob = await _redimensionarFoto(file, 1600);
+    const url = await _uploadMapaStorage(blob, t);
+    if (!db.mapas) db.mapas = {};
+    db.mapas[t] = url;
+    salvar(); renderizarMapeamento();
+    toast('\U0001f5fa\ufe0f Mapa da turma ' + t + ' salvo! \u2713');
+  } catch(err) {
+    console.error(err);
+    toast('\u274c Erro ao enviar mapa: ' + err.message);
+  }
 }
 
-function dropMapa(event, t) {
+async function dropMapa(event, t) {
   event.preventDefault(); event.currentTarget.classList.remove('drag-over');
   const file = event.dataTransfer.files[0];
   if (!file || !file.type.startsWith('image/')) return toast('Arquivo deve ser uma imagem.');
-  const reader = new FileReader();
-  reader.onload = e => { if (!db.mapas) db.mapas = {}; db.mapas[t] = e.target.result; salvar(); renderizarMapeamento(); toast('Mapa da turma ' + t + ' salvo! ✓'); };
-  reader.readAsDataURL(file);
+  try {
+    toast('\u23f3 Enviando mapa...');
+    const blob = await _redimensionarFoto(file, 1600);
+    const url = await _uploadMapaStorage(blob, t);
+    if (!db.mapas) db.mapas = {};
+    db.mapas[t] = url;
+    salvar(); renderizarMapeamento();
+    toast('\U0001f5fa\ufe0f Mapa da turma ' + t + ' salvo! \u2713');
+  } catch(err) {
+    console.error(err);
+    toast('\u274c Erro ao enviar mapa: ' + err.message);
+  }
 }
 
 function abrirLightbox(t) {
@@ -2778,12 +2816,27 @@ function fecharLightbox() {
   document.body.style.overflow = '';
 }
 
-function deletarMapa(t) {
+async function deletarMapa(t) {
   if (!confirm('Remover o mapa da turma ' + t + '?')) return;
+  const url = db.mapas && db.mapas[t];
+  if (url && url.startsWith('http')) {
+    try {
+      const marker = '/object/public/mapas-turmas/';
+      const idx = url.indexOf(marker);
+      if (idx !== -1) {
+        const storagePath = url.substring(idx + marker.length);
+        await fetch(SB_URL + '/storage/v1/object/mapas-turmas', {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prefixes: [storagePath] })
+        });
+      }
+    } catch(e) { console.warn('Erro ao deletar mapa do Storage:', e); }
+  }
   if (db.mapas) delete db.mapas[t];
   salvar(); renderizarMapeamento();
-  try { _deleteWhere('mapas', 'turma', t); } catch(e) {}
-  toast('Mapa removido.');
+  try { await _deleteWhere('mapas', 'turma', t); } catch(e) {}
+  toast('\U0001f5fa\ufe0f Mapa removido.');
 }
 
 function trocarMapa(t) {
