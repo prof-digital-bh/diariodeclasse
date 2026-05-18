@@ -2866,25 +2866,38 @@ async function triggerFotoUploadTurma(a) {
 
 async function deletarFotoAluno(a) {
   if (!confirm('Remover a foto de ' + a + '?')) return;
-  // Remove do Storage
-  const slug = a.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'').slice(0,60);
-  const path = 'alunos/' + slug + '.jpg';
-  try {
-    await fetch(SB_URL + '/storage/v1/object/fotos-alunos/' + path, {
-      method: 'DELETE',
-      headers: { 'Authorization': 'Bearer ' + SB_KEY }
-    });
-  } catch(e) { console.warn('Erro ao deletar do Storage:', e); }
+  // Extrai o path real da URL publica salva no db
+  const url = db.fotos_alunos && db.fotos_alunos[a];
+  if (url && url.startsWith('http')) {
+    try {
+      const marker = '/object/public/fotos-alunos/';
+      const idx = url.indexOf(marker);
+      if (idx !== -1) {
+        const storagePath = url.substring(idx + marker.length);
+        await fetch(SB_URL + '/storage/v1/object/fotos-alunos/' + storagePath, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + SB_KEY }
+        });
+      }
+    } catch(e) { console.warn('Erro ao deletar do Storage:', e); }
+  }
   // Remove do db local
   if (db.fotos_alunos) delete db.fotos_alunos[a];
-  // Remove do Supabase
-  try { await _deleteWhere('fotos_alunos', 'nome', a); } catch(e) {}
+  // Atualiza coluna foto na tabela alunos (seta null)
+  try {
+    const turma = Object.keys(db.turmas).find(t => db.turmas[t].includes(a)) || '';
+    const id = alunoId(turma, a);
+    await sbFetch('/rest/v1/alunos?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { ...SB_HEADERS, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ foto: null })
+    });
+  } catch(e) { console.warn('Erro ao limpar foto no banco:', e); }
   salvar();
   renderizarTurmas();
   renderizarAnotacoes();
   toast('🗑️ Foto de ' + a.split(' ')[0] + ' removida ✓');
 }
-
 // ─── ANOTAÇÕES (turma referência dinâmica) ───────────────────────────────────
 let anotAlunoAtivo = null;
 let anotTriAtivo = 1;
