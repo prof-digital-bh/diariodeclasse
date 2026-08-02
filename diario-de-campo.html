@@ -133,6 +133,29 @@
   }
   .turma-tab.active{background:var(--ink);color:#fff;border-color:var(--ink);}
 
+  /* barra de estatísticas + filtros travada no topo ao rolar a página */
+  .toolbar-sticky{
+    position:sticky;
+    top:20px;
+    z-index:6;
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:28px 28px;
+    padding-top:2px;
+    padding-bottom:6px;
+  }
+  .toolbar-sticky::after{
+    content:'';
+    position:absolute;
+    left:0;right:0;bottom:0;
+    height:14px;
+    background:linear-gradient(var(--paper), transparent);
+    pointer-events:none;
+    transform:translateY(100%);
+  }
+
   /* legend / stats bar */
   .legend{
     border:1px dashed var(--line-strong);
@@ -237,8 +260,10 @@
     font-size:12px;color:var(--teal-text);background:var(--teal-bg);
     padding:4px 10px;border-radius:999px;text-decoration:none;
     display:inline-flex;align-items:center;gap:4px;
+    max-width:220px;
   }
-  .link-chip svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;}
+  .link-chip svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;flex:none;}
+  .link-chip .link-chip-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .obs{font-size:12.5px;color:var(--ink-faint);margin-top:8px;font-style:italic;border-left:2px solid var(--line-strong);padding-left:9px;}
   .card-actions{
     display:flex;flex-direction:column;gap:4px;
@@ -499,7 +524,7 @@
 
   @media print{
     body{background:#fff;}
-    .sidebar, .legend, .filters, .plan-toolbar{display:none !important;}
+    .sidebar, .legend, .filters, .toolbar-sticky, .plan-toolbar{display:none !important;}
     .app-shell{display:block;}
     .wrap{padding:0;max-width:100%;}
     .plan-paper{box-shadow:none;border:none;padding:0;}
@@ -508,6 +533,7 @@
 
   @media (max-width:900px){
     .app-shell{flex-direction:column;}
+    .toolbar-sticky{top:0;}
     .sidebar{
       width:100%;position:static;
       flex-direction:row;flex-wrap:wrap;align-items:center;gap:14px;
@@ -618,6 +644,7 @@
 
   <main class="main">
 
+    <div class="toolbar-sticky">
     <div class="legend">
       <div class="stat"><div class="n" id="stat-total">0</div><div class="l">registros</div></div>
       <div class="stat"><div class="n" id="stat-ministrado">0</div><div class="l">ministrados</div></div>
@@ -651,6 +678,7 @@
         <button class="chip" data-status="planejado">Planejado</button>
       </div>
       <span class="book-mode-note" id="book-mode-note" style="display:none;">📖 O caderno mostra apenas os registros ministrados</span>
+    </div>
     </div>
 
     <div id="content"></div>
@@ -919,7 +947,11 @@ const supabaseAdapter = {
   async get(key){
     const url = SB_URL + '/rest/v1/diario_campo_kv?chave=eq.' + encodeURIComponent(dcKey(key)) + '&select=valor';
     const res = await fetch(url, { headers: SB_HEADERS });
-    if(!res.ok) throw new Error('supabase get failed: ' + res.status);
+    if(!res.ok){
+      const body = await res.text().catch(()=> '');
+      console.error('[diario-de-campo] Supabase GET falhou', res.status, body);
+      throw new Error('supabase get failed: ' + res.status);
+    }
     const rows = await res.json();
     if(!rows || !rows.length) throw new Error('not found');
     return { key, value: rows[0].valor, shared:false };
@@ -931,7 +963,12 @@ const supabaseAdapter = {
       headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify([{ chave: dcKey(key), valor: value, atualizado_em: new Date().toISOString() }]),
     });
-    if(!res.ok){ setSyncStatus('error'); throw new Error('supabase set failed: ' + res.status); }
+    if(!res.ok){
+      const body = await res.text().catch(()=> '');
+      console.error('[diario-de-campo] Supabase SET falhou', res.status, body);
+      setSyncStatus('error', '● erro ao salvar (HTTP ' + res.status + ') — veja o console');
+      throw new Error('supabase set failed: ' + res.status);
+    }
     setSyncStatus('ok');
     return { key, value, shared:false };
   },
@@ -947,7 +984,11 @@ const storageAdapter = hasClaudeStorage ? {
   },
   async set(key, value){
     try{ return await supabaseAdapter.set(key, value); }
-    catch(e){ setSyncStatus('error','● offline — salvo só neste navegador'); return localAdapter.set(key, value); }
+    catch(e){
+      const detalhe = /supabase set failed: (\d+)/.exec(e.message);
+      setSyncStatus('error', detalhe ? ('● erro ao salvar (HTTP ' + detalhe[1] + ') — salvo só neste navegador') : '● offline — salvo só neste navegador');
+      return localAdapter.set(key, value);
+    }
   },
 };
 let entries = [];
@@ -1038,9 +1079,9 @@ function seedData(){
     ['A4/02','A','Continentes: Europa','Cidades e desenvolvimento sustentável — integrar conhecimentos','ministrado','p. 87'],
   ];
   function build(turma, trimestre, list){
-    return list.map(row=>{
+    return list.map((row,i)=>{
       const [codigo, tipo, tema, topico, status, paginas] = row;
-      return { id:uid(), turma, trimestre, tipo, codigo:codigo||'', tema, topico, paginas:paginas||'', status, data:'', observacoes:'', links:[], turmasDetalhe: defaultTurmasDetalhe() };
+      return { id:uid(), turma, trimestre, tipo, codigo:codigo||'', tema, topico, paginas:paginas||'', status, data:'', observacoes:'', links:[], turmasDetalhe: defaultTurmasDetalhe(), criadoEm: Date.now() - (list.length - i) * 1000 };
     });
   }
   return [
@@ -1060,6 +1101,11 @@ async function loadEntries(){
     entries = seedData();
     await saveEntries();
   }
+  let migrated = false;
+  entries.forEach((e,i)=>{
+    if(!e.criadoEm){ e.criadoEm = Date.now() - (entries.length - i) * 1000; migrated = true; }
+  });
+  if(migrated) await saveEntries();
   renderAll();
 }
 
@@ -1085,6 +1131,33 @@ function iconChevronRight(){return '<svg viewBox="0 0 24 24"><path d="M9 18l6-6-
 
 function escapeHtml(s){
   return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* rótulo curto exibido no chip do link — nunca mostra a URL inteira.
+   Se o professor não definir (ou colar a própria URL como) rótulo,
+   cai automaticamente em "Link 1", "Link 2"... e pode ser editado a qualquer momento. */
+function linkDisplayLabel(l, idx){
+  const label = (l && l.label ? l.label : '').trim();
+  if(label && !/^https?:\/\//i.test(label)) return label;
+  return 'Link ' + (idx + 1);
+}
+
+/* data mais recente conhecida para o registro (para ordenar sem precisar exibir a data):
+   usa a maior data preenchida (geral ou por turma A/B/C); se não houver nenhuma data,
+   usa o momento em que o registro foi criado/inserido — assim a última atividade
+   passada (ou a última inserida, se ainda sem data) sempre aparece primeiro. */
+function entryRecencyTs(e){
+  const datas = [];
+  if(e.data) datas.push(Date.parse(e.data + 'T00:00:00'));
+  const td = e.turmasDetalhe || {};
+  TURMA_LETRAS.forEach(l=>{ if(td[l] && td[l].data) datas.push(Date.parse(td[l].data + 'T00:00:00')); });
+  const validas = datas.filter(n=>!isNaN(n));
+  if(validas.length) return Math.max(...validas);
+  return e.criadoEm || 0;
+}
+
+function byRecencyDesc(a, b){
+  return entryRecencyTs(b) - entryRecencyTs(a);
 }
 
 function filteredEntries(){
@@ -1118,7 +1191,7 @@ function render(){
   const trims = Object.keys(byTrim).sort((a,b)=>a-b);
   let html = '';
   trims.forEach(t=>{
-    const items = byTrim[t].sort((a,b)=> (a.tipo+a.codigo).localeCompare(b.tipo+b.codigo));
+    const items = byTrim[t].sort(byRecencyDesc);
     html += `<div class="trim-divider"><div class="label">${TRIM_LABELS[t]||'Trimestre '+t}</div><div class="rule"></div><div class="count">${items.length} registro${items.length===1?'':'s'}</div></div>`;
     html += '<div class="entries">';
     items.forEach(e=>{ html += renderCard(e); });
@@ -1128,8 +1201,8 @@ function render(){
 }
 
 function renderCard(e){
-  const linksHtml = (e.links||[]).filter(l=>l.url).map(l=>
-    `<a class="link-chip" href="${escapeHtml(l.url)}" target="_blank" rel="noopener">${iconLink()}${escapeHtml(l.label||'Acessar')}</a>`
+  const linksHtml = (e.links||[]).filter(l=>l.url).map((l,i)=>
+    `<a class="link-chip" href="${escapeHtml(l.url)}" target="_blank" rel="noopener" title="${escapeHtml(l.url)}">${iconLink()}<span class="link-chip-label">${escapeHtml(linkDisplayLabel(l,i))}</span></a>`
   ).join('');
   const metaBits = [];
   if(e.paginas) metaBits.push(`<span>${iconBook()}${escapeHtml(e.paginas)}</span>`);
@@ -1203,8 +1276,8 @@ function renderBook(){
   ).join('');
 
   const entriesHtml = page.items.map(e=>{
-    const linksHtml = (e.links||[]).filter(l=>l.url).map(l=>
-      `<a class="link-chip" href="${escapeHtml(l.url)}" target="_blank" rel="noopener">${iconLink()}${escapeHtml(l.label||'Acessar')}</a>`
+    const linksHtml = (e.links||[]).filter(l=>l.url).map((l,i)=>
+      `<a class="link-chip" href="${escapeHtml(l.url)}" target="_blank" rel="noopener" title="${escapeHtml(l.url)}">${iconLink()}<span class="link-chip-label">${escapeHtml(linkDisplayLabel(l,i))}</span></a>`
     ).join('');
     const metaBits = [];
     if(e.paginas) metaBits.push(`<span>${iconBook()}${escapeHtml(e.paginas)}</span>`);
@@ -1703,7 +1776,7 @@ document.querySelectorAll('.radio-group').forEach(group=>{
 
 function linkRowHtml(label,url){
   return `<div class="link-row">
-    <input type="text" class="link-label" placeholder="Rótulo (ex.: Vídeo, Texto, Atividade)" value="${escapeHtml(label||'')}" />
+    <input type="text" class="link-label" placeholder="Rótulo (ex.: Texto 1, Vídeo 1, Atividade)" value="${escapeHtml(label||'')}" />
     <input type="text" class="link-url" placeholder="https://…" value="${escapeHtml(url||'')}" />
     <button type="button" class="icon-btn remove-link" aria-label="Remover link">${iconTrash()}</button>
   </div>`;
@@ -1814,7 +1887,7 @@ form.addEventListener('submit', (ev)=>{
     const idx = entries.findIndex(e=>e.id===editingId);
     if(idx>-1) entries[idx] = { ...entries[idx], ...payload };
   }else{
-    entries.push({ id:uid(), ...payload });
+    entries.push({ id:uid(), criadoEm:Date.now(), ...payload });
   }
   saveEntries();
   activeTurma = payload.turma;
