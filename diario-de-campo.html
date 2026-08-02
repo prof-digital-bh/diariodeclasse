@@ -1,0 +1,1897 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Diário de Campo — Geografia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono&display=swap" rel="stylesheet">
+<style>
+  /* Paleta alinhada ao Diário de Notas (mesmo app "diariodeclasse") */
+  :root{
+    --paper:#faf8f4;
+    --paper-raised:#FFFFFF;
+    --ink:#0f172a;
+    --ink-soft:#334155;
+    --ink-faint:#64748b;
+    --line:#e2e8f0;
+    --line-strong:#cbd5e1;
+    --teal:#2563a8;
+    --teal-bg:#dbeafe;
+    --teal-text:#1a3a5c;
+    --ochre:#d97706;
+    --ochre-bg:#fef3c7;
+    --ochre-text:#92400e;
+    --clay:#991b1b;
+    --clay-bg:#fee2e2;
+    --clay-text:#991b1b;
+    --slate:#334155;
+    --slate-bg:#f0f7ff;
+    --slate-text:#334155;
+    --moss:#16a34a;
+    --moss-bg:#bbf7d0;
+    --moss-text:#166534;
+    --radius-sm:8px;
+    --radius-md:10px;
+    --radius-lg:16px;
+    --font-display:'Syne', -apple-system, sans-serif;
+    --font-body:'DM Sans', -apple-system, sans-serif;
+    --font-mono:'DM Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font-body);
+    font-size:15px;
+    line-height:1.5;
+    min-height:100vh;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:28px 28px;
+    background-attachment:fixed;
+    background-position:-1px -1px;
+  }
+  .wrap{max-width:1240px;margin:0 auto;padding:28px 24px 80px;}
+
+  /* app shell: sidebar + main */
+  .app-shell{display:flex;align-items:flex-start;gap:22px;}
+  .sidebar{
+    width:200px;flex:none;
+    display:flex;flex-direction:column;gap:0;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    padding:18px 14px;
+    position:sticky;top:20px;
+  }
+  .main{flex:1;min-width:0;}
+
+  /* voltar ao Diário de Notas + status de sincronização */
+  .dc-back-row{display:flex;flex-direction:column;gap:6px;padding:12px 0;border-bottom:1px dashed var(--line-strong);}
+  .dc-back-btn{width:100%;justify-content:flex-start;font-size:12.5px;padding:8px 10px;}
+  .dc-sync{font-family:var(--font-mono);font-size:10.5px;color:var(--ink-faint);padding-left:2px;}
+  .dc-sync.ok::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:#16a34a;margin-right:5px;}
+  .dc-sync.saving::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:#d97706;margin-right:5px;}
+  .dc-sync.error::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:#991b1b;margin-right:5px;}
+
+  /* brand */
+  .brand{display:flex;gap:10px;align-items:center;padding-bottom:14px;border-bottom:1px dashed var(--line-strong);}
+  .brand .compass{width:32px;height:32px;flex:none;}
+  .brand h1{
+    font-family:var(--font-display);
+    font-weight:600;
+    font-size:17px;
+    letter-spacing:-0.01em;
+    margin:0;
+    line-height:1.15;
+  }
+  .brand .sub{color:var(--ink-soft);font-size:11px;margin-top:2px;}
+
+  .side-section-label{
+    font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--ink-faint);margin:0 0 7px;
+  }
+  .side-block{padding:14px 0;border-bottom:1px dashed var(--line-strong);}
+  .side-block:last-child{border-bottom:none;padding-bottom:0;}
+  .side-nav{display:flex;flex-direction:column;}
+
+  .side-actions{display:flex;flex-direction:column;gap:8px;padding-top:14px;border-top:1px dashed var(--line-strong);}
+  .side-actions .btn{width:100%;justify-content:center;}
+
+  .head-actions{display:flex;gap:8px;}
+  .btn{
+    font-family:var(--font-body);
+    font-size:13.5px;
+    font-weight:500;
+    padding:9px 16px;
+    border-radius:999px;
+    border:1px solid var(--line-strong);
+    background:var(--paper-raised);
+    color:var(--ink);
+    cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;
+    transition:transform .08s ease, background .15s ease, border-color .15s ease;
+  }
+  .btn:hover{border-color:var(--teal);background:var(--teal-bg);color:var(--teal-text);}
+  .btn:active{transform:scale(0.97);}
+  .btn.primary{background:var(--ink);color:var(--paper-raised);border-color:var(--ink);}
+  .btn.primary:hover{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .btn.ghost{border-color:transparent;background:transparent;}
+  .btn.ghost:hover{background:var(--paper-raised);border-color:var(--line-strong);color:var(--ink);}
+  .btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;}
+
+  /* turma tabs */
+  .turma-tabs{display:flex;flex-direction:column;gap:5px;}
+  .turma-tab{
+    padding:9px 12px;border-radius:var(--radius-sm);font-family:var(--font-mono);font-size:12.5px;font-weight:500;
+    cursor:pointer;color:var(--ink-soft);border:1px solid var(--line-strong);background:var(--paper);
+    text-align:left;
+  }
+  .turma-tab.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  /* legend / stats bar */
+  .legend{
+    border:1px dashed var(--line-strong);
+    border-radius:var(--radius-lg);
+    background:var(--paper-raised);
+    padding:16px 20px;
+    margin:18px 0 22px;
+    display:flex;
+    align-items:center;
+    gap:28px;
+    flex-wrap:wrap;
+  }
+  .legend .stat{display:flex;flex-direction:column;gap:2px;min-width:64px;}
+  .legend .stat .n{font-family:var(--font-mono);font-size:22px;font-weight:500;letter-spacing:-0.02em;}
+  .legend .stat .l{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);}
+  .legend .divider{width:1px;align-self:stretch;background:var(--line);}
+  .legend .swatches{display:flex;gap:16px;flex-wrap:wrap;}
+  .swatch{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft);}
+  .swatch .dot{width:9px;height:9px;border-radius:2px;flex:none;}
+
+  /* filters */
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:22px;}
+  .filters select, .filters input[type="search"]{
+    font-family:var(--font-body);
+    font-size:13.5px;
+    padding:8px 12px;
+    border-radius:var(--radius-sm);
+    border:1px solid var(--line-strong);
+    background:var(--paper-raised);
+    color:var(--ink);
+  }
+  .filters input[type="search"]{flex:1;min-width:180px;}
+  .filters select{cursor:pointer;}
+  .chip-toggle{display:flex;gap:6px;flex-wrap:wrap;}
+  .chip{
+    font-family:var(--font-mono);
+    font-size:12.5px;
+    padding:6px 12px;
+    border-radius:999px;
+    border:1px solid var(--line-strong);
+    background:var(--paper-raised);
+    cursor:pointer;
+    color:var(--ink-soft);
+  }
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  /* trimestre divider */
+  .trim-divider{
+    display:flex;align-items:center;gap:12px;
+    margin:30px 0 14px;
+  }
+  .trim-divider:first-of-type{margin-top:6px;}
+  .trim-divider .label{
+    font-family:var(--font-display);
+    font-size:19px;font-weight:600;
+    white-space:nowrap;
+  }
+  .trim-divider .rule{flex:1;height:1px;background:repeating-linear-gradient(90deg, var(--line-strong) 0 6px, transparent 6px 11px);}
+  .trim-divider .count{font-family:var(--font-mono);font-size:12px;color:var(--ink-faint);}
+
+  /* entries */
+  .entries{display:flex;flex-direction:column;gap:10px;}
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius-md);
+    padding:14px 16px 14px 0;
+    display:flex;
+    gap:14px;
+    position:relative;
+  }
+  .card .spine{width:5px;border-radius:4px;flex:none;margin-left:0;}
+  .card .spine.tipo-G{background:var(--teal);}
+  .card .spine.tipo-A{background:var(--ochre);}
+  .card .spine.tipo-P{background:var(--clay);}
+  .card .body{flex:1;min-width:0;}
+  .card .row1{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+  .stamp{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    padding:2px 8px;
+    border-radius:5px;
+    border:1px solid currentColor;
+  }
+  .stamp.tipo-G{color:var(--teal-text);background:var(--teal-bg);border-color:transparent;}
+  .stamp.tipo-A{color:var(--ochre-text);background:var(--ochre-bg);border-color:transparent;}
+  .stamp.tipo-P{color:var(--clay-text);background:var(--clay-bg);border-color:transparent;}
+  .tema{font-family:var(--font-display);font-weight:600;font-size:16.5px;}
+  .status-pill{
+    font-size:11px;font-weight:500;padding:2px 9px;border-radius:999px;margin-left:auto;
+    display:flex;align-items:center;gap:4px;
+  }
+  .status-pill.planejado{background:var(--slate-bg);color:var(--slate-text);}
+  .status-pill.ministrado{background:var(--moss-bg);color:var(--moss-text);}
+  .status-pill svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;}
+  .topico{color:var(--ink-soft);font-size:14px;margin:4px 0 8px;}
+  .meta-row{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-faint);margin-bottom:8px;}
+  .meta-row span{display:flex;align-items:center;gap:5px;}
+  .meta-row svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;}
+  .links-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .link-chip{
+    font-size:12px;color:var(--teal-text);background:var(--teal-bg);
+    padding:4px 10px;border-radius:999px;text-decoration:none;
+    display:inline-flex;align-items:center;gap:4px;
+  }
+  .link-chip svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;}
+  .obs{font-size:12.5px;color:var(--ink-faint);margin-top:8px;font-style:italic;border-left:2px solid var(--line-strong);padding-left:9px;}
+  .card-actions{
+    display:flex;flex-direction:column;gap:4px;
+    opacity:0;transition:opacity .12s ease;
+    padding-right:10px;
+  }
+  .card:hover .card-actions{opacity:1;}
+  .icon-btn{
+    width:28px;height:28px;border-radius:7px;border:1px solid transparent;background:transparent;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-faint);
+  }
+  .icon-btn:hover{background:var(--paper);border-color:var(--line-strong);color:var(--ink);}
+  .icon-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;}
+
+  .empty{
+    text-align:center;padding:60px 20px;color:var(--ink-soft);
+    border:1px dashed var(--line-strong);border-radius:var(--radius-lg);background:var(--paper-raised);
+  }
+  .empty h3{font-family:var(--font-display);font-size:19px;margin:0 0 6px;color:var(--ink);}
+  .empty p{font-size:13.5px;margin:0 0 16px;}
+
+  /* modal */
+  .overlay{
+    position:fixed;inset:0;background:rgba(32,43,34,0.45);
+    display:none;align-items:flex-start;justify-content:center;
+    padding:40px 16px;overflow-y:auto;z-index:50;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background:var(--paper-raised);border-radius:var(--radius-lg);
+    width:100%;max-width:560px;padding:26px 26px 22px;
+    border:1px solid var(--line);
+  }
+  .modal h2{font-family:var(--font-display);font-size:21px;margin:0 0 18px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;font-weight:500;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em;}
+  .field input[type=text], .field input[type=date], .field textarea, .field select{
+    width:100%;font-family:var(--font-body);font-size:14px;padding:9px 11px;
+    border:1px solid var(--line-strong);border-radius:var(--radius-sm);background:var(--paper);color:var(--ink);
+  }
+  .field textarea{resize:vertical;min-height:56px;}
+  .field-row{display:flex;gap:12px;}
+  .field-row .field{flex:1;}
+  .radio-group{display:flex;gap:8px;flex-wrap:wrap;}
+  .radio-opt{
+    font-family:var(--font-mono);font-size:12.5px;padding:7px 13px;border-radius:999px;
+    border:1px solid var(--line-strong);cursor:pointer;color:var(--ink-soft);
+  }
+  .radio-opt.selected{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .links-editor{display:flex;flex-direction:column;gap:8px;}
+  .link-row{display:flex;gap:8px;align-items:center;}
+  .link-row input{flex:1;}
+  .link-row .icon-btn{border:1px solid var(--line-strong);}
+  .modal-footer{display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding-top:16px;border-top:1px solid var(--line);}
+  .modal-footer .right{display:flex;gap:8px;}
+
+  .turmas-editor{display:flex;flex-direction:column;gap:8px;}
+  .turma-editor-row{display:flex;align-items:center;gap:10px;}
+  .turma-toggle{
+    font-family:var(--font-mono);font-size:12.5px;padding:7px 14px;border-radius:999px;
+    border:1px solid var(--line-strong);cursor:pointer;color:var(--ink-soft);background:var(--paper);
+  }
+  .turma-toggle.selected{background:var(--moss);color:#fff;border-color:var(--moss);}
+  .turma-date-input{
+    font-family:var(--font-body);font-size:13px;padding:6px 9px;border-radius:var(--radius-sm);
+    border:1px solid var(--line-strong);background:var(--paper);color:var(--ink);
+  }
+  .turmas-row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0;}
+  .turma-pill{
+    font-family:var(--font-mono);font-size:11px;padding:3px 9px;border-radius:999px;
+    border:1px solid var(--line-strong);color:var(--ink-faint);background:transparent;
+  }
+  .turma-pill.done{background:var(--moss-bg);color:var(--moss-text);border-color:transparent;font-weight:500;}
+
+  /* view mode toggle */
+  .mode-toggle{display:flex;flex-direction:column;gap:5px;}
+  .mode-btn{
+    padding:9px 12px;border-radius:var(--radius-sm);font-family:var(--font-body);font-size:13px;font-weight:500;
+    cursor:pointer;color:var(--ink-soft);border:1px solid transparent;background:transparent;
+    display:flex;align-items:center;gap:8px;text-align:left;width:100%;
+  }
+  .mode-btn:hover{background:var(--paper);border-color:var(--line-strong);}
+  .mode-btn.active{background:var(--ink);color:#fff;}
+  .book-mode-note{font-size:12px;color:var(--ink-faint);font-style:italic;}
+
+  /* book (didactic textbook) links in sidebar */
+  .book-links{display:flex;flex-direction:column;gap:6px;}
+  .book-link-row{display:flex;align-items:center;gap:4px;}
+  .book-link-btn{
+    flex:1;padding:9px 12px;border-radius:var(--radius-sm);font-family:var(--font-body);font-size:12.5px;font-weight:500;
+    cursor:pointer;color:var(--ink-soft);border:1px solid var(--line-strong);background:var(--paper);
+    display:flex;align-items:center;gap:7px;text-align:left;text-decoration:none;
+  }
+  .book-link-btn:hover{border-color:var(--ochre);background:var(--ochre-bg);color:var(--ochre-text);}
+  .book-link-btn.linked{color:var(--moss-text);border-color:var(--moss);background:var(--moss-bg);}
+  .book-link-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none;}
+  .book-link-btn .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .book-link-edit{
+    width:26px;height:26px;flex:none;border-radius:7px;border:1px solid var(--line-strong);background:var(--paper);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-faint);
+  }
+  .book-link-edit:hover{background:var(--paper-raised);color:var(--ink);border-color:var(--ink-faint);}
+  .book-link-edit svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.8;}
+
+  /* provas aplicadas */
+  .provas-list{display:flex;flex-direction:column;gap:5px;margin-bottom:8px;}
+  .provas-empty{font-size:11.5px;color:var(--ink-faint);font-style:italic;margin-bottom:8px;}
+  .prova-row{
+    display:flex;align-items:center;gap:4px;
+    padding:7px 6px 7px 9px;border-radius:var(--radius-sm);
+    border:1px solid var(--line-strong);background:var(--paper);
+  }
+  .prova-row .prova-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px;cursor:pointer;}
+  .prova-row .prova-nome{font-size:12px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .prova-row .prova-nome svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;vertical-align:-1px;margin-right:3px;}
+  .prova-row .prova-meta{font-family:var(--font-mono);font-size:10px;color:var(--ink-faint);}
+  .prova-row .prova-info:hover .prova-nome{color:var(--teal-text);}
+  .prova-actions{display:flex;align-items:center;gap:1px;flex:none;}
+  .prova-mini{
+    width:20px;height:20px;flex:none;border-radius:6px;border:none;background:transparent;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-faint);
+  }
+  .prova-mini svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;}
+  .prova-mini:hover{background:var(--paper-raised);color:var(--ink);}
+  .prova-mini[data-action="open"]:hover{background:var(--teal-bg);color:var(--teal-text);}
+  .prova-mini[data-action="delete"]:hover{background:var(--clay-bg);color:var(--clay-text);}
+  .prova-mini:disabled{opacity:.25;cursor:default;pointer-events:none;}
+  .btn-add-prova{width:100%;justify-content:center;font-size:12.5px;padding:8px 12px;}
+
+  /* small confirmation dialog */
+  .confirm-modal{max-width:340px;}
+  .confirm-modal h2{display:flex;align-items:center;gap:8px;}
+  .confirm-modal h2 svg{width:19px;height:19px;stroke:var(--clay-text);fill:none;stroke-width:1.8;flex:none;}
+  .confirm-message{font-size:13.5px;color:var(--ink-soft);margin:0 0 4px;line-height:1.5;}
+  .btn.danger{background:var(--clay);color:#fff;border-color:var(--clay);}
+  .btn.danger:hover{background:var(--clay-text);border-color:var(--clay-text);}
+
+  /* in-app link viewer (opens activities / provas / book links without leaving the platform) */
+  .viewer-overlay{
+    position:fixed;inset:0;background:rgba(32,43,34,0.5);
+    display:none;align-items:center;justify-content:center;
+    padding:24px;z-index:60;
+  }
+  .viewer-overlay.open{display:flex;}
+  .viewer-modal{
+    background:var(--paper-raised);border-radius:var(--radius-lg);
+    width:100%;max-width:1040px;height:88vh;
+    border:1px solid var(--line);
+    display:flex;flex-direction:column;
+    box-shadow:0 20px 50px rgba(32,43,34,.22);
+    overflow:hidden;
+  }
+  .viewer-head{
+    display:flex;align-items:center;gap:10px;
+    padding:12px 14px;border-bottom:1px solid var(--line);
+    background:var(--paper);flex:none;
+  }
+  .viewer-head .viewer-title{
+    font-family:var(--font-display);font-weight:600;font-size:15px;
+    flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .viewer-body{flex:1;min-height:0;position:relative;background:#fff;}
+  .viewer-body iframe{width:100%;height:100%;border:none;display:block;}
+  .viewer-fallback{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:10px;padding:24px;text-align:center;color:var(--ink-soft);font-size:13px;background:var(--paper-raised);
+  }
+
+  /* prova modal (view / edit) */
+  .prova-modal{max-width:460px;}
+  .prova-viewbtn{
+    width:100%;justify-content:center;margin-top:4px;
+  }
+
+  /* book / caderno view */
+  .book-viewer{margin-top:6px;}
+  .book-trimnav{display:flex;gap:6px;justify-content:center;margin-bottom:18px;flex-wrap:wrap;}
+  .trim-jump{
+    font-family:var(--font-mono);font-size:12px;padding:6px 14px;border-radius:999px;
+    border:1px solid var(--line-strong);background:var(--paper-raised);color:var(--ink-soft);cursor:pointer;
+  }
+  .trim-jump.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+  .book-frame{display:flex;align-items:center;justify-content:center;gap:14px;}
+  .page-arrow{
+    width:44px;height:44px;border-radius:50%;border:1px solid var(--line-strong);
+    background:var(--paper-raised);color:var(--ink-soft);cursor:pointer;flex:none;
+    display:flex;align-items:center;justify-content:center;transition:all .15s ease;
+  }
+  .page-arrow svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;}
+  .page-arrow:hover:not(:disabled){background:var(--teal);color:#fff;border-color:var(--teal);}
+  .page-arrow:disabled{opacity:.3;cursor:default;}
+  .book-page{
+    position:relative;
+    width:100%;max-width:920px;
+    min-height:76vh;max-height:84vh;
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-left:5px solid var(--teal);
+    border-radius:var(--radius-md);
+    box-shadow:0 10px 28px rgba(32,43,34,.09), 0 2px 6px rgba(32,43,34,.06);
+    padding:32px 36px 22px 44px;
+    display:flex;flex-direction:column;
+    animation:pageIn .28s ease;
+  }
+  @keyframes pageIn{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+  .page-header{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;flex:none;}
+  .page-trim-title{font-family:var(--font-display);font-weight:700;font-size:24px;}
+  .page-trim{margin-left:auto;font-family:var(--font-mono);font-size:11.5px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;}
+  .book-entries{
+    flex:1;overflow-y:auto;
+    background-image:linear-gradient(var(--line) 1px, transparent 1px);
+    background-size:100% 28px;
+    padding-right:8px;
+  }
+  .book-entry{padding:12px 0;border-bottom:1px dashed var(--line-strong);}
+  .book-entry:last-child{border-bottom:none;}
+  .book-entry-row1{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+  .book-entry-tema{font-family:var(--font-display);font-weight:600;font-size:16.5px;}
+  .book-entry-topico{color:var(--ink-soft);font-size:14px;margin:4px 0 6px;}
+  .book-entry-obs{font-size:12.5px;color:var(--ink-faint);margin-top:6px;font-style:italic;border-left:2px solid var(--line-strong);padding-left:9px;}
+  .page-footer{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line-strong);font-family:var(--font-mono);font-size:11.5px;color:var(--ink-faint);text-align:right;flex:none;}
+  .book-empty{max-width:620px;margin:0 auto;}
+
+  /* planejamento view */
+  .plan-viewer{margin-top:6px;}
+  .plan-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+  .plan-trim-select{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);}
+  .plan-trim-select select{
+    font-family:var(--font-body);font-size:13.5px;padding:7px 11px;border-radius:var(--radius-sm);
+    border:1px solid var(--line-strong);background:var(--paper-raised);color:var(--ink);cursor:pointer;
+  }
+  .plan-actions{display:flex;gap:8px;}
+  .plan-paper{
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius-md);
+    padding:34px 36px;box-shadow:0 8px 24px rgba(32,43,34,.07);
+  }
+  .plan-header{text-align:center;margin-bottom:22px;padding-bottom:16px;border-bottom:2px solid var(--ink);}
+  .plan-title{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:.01em;text-transform:uppercase;}
+  .plan-subtitle{font-size:13px;color:var(--ink-soft);margin-top:4px;font-family:var(--font-mono);}
+  .plan-table{display:grid;grid-template-columns:1fr 1.3fr;gap:26px;}
+  .plan-col h3{font-family:var(--font-display);font-size:14.5px;margin:0 0 10px;padding-bottom:6px;border-bottom:1px dashed var(--line-strong);}
+  .plan-textarea{
+    width:100%;font-family:var(--font-body);font-size:13.5px;line-height:1.6;padding:10px 12px;
+    border:1px solid var(--line-strong);border-radius:var(--radius-sm);background:var(--paper);color:var(--ink);
+    resize:vertical;
+  }
+  .plan-list{margin:0 0 16px;padding-left:20px;font-size:13.5px;line-height:1.7;color:var(--ink);}
+  .plan-list li{margin-bottom:2px;}
+  .plan-empty-line{color:var(--ink-faint);font-style:italic;list-style:none;margin-left:-20px;}
+  .plan-obs-label{font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin:14px 0 6px;}
+  .plan-legend{
+    margin-top:24px;padding-top:14px;border-top:1px dashed var(--line-strong);
+    font-size:12px;color:var(--ink-soft);line-height:1.6;
+  }
+  .plan-signatures{display:flex;justify-content:space-between;gap:24px;margin-top:36px;}
+  .sig-block{flex:1;display:flex;flex-direction:column;gap:22px;font-size:12.5px;color:var(--ink-soft);}
+  .sig-block span{border-top:1px solid var(--ink-faint);padding-top:4px;}
+
+  @media print{
+    body{background:#fff;}
+    .sidebar, .legend, .filters, .plan-toolbar{display:none !important;}
+    .app-shell{display:block;}
+    .wrap{padding:0;max-width:100%;}
+    .plan-paper{box-shadow:none;border:none;padding:0;}
+    .plan-textarea{border:none;padding:0;resize:none;background:transparent;overflow:visible;}
+  }
+
+  @media (max-width:900px){
+    .app-shell{flex-direction:column;}
+    .sidebar{
+      width:100%;position:static;
+      flex-direction:row;flex-wrap:wrap;align-items:center;gap:14px;
+    }
+    .brand{border-bottom:none;padding-bottom:0;border-right:1px dashed var(--line-strong);padding-right:14px;}
+    .side-block{border-bottom:none;padding:0;flex:none;}
+    .side-nav{flex-direction:row;flex-wrap:wrap;gap:14px;}
+    .turma-tabs, .mode-toggle, .book-links{flex-direction:row;flex-wrap:wrap;}
+    .side-actions{flex-direction:row;border-top:none;padding-top:0;margin-left:auto;}
+    .side-actions .btn{width:auto;}
+  }
+
+  @media (max-width:640px){
+    .wrap{padding:20px 14px 60px;}
+    .brand h1{font-size:16px;}
+    .legend{gap:16px;}
+    .card{padding-left:0;}
+    .book-page{padding:20px 16px 16px 24px;min-height:70vh;}
+    .page-trim-title{font-size:19px;}
+    .page-arrow{width:36px;height:36px;}
+    .book-frame{gap:8px;}
+    .plan-table{grid-template-columns:1fr;}
+    .plan-paper{padding:20px 18px;}
+    .sidebar{flex-direction:column;align-items:stretch;}
+    .brand{border-right:none;border-bottom:1px dashed var(--line-strong);padding-bottom:14px;padding-right:0;}
+    .side-nav{flex-direction:column;}
+    .turma-tabs, .mode-toggle, .book-links{flex-direction:column;}
+    .side-actions{margin-left:0;flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="compass" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="18" stroke="#2563a8" stroke-width="1.3"/>
+        <path d="M20 4 L23 20 L20 36 L17 20 Z" fill="#2563a8" opacity="0.85"/>
+        <path d="M4 20 L20 17 L36 20 L20 23 Z" fill="#d97706" opacity="0.85"/>
+        <circle cx="20" cy="20" r="2.4" fill="#0f172a"/>
+      </svg>
+      <div>
+        <h1>Diário de campo</h1>
+        <div class="sub">Geografia · 8º e 9º anos</div>
+      </div>
+    </div>
+
+    <div class="dc-back-row">
+      <button type="button" class="btn ghost dc-back-btn" id="dc-back-btn" title="Voltar ao Diário de Notas">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>Voltar ao Diário de Notas
+      </button>
+      <span class="dc-sync" id="dc-sync">● conectando…</span>
+    </div>
+
+    <nav class="side-nav">
+      <div class="side-block">
+        <div class="side-section-label">Turma</div>
+        <div class="turma-tabs" id="turma-tabs">
+          <button class="turma-tab active" data-turma="8">8º ANO</button>
+          <button class="turma-tab" data-turma="9">9º ANO</button>
+        </div>
+      </div>
+
+      <div class="side-block">
+        <div class="side-section-label">Visualização</div>
+        <div class="mode-toggle" id="mode-toggle">
+          <button class="mode-btn active" data-mode="list">📋 Lista</button>
+          <button class="mode-btn" data-mode="book">📖 Caderno</button>
+          <button class="mode-btn" data-mode="plan">📄 Planejamento</button>
+        </div>
+      </div>
+
+      <div class="side-block">
+        <div class="side-section-label">Livro didático</div>
+        <div class="book-links" id="book-links">
+          <div class="book-link-row">
+            <a class="book-link-btn" id="book-link-8" data-turma="8" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V2H6.5A2.5 2.5 0 004 4.5v15z"/></svg>
+              <span class="lbl">8º ano</span>
+            </a>
+            <button type="button" class="book-link-edit" data-turma="8" title="Editar link"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>
+          </div>
+          <div class="book-link-row">
+            <a class="book-link-btn" id="book-link-9" data-turma="9" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V2H6.5A2.5 2.5 0 004 4.5v15z"/></svg>
+              <span class="lbl">9º ano</span>
+            </a>
+            <button type="button" class="book-link-edit" data-turma="9" title="Editar link"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="side-block">
+        <div class="side-section-label">Provas aplicadas</div>
+        <div class="provas-list" id="provas-list"></div>
+        <button type="button" class="btn ghost btn-add-prova" id="btn-add-prova">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nova prova
+        </button>
+      </div>
+    </nav>
+
+    <div class="side-actions">
+      <button class="btn ghost" id="btn-export"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>Exportar</button>
+      <button class="btn primary" id="btn-new"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo registro</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div class="legend">
+      <div class="stat"><div class="n" id="stat-total">0</div><div class="l">registros</div></div>
+      <div class="stat"><div class="n" id="stat-ministrado">0</div><div class="l">ministrados</div></div>
+      <div class="stat"><div class="n" id="stat-planejado">0</div><div class="l">planejados</div></div>
+      <div class="divider"></div>
+      <div class="swatches">
+        <div class="swatch"><span class="dot" style="background:var(--teal)"></span>G · registro de sala</div>
+        <div class="swatch"><span class="dot" style="background:var(--ochre)"></span>A · atividade</div>
+        <div class="swatch"><span class="dot" style="background:var(--clay)"></span>P · pesquisa</div>
+      </div>
+    </div>
+
+    <div class="filters">
+      <input type="search" id="f-search" placeholder="Buscar por tema, tópico, código ou página…" />
+      <select id="f-trimestre">
+        <option value="all">Todos os trimestres</option>
+        <option value="1">1º trimestre</option>
+        <option value="2">2º trimestre</option>
+        <option value="3">3º trimestre</option>
+        <option value="4">4º trimestre</option>
+      </select>
+      <div class="chip-toggle" id="f-tipo">
+        <button class="chip active" data-tipo="all">Todos</button>
+        <button class="chip" data-tipo="G">G</button>
+        <button class="chip" data-tipo="A">A</button>
+        <button class="chip" data-tipo="P">P</button>
+      </div>
+      <div class="chip-toggle" id="f-status">
+        <button class="chip active" data-status="all">Status: todos</button>
+        <button class="chip" data-status="ministrado">Ministrado</button>
+        <button class="chip" data-status="planejado">Planejado</button>
+      </div>
+      <span class="book-mode-note" id="book-mode-note" style="display:none;">📖 O caderno mostra apenas os registros ministrados</span>
+    </div>
+
+    <div id="content"></div>
+    <div id="book-viewer" class="book-viewer" style="display:none;"></div>
+    <div id="plan-viewer" class="plan-viewer" style="display:none;">
+      <div class="plan-toolbar">
+        <div class="plan-trim-select">
+          <label for="plan-trim">Trimestre:</label>
+          <select id="plan-trim">
+            <option value="1">1º trimestre</option>
+            <option value="2">2º trimestre</option>
+            <option value="3">3º trimestre</option>
+            <option value="4">4º trimestre</option>
+          </select>
+        </div>
+        <div class="plan-actions">
+          <button class="btn ghost" id="btn-plan-copy">Copiar texto</button>
+          <button class="btn primary" id="btn-plan-print">Imprimir / gerar PDF</button>
+        </div>
+      </div>
+      <div id="plan-doc"></div>
+    </div>
+
+  </main>
+
+</div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2 id="modal-title">Novo registro</h2>
+    <form id="entry-form">
+      <input type="hidden" id="f-id" />
+
+      <div class="field-row">
+        <div class="field">
+          <label>Turma</label>
+          <div class="radio-group" id="r-turma">
+            <div class="radio-opt" data-val="8">8º ano</div>
+            <div class="radio-opt" data-val="9">9º ano</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Trimestre</label>
+          <select id="f-trim-input">
+            <option value="1">1º</option>
+            <option value="2">2º</option>
+            <option value="3">3º</option>
+            <option value="4">4º</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Tipo</label>
+          <div class="radio-group" id="r-tipo">
+            <div class="radio-opt" data-val="G">G · registro</div>
+            <div class="radio-opt" data-val="A">A · atividade</div>
+            <div class="radio-opt" data-val="P">P · pesquisa</div>
+          </div>
+        </div>
+        <div class="field">
+          <label>Código (opcional)</label>
+          <input type="text" id="f-codigo" placeholder="G1/03" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Tema geral</label>
+        <input type="text" id="f-tema" placeholder="Ex.: Urbanização na América Latina" />
+      </div>
+
+      <div class="field">
+        <label>Tópico específico / descrição</label>
+        <textarea id="f-topico" placeholder="O que foi (ou será) trabalhado nesta aula"></textarea>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Páginas do livro</label>
+          <input type="text" id="f-paginas" placeholder="Ex.: p. 44 e 45" />
+        </div>
+        <div class="field">
+          <label>Data</label>
+          <input type="date" id="f-data" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Status</label>
+        <div class="radio-group" id="r-status">
+          <div class="radio-opt" data-val="planejado">Planejado</div>
+          <div class="radio-opt" data-val="ministrado">Ministrado</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Turmas já trabalhadas (opcional)</label>
+        <div class="turmas-editor" id="turmas-editor">
+          <div class="turma-editor-row">
+            <button type="button" class="turma-toggle" data-letra="A">Turma A</button>
+            <input type="date" class="turma-date-input" data-letra="A" style="display:none;" />
+          </div>
+          <div class="turma-editor-row">
+            <button type="button" class="turma-toggle" data-letra="B">Turma B</button>
+            <input type="date" class="turma-date-input" data-letra="B" style="display:none;" />
+          </div>
+          <div class="turma-editor-row">
+            <button type="button" class="turma-toggle" data-letra="C">Turma C</button>
+            <input type="date" class="turma-date-input" data-letra="C" style="display:none;" />
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Links (textos, vídeos, atividades, projetos)</label>
+        <div class="links-editor" id="links-editor"></div>
+        <button type="button" class="btn ghost" id="btn-add-link" style="margin-top:8px;">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Adicionar link
+        </button>
+      </div>
+
+      <div class="field">
+        <label>Observações / estratégias específicas</label>
+        <textarea id="f-obs" placeholder="Anotações extras sobre esta aula, se houver"></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn ghost" id="btn-delete" style="display:none;color:var(--clay-text);">Excluir registro</button>
+        <div class="right">
+          <button type="button" class="btn ghost" id="btn-cancel">Cancelar</button>
+          <button type="submit" class="btn primary">Salvar registro</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- in-app viewer: opens activity links, provas and livro didático links inside the platform -->
+<div class="viewer-overlay" id="viewer-overlay">
+  <div class="viewer-modal">
+    <div class="viewer-head">
+      <span class="viewer-title" id="viewer-title">Conteúdo</span>
+      <a class="btn ghost" id="viewer-external" href="#" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>Abrir em nova aba
+      </a>
+      <button type="button" class="btn ghost" id="viewer-close"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>Fechar</button>
+    </div>
+    <div class="viewer-body">
+      <iframe id="viewer-frame" src="about:blank" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-top-navigation-by-user-activation"></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- prova modal: create / view / edit a registered exam -->
+<div class="overlay" id="prova-overlay">
+  <div class="modal prova-modal">
+    <h2 id="prova-modal-title">Nova prova</h2>
+    <form id="prova-form">
+      <input type="hidden" id="pv-id" />
+      <div class="field">
+        <label>Turma</label>
+        <div class="radio-group" id="r-pv-turma">
+          <div class="radio-opt" data-val="8">8º ano</div>
+          <div class="radio-opt" data-val="9">9º ano</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Nome ou tema da prova</label>
+        <input type="text" id="pv-nome" placeholder="Ex.: Avaliação 2º trimestre — Geopolítica" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Trimestre (opcional)</label>
+          <select id="pv-trimestre">
+            <option value="">—</option>
+            <option value="1">1º</option>
+            <option value="2">2º</option>
+            <option value="3">3º</option>
+            <option value="4">4º</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Data</label>
+          <input type="date" id="pv-data" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Link (prova, gabarito ou arquivo — opcional)</label>
+        <input type="text" id="pv-link" placeholder="https://" />
+        <button type="button" class="btn ghost prova-viewbtn" id="pv-open-link">
+          <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20M4 19.5A2.5 2.5 0 006.5 22H20V2H6.5A2.5 2.5 0 004 4.5v15z"/></svg>Abrir conteúdo aqui na plataforma
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn ghost" id="pv-btn-delete" style="display:none;color:var(--clay-text);">Excluir prova</button>
+        <div class="right">
+          <button type="button" class="btn ghost" id="pv-btn-cancel">Cancelar</button>
+          <button type="submit" class="btn primary">Salvar prova</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- small confirmation window, e.g. for deleting a prova -->
+<div class="overlay" id="confirm-overlay">
+  <div class="modal confirm-modal">
+    <h2><svg viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.29 3.86l-8.18 14.18A2 2 0 004 21h16a2 2 0 001.89-2.96L13.71 3.86a2 2 0 00-3.42 0z"/></svg>Confirmar exclusão</h2>
+    <p class="confirm-message" id="confirm-message">Tem certeza?</p>
+    <div class="modal-footer" style="justify-content:flex-end;">
+      <div class="right">
+        <button type="button" class="btn ghost" id="confirm-cancel">Cancelar</button>
+        <button type="button" class="btn danger" id="confirm-ok">Excluir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'diario-campo-geografia-entries';
+const BOOKLINKS_KEY = 'diario-campo-geografia-livros';
+const PROVAS_KEY = 'diario-campo-geografia-provas';
+
+/* ── Integração com o Supabase do Diário de Notas ────────────────────────────
+   Esta página roda como aba (iframe) dentro de index.html, no mesmo domínio.
+   Por isso ela enxerga o mesmo localStorage/sessionStorage configurado por lá
+   e grava seus dados na MESMA base Supabase, numa tabela própria (diario_campo_kv). */
+const _rawSbUrl = localStorage.getItem('diario_sb_url') || 'https://sbuowwsouccfdlrihrdm.supabase.co';
+const _rawSbKey = localStorage.getItem('diario_sb_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNidW93d3NvdWNjZmRscmlocmRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0ODUwMDUsImV4cCI6MjA5MzA2MTAwNX0.z17evu7o9we7qQZ_jbpXcSfXKmHef6JgoVcJUdliSOA';
+const SB_URL = _rawSbUrl.replace(/\/$/, '');
+const SB_HEADERS = { 'apikey': _rawSbKey, 'Authorization': 'Bearer ' + _rawSbKey, 'Content-Type': 'application/json' };
+
+function _dcProfId(){
+  try{
+    const raw = sessionStorage.getItem('geo_session_2026_multi');
+    if(raw){ const s = JSON.parse(raw); if(s && s.profId) return String(s.profId).replace(/[^\w\-]/g,''); }
+  }catch(e){}
+  return '__geo__';
+}
+const DC_PROF = _dcProfId();
+function dcKey(base){ return base + '__' + DC_PROF; }
+
+function setSyncStatus(state, msg){
+  const el = document.getElementById('dc-sync');
+  if(!el) return;
+  el.classList.remove('ok','saving','error');
+  el.classList.add(state);
+  el.textContent = msg || (state === 'ok' ? '● salvo no Supabase' : state === 'saving' ? '● salvando…' : '● erro ao salvar');
+}
+
+const hasClaudeStorage = typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function';
+const localAdapter = {
+  async get(key){
+    const raw = localStorage.getItem(key);
+    if(raw === null) throw new Error('not found');
+    return { key, value: raw, shared:false };
+  },
+  async set(key, value){
+    localStorage.setItem(key, value);
+    return { key, value, shared:false };
+  },
+};
+const supabaseAdapter = {
+  async get(key){
+    const url = SB_URL + '/rest/v1/diario_campo_kv?chave=eq.' + encodeURIComponent(dcKey(key)) + '&select=valor';
+    const res = await fetch(url, { headers: SB_HEADERS });
+    if(!res.ok) throw new Error('supabase get failed: ' + res.status);
+    const rows = await res.json();
+    if(!rows || !rows.length) throw new Error('not found');
+    return { key, value: rows[0].valor, shared:false };
+  },
+  async set(key, value){
+    setSyncStatus('saving');
+    const res = await fetch(SB_URL + '/rest/v1/diario_campo_kv', {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify([{ chave: dcKey(key), valor: value, atualizado_em: new Date().toISOString() }]),
+    });
+    if(!res.ok){ setSyncStatus('error'); throw new Error('supabase set failed: ' + res.status); }
+    setSyncStatus('ok');
+    return { key, value, shared:false };
+  },
+};
+// Prioridade: storage do Claude (se em artifact) > Supabase do Diário de Notas > localStorage local
+const storageAdapter = hasClaudeStorage ? {
+  async get(key){ return window.storage.get(key, false); },
+  async set(key, value){ return window.storage.set(key, value, false); },
+} : {
+  async get(key){
+    try{ return await supabaseAdapter.get(key); }
+    catch(e){ if(e.message === 'not found') throw e; return localAdapter.get(key); }
+  },
+  async set(key, value){
+    try{ return await supabaseAdapter.set(key, value); }
+    catch(e){ setSyncStatus('error','● offline — salvo só neste navegador'); return localAdapter.set(key, value); }
+  },
+};
+let entries = [];
+let bookLinks = { '8':'', '9':'' };
+let provas = [];
+let activeTurma = '8';
+let filters = { trimestre:'all', tipo:'all', status:'all', search:'' };
+let editingId = null;
+let viewMode = 'list';
+let bookIndex = 0;
+let planTrimestre = '1';
+
+function uid(){ return 'e_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+
+const TURMA_LETRAS = ['A','B','C'];
+function defaultTurmasDetalhe(){
+  const o = {};
+  TURMA_LETRAS.forEach(l=>{ o[l] = { feito:false, data:'' }; });
+  return o;
+}
+function formatDateShort(iso){
+  if(!iso) return '';
+  const parts = iso.split('-');
+  if(parts.length !== 3) return iso;
+  return `${parts[2]}/${parts[1]}`;
+}
+function turmasPillsHtml(e){
+  const td = e.turmasDetalhe || {};
+  return TURMA_LETRAS.map(l=>{
+    const info = td[l] || {feito:false,data:''};
+    if(info.feito){
+      const d = formatDateShort(info.data);
+      return `<span class="turma-pill done">${l}${d ? ' · '+d : ''}</span>`;
+    }
+    return `<span class="turma-pill">${l}</span>`;
+  }).join('');
+}
+
+function seedData(){
+  const g8t1 = [
+    ['G1/01','G','Aspectos do espaço geográfico','Território, economia, política, sociedade e geopolítica','ministrado'],
+    ['G2/01','G','Instrumentos de análise geográfica','Mapa, tabela, gráfico e multimídia','ministrado'],
+    ['G3/01','G','Geopolítica e relações internacionais','Leitura e interpretação: Estado, nação, território, país','ministrado'],
+    ['A4/01','A','Organizações multilaterais','Exercícios sobre ONU e organismos internacionais','ministrado','p. 19'],
+    ['A1/01','A','Ordens mundiais','Atividade "Ordens Mundiais", com correção','ministrado'],
+    ['G4/01','G','Atualidades e conflitos internacionais','Guerra EUA/Israel x Irã','ministrado'],
+    ['G5/01','G','Tempo geológico e histórico','Séculos e décadas','ministrado'],
+    ['G6/01','G','Mudanças climáticas e conferências ambientais','COP 30 (atividade para casa)','ministrado'],
+    ['G7/01','G','Guerra Fria e ordem bipolar','Da Ordem Bipolar à Geopolítica Atual','ministrado'],
+    ['A5/01','A','Conferências ambientais','COP 26','ministrado','p. 34-35'],
+    ['A2/01','A','Reconhecimento do espaço mundial','Atividade "Tudo Sobre Mim"','ministrado'],
+    ['A3/01','A','Mapa-múndi político','Oceanos, mares e continentes','ministrado'],
+    ['P1/01','P','Agenda 2030','Pesquisa sobre políticas públicas municipais','ministrado'],
+    ['','G','Cartografia: anamorfose','Comercialização da água e conflitos na América Latina','ministrado','p. 42-43'],
+    ['','P','Projeto interdisciplinar','Copa do Mundo – Continentes (8º ano: África)','ministrado'],
+  ];
+  const g8t2 = [
+    ['G1/02','G','Pirâmide etária','Introdução: leitura e definição no caderno','ministrado','p. 44-45'],
+    ['G2/02','G','Aspectos demográficos da população','Resumo por parágrafos, com correção','ministrado','p. 38-41'],
+    ['A1/02','A','Aspectos demográficos: exercícios','Resolução e correção das questões 1 a 5','ministrado','p. 47'],
+    ['A2/02','A','Construção de pirâmide etária','Trabalho individual com dados do IBGE (Contagem, 2021)','ministrado'],
+    ['G3/02','G','Migrações, refugiados e diversidade','Resumo por assunto e construção de mapa mental','ministrado','p. 48-59'],
+    ['','A','Atividade suplementar — Festa Junina','Saúde mental na adolescência; importância da Geografia','ministrado'],
+    ['','A','Atividade suplementar — Interclasse','El Niño e La Niña: leitura, interpretação e quadro comparativo','ministrado'],
+  ];
+  const g9t1 = [
+    ['G1/01','G','Aspectos do espaço geográfico','Território, economia, política, sociedade e geopolítica','ministrado'],
+    ['G2/01','G','Instrumentos de análise geográfica','Mapa, tabela, gráfico e multimídia','ministrado'],
+    ['G3/01','G','Capitalismo e socialismo','Leitura e interpretação: fases, características e ordem bipolar','ministrado'],
+    ['A1/01','A','Ordens mundiais','Atividade "Ordens Mundiais", com correção','ministrado'],
+    ['G4/01','G','Atualidades e conflitos internacionais','Guerra EUA/Israel x Irã','ministrado'],
+    ['G5/01','G','Tempo geológico e histórico','Séculos e décadas','ministrado'],
+    ['G6/01','G','Globalização e dependência econômica','Economia Capitalista Atual','ministrado','p. 26 e 31'],
+    ['G7/01','G','Economia global','Organizações Econômicas Mundiais','ministrado'],
+    ['A2/01','A','Reconhecimento do espaço mundial','Atividade "Tudo Sobre Mim"','ministrado'],
+    ['A3/01','A','Mapa-múndi político','Oceanos, mares e continentes','ministrado'],
+    ['P1/01','P','Modelo econômico chinês','Pesquisa individual','ministrado'],
+    ['P2/01','P','Guerra Fria: reflexão crítica','"Tudo é possível numa guerra?"','ministrado'],
+  ];
+  const g9t2 = [
+    ['G1/02','G','Globalização e seus efeitos','Construção de mapa mental, com correção','ministrado','p. 46-60'],
+    ['A1/02','A','Globalização e seus efeitos: exercícios','Perguntas e respostas, questões 1 a 5 (exceto 4)','ministrado','p. 60-61'],
+    ['A2/02','A','Sociedade e meio ambiente','Perguntas e respostas, com correção','ministrado','p. 72-73'],
+    ['','A','Atividade suplementar — Festa Junina','Papel da democracia; profissões do futuro; importância da Geografia','ministrado'],
+    ['A3/02','A','Recursos energéticos e conflitos pela água','Leitura e resolução de questões','ministrado','p. 70, 71, 74 e 75'],
+    ['P1/02','P','Guerra tecnológica EUA x China','Pesquisa manuscrita com imagens: tecnologias, matéria-prima e posição do Brasil','ministrado'],
+    ['','A','Atividade suplementar — Interclasse','El Niño e La Niña: leitura, interpretação e quadro comparativo','ministrado'],
+    ['A4/02','A','Continentes: Europa','Cidades e desenvolvimento sustentável — integrar conhecimentos','ministrado','p. 87'],
+  ];
+  function build(turma, trimestre, list){
+    return list.map(row=>{
+      const [codigo, tipo, tema, topico, status, paginas] = row;
+      return { id:uid(), turma, trimestre, tipo, codigo:codigo||'', tema, topico, paginas:paginas||'', status, data:'', observacoes:'', links:[], turmasDetalhe: defaultTurmasDetalhe() };
+    });
+  }
+  return [
+    ...build('8',1,g8t1), ...build('8',2,g8t2),
+    ...build('9',1,g9t1), ...build('9',2,g9t2),
+  ];
+}
+
+async function loadEntries(){
+  try{
+    const res = await storageAdapter.get(STORAGE_KEY);
+    entries = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){
+    entries = [];
+  }
+  if(!entries || entries.length === 0){
+    entries = seedData();
+    await saveEntries();
+  }
+  renderAll();
+}
+
+async function saveEntries(){
+  try{
+    await storageAdapter.set(STORAGE_KEY, JSON.stringify(entries));
+  }catch(e){
+    console.error('Falha ao salvar', e);
+  }
+}
+
+const TRIM_LABELS = {1:'1º trimestre',2:'2º trimestre',3:'3º trimestre',4:'4º trimestre'};
+
+function iconCalendar(){return '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>';}
+function iconBook(){return '<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20V4H6.5A2.5 2.5 0 004 6.5v13z"/><path d="M4 19.5V6.5"/></svg>';}
+function iconLink(){return '<svg viewBox="0 0 24 24"><path d="M9 15l6-6M10 6l1-1a4 4 0 016 6l-1 1M14 18l-1 1a4 4 0 01-6-6l1-1"/></svg>';}
+function iconCheck(){return '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>';}
+function iconClock(){return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';}
+function iconEdit(){return '<svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>';}
+function iconTrash(){return '<svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6"/></svg>';}
+function iconChevronLeft(){return '<svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>';}
+function iconChevronRight(){return '<svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>';}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function filteredEntries(){
+  return entries.filter(e=>{
+    if(e.turma !== activeTurma) return false;
+    if(filters.trimestre !== 'all' && String(e.trimestre) !== filters.trimestre) return false;
+    if(filters.tipo !== 'all' && e.tipo !== filters.tipo) return false;
+    if(filters.status !== 'all' && e.status !== filters.status) return false;
+    if(filters.search){
+      const hay = [e.tema,e.topico,e.codigo,e.paginas,e.observacoes].join(' ').toLowerCase();
+      if(!hay.includes(filters.search.toLowerCase())) return false;
+    }
+    return true;
+  });
+}
+
+function render(){
+  renderStats();
+  const content = document.getElementById('content');
+  const list = filteredEntries();
+  if(list.length === 0){
+    content.innerHTML = `<div class="empty">
+      <h3>Nenhum registro encontrado</h3>
+      <p>Ajuste os filtros ou crie o primeiro registro deste trimestre.</p>
+      <button class="btn primary" onclick="openModal()"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;display:inline;vertical-align:-3px;margin-right:4px;"><path d="M12 5v14M5 12h14"/></svg>Novo registro</button>
+    </div>`;
+    return;
+  }
+  const byTrim = {};
+  list.forEach(e=>{ (byTrim[e.trimestre] = byTrim[e.trimestre]||[]).push(e); });
+  const trims = Object.keys(byTrim).sort((a,b)=>a-b);
+  let html = '';
+  trims.forEach(t=>{
+    const items = byTrim[t].sort((a,b)=> (a.tipo+a.codigo).localeCompare(b.tipo+b.codigo));
+    html += `<div class="trim-divider"><div class="label">${TRIM_LABELS[t]||'Trimestre '+t}</div><div class="rule"></div><div class="count">${items.length} registro${items.length===1?'':'s'}</div></div>`;
+    html += '<div class="entries">';
+    items.forEach(e=>{ html += renderCard(e); });
+    html += '</div>';
+  });
+  content.innerHTML = html;
+}
+
+function renderCard(e){
+  const linksHtml = (e.links||[]).filter(l=>l.url).map(l=>
+    `<a class="link-chip" href="${escapeHtml(l.url)}" target="_blank" rel="noopener">${iconLink()}${escapeHtml(l.label||'Acessar')}</a>`
+  ).join('');
+  const metaBits = [];
+  if(e.paginas) metaBits.push(`<span>${iconBook()}${escapeHtml(e.paginas)}</span>`);
+  if(e.data) metaBits.push(`<span>${iconCalendar()}${escapeHtml(e.data)}</span>`);
+  return `
+  <div class="card" data-id="${e.id}">
+    <div class="spine tipo-${e.tipo}"></div>
+    <div class="body">
+      <div class="row1">
+        ${e.codigo ? `<span class="stamp tipo-${e.tipo}">${escapeHtml(e.codigo)}</span>` : `<span class="stamp tipo-${e.tipo}">${e.tipo}</span>`}
+        <span class="tema">${escapeHtml(e.tema)}</span>
+        <span class="status-pill ${e.status}">${e.status==='ministrado'?iconCheck():iconClock()}${e.status==='ministrado'?'Ministrado':'Planejado'}</span>
+      </div>
+      ${e.topico ? `<div class="topico">${escapeHtml(e.topico)}</div>` : ''}
+      <div class="turmas-row">${turmasPillsHtml(e)}</div>
+      ${metaBits.length ? `<div class="meta-row">${metaBits.join('')}</div>` : ''}
+      ${linksHtml ? `<div class="links-row">${linksHtml}</div>` : ''}
+      ${e.observacoes ? `<div class="obs">${escapeHtml(e.observacoes)}</div>` : ''}
+    </div>
+    <div class="card-actions">
+      <button class="icon-btn" aria-label="Editar" onclick="openModal('${e.id}')">${iconEdit()}</button>
+      <button class="icon-btn" aria-label="Excluir" onclick="deleteEntry('${e.id}')">${iconTrash()}</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- modo caderno (páginas, uma por registro ministrado) ---------- */
+function ministradoPages(){
+  return entries.filter(e=>{
+    if(e.turma !== activeTurma) return false;
+    if(e.status !== 'ministrado') return false;
+    if(filters.trimestre !== 'all' && String(e.trimestre) !== filters.trimestre) return false;
+    if(filters.tipo !== 'all' && e.tipo !== filters.tipo) return false;
+    if(filters.search){
+      const hay = [e.tema,e.topico,e.codigo,e.paginas,e.observacoes].join(' ').toLowerCase();
+      if(!hay.includes(filters.search.toLowerCase())) return false;
+    }
+    return true;
+  }).sort((a,b)=>{
+    if(a.trimestre !== b.trimestre) return a.trimestre - b.trimestre;
+    return (a.tipo+a.codigo).localeCompare(b.tipo+b.codigo);
+  });
+}
+
+function trimPages(){
+  const list = ministradoPages();
+  const byTrim = {};
+  list.forEach(e=>{ (byTrim[e.trimestre] = byTrim[e.trimestre]||[]).push(e); });
+  return Object.keys(byTrim).sort((a,b)=>a-b).map(t=>({
+    trimestre:t,
+    items: byTrim[t].sort((a,b)=>(a.tipo+a.codigo).localeCompare(b.tipo+b.codigo)),
+  }));
+}
+
+function renderBook(){
+  const viewer = document.getElementById('book-viewer');
+  const pages = trimPages();
+  if(pages.length === 0){
+    viewer.innerHTML = `<div class="empty book-empty">
+      <h3>Nenhum registro ministrado encontrado</h3>
+      <p>Ajuste os filtros ou marque registros como "Ministrado" para vê-los aqui.</p>
+    </div>`;
+    return;
+  }
+  if(bookIndex > pages.length - 1) bookIndex = pages.length - 1;
+  if(bookIndex < 0) bookIndex = 0;
+  const page = pages[bookIndex];
+
+  const trimNav = pages.map((p,i)=>
+    `<button class="trim-jump ${i===bookIndex?'active':''}" onclick="jumpToTrimPage(${i})">${TRIM_LABELS[p.trimestre]||'Trimestre '+p.trimestre}</button>`
+  ).join('');
+
+  const entriesHtml = page.items.map(e=>{
+    const linksHtml = (e.links||[]).filter(l=>l.url).map(l=>
+      `<a class="link-chip" href="${escapeHtml(l.url)}" target="_blank" rel="noopener">${iconLink()}${escapeHtml(l.label||'Acessar')}</a>`
+    ).join('');
+    const metaBits = [];
+    if(e.paginas) metaBits.push(`<span>${iconBook()}${escapeHtml(e.paginas)}</span>`);
+    if(e.data) metaBits.push(`<span>${iconCalendar()}${escapeHtml(e.data)}</span>`);
+    return `
+    <div class="book-entry">
+      <div class="book-entry-row1">
+        ${e.codigo ? `<span class="stamp tipo-${e.tipo}">${escapeHtml(e.codigo)}</span>` : `<span class="stamp tipo-${e.tipo}">${e.tipo}</span>`}
+        <span class="book-entry-tema">${escapeHtml(e.tema)}</span>
+      </div>
+      ${e.topico ? `<div class="book-entry-topico">${escapeHtml(e.topico)}</div>` : ''}
+      <div class="turmas-row">${turmasPillsHtml(e)}</div>
+      ${metaBits.length ? `<div class="meta-row">${metaBits.join('')}</div>` : ''}
+      ${linksHtml ? `<div class="links-row">${linksHtml}</div>` : ''}
+      ${e.observacoes ? `<div class="book-entry-obs">${escapeHtml(e.observacoes)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  viewer.innerHTML = `
+    <div class="book-trimnav">${trimNav}</div>
+    <div class="book-frame">
+      <button class="page-arrow prev" aria-label="Trimestre anterior" onclick="prevPage()" ${bookIndex===0?'disabled':''}>${iconChevronLeft()}</button>
+      <div class="book-page">
+        <div class="page-header">
+          <span class="page-trim-title">${TRIM_LABELS[page.trimestre]||'Trimestre '+page.trimestre}</span>
+          <span class="page-trim">${activeTurma}º ano · ${page.items.length} registro${page.items.length===1?'':'s'}</span>
+        </div>
+        <div class="book-entries">${entriesHtml}</div>
+        <div class="page-footer">Página ${bookIndex+1} de ${pages.length}</div>
+      </div>
+      <button class="page-arrow next" aria-label="Próximo trimestre" onclick="nextPage()" ${bookIndex===pages.length-1?'disabled':''}>${iconChevronRight()}</button>
+    </div>
+  `;
+}
+
+function jumpToTrimPage(i){
+  bookIndex = i;
+  renderBook();
+}
+function nextPage(){ bookIndex++; renderBook(); }
+function prevPage(){ bookIndex--; renderBook(); }
+
+document.addEventListener('keydown', (ev)=>{
+  if(viewMode !== 'book') return;
+  if(ev.key === 'ArrowRight') nextPage();
+  if(ev.key === 'ArrowLeft') prevPage();
+});
+
+function renderAll(){
+  render();
+  if(viewMode === 'book') renderBook();
+  if(viewMode === 'plan') renderPlan();
+}
+
+/* ---------- planejamento (documento trimestral p/ prefeitura) ---------- */
+const PLANNING_KEY = 'diario-planning-geografia-v1';
+let planningData = {};
+
+const DEFAULT_ESTRATEGIAS = 'Aula expositiva dialogada; leitura e interpretação de texto com perguntas e respostas e leitura em voz alta; utilização da lousa digital, manipulada pelo professor e pelos alunos; incentivo à participação e à interação de todos os alunos (respondendo, questionando os colegas e o professor).';
+
+const DEFAULT_OBSERVACAO_T1 = 'Os planejamentos do 8º e do 9º ano compartilham uma base comum — espaço geográfico, instrumentos de análise geográfica, ordens mundiais, atualidades, tempo geológico/histórico e Guerra Fria/ordem bipolar. As diferenças ficam por conta do aprofundamento: o 8º ano enfatizou geopolítica, organismos multilaterais e pauta ambiental (COP 26, Agenda 2030, anamorfose), além do projeto interdisciplinar "Copa do Mundo – Continentes"; o 9º ano priorizou a dimensão econômica, com capitalismo e socialismo, globalização e o modelo econômico chinês. As ênfases distintas acompanham a progressão de complexidade esperada entre as séries.';
+
+const DEFAULT_PLANEJADO_T1 = [
+  'Aspectos do espaço geográfico: território, economia, política, sociedade e geopolítica',
+  'Instrumentos de análise geográfica: mapa, tabela, gráfico e multimídia',
+  'Geopolítica e relações internacionais: Estado, nação, território, país',
+  'Organizações multilaterais: ONU, Banco Mundial e FMI',
+  'Ordens mundiais: divisão do trabalho, hegemonia, dependência econômica',
+  'Atualidades e conflitos internacionais',
+  'Tempo geológico e tempo histórico',
+  'Mudanças climáticas e conferências ambientais',
+  'Guerra Fria e ordem bipolar',
+  'Conferências ambientais: COP 26',
+  'Reconhecimento do espaço mundial',
+  'Mapa-múndi político: oceanos, mares e continentes',
+  'Agenda 2030 e políticas públicas municipais',
+  'Cartografia: anamorfose',
+].map(l=>'• '+l).join('\n');
+
+function defaultPlanningEntry(trimestre){
+  return {
+    planejado: trimestre==='1' ? DEFAULT_PLANEJADO_T1 : '',
+    observacao: trimestre==='1' ? DEFAULT_OBSERVACAO_T1 : '',
+    estrategias: DEFAULT_ESTRATEGIAS,
+  };
+}
+
+function seedPlanning(){
+  return {
+    '8': { '1': defaultPlanningEntry('1') },
+    '9': { '1': defaultPlanningEntry('1') },
+  };
+}
+
+async function loadBookLinks(){
+  try{
+    const res = await storageAdapter.get(BOOKLINKS_KEY);
+    const parsed = res && res.value ? JSON.parse(res.value) : null;
+    bookLinks = { '8': (parsed && parsed['8']) || '', '9': (parsed && parsed['9']) || '' };
+  }catch(e){
+    bookLinks = { '8':'', '9':'' };
+  }
+  renderBookLinks();
+}
+async function saveBookLinks(){
+  try{ await storageAdapter.set(BOOKLINKS_KEY, JSON.stringify(bookLinks)); }
+  catch(e){ /* ignore */ }
+}
+function renderBookLinks(){
+  ['8','9'].forEach(ano=>{
+    const a = document.getElementById('book-link-'+ano);
+    const url = bookLinks[ano];
+    if(url){
+      a.href = url;
+      a.classList.add('linked');
+      a.removeAttribute('aria-disabled');
+    }else{
+      a.href = 'javascript:void(0)';
+      a.classList.remove('linked');
+    }
+  });
+}
+document.getElementById('book-links').addEventListener('click', (ev)=>{
+  const editBtn = ev.target.closest('.book-link-edit');
+  const linkBtn = ev.target.closest('.book-link-btn');
+  if(editBtn){
+    ev.preventDefault();
+    const ano = editBtn.dataset.turma;
+    const atual = bookLinks[ano] || '';
+    const url = window.prompt(`Link do livro didático · ${ano}º ano`, atual);
+    if(url !== null){
+      bookLinks[ano] = url.trim();
+      renderBookLinks();
+      saveBookLinks();
+    }
+    return;
+  }
+  if(linkBtn){
+    ev.preventDefault();
+    const ano = linkBtn.dataset.turma;
+    if(bookLinks[ano]){
+      openViewer(bookLinks[ano], `Livro didático · ${ano}º ano`);
+    }else{
+      const url = window.prompt(`Ainda não há link salvo. Cole o link do livro didático · ${ano}º ano`, 'https://');
+      if(url && url.trim()){
+        bookLinks[ano] = url.trim();
+        renderBookLinks();
+        saveBookLinks();
+      }
+    }
+  }
+});
+
+async function loadProvas(){
+  try{
+    const res = await storageAdapter.get(PROVAS_KEY);
+    const parsed = res && res.value ? JSON.parse(res.value) : null;
+    provas = Array.isArray(parsed) ? parsed : [];
+  }catch(e){
+    provas = [];
+  }
+  renderProvas();
+}
+async function saveProvas(){
+  try{ await storageAdapter.set(PROVAS_KEY, JSON.stringify(provas)); }
+  catch(e){ /* ignore */ }
+}
+function renderProvas(){
+  const list = document.getElementById('provas-list');
+  const doTurma = provas.filter(p=>p.turma === activeTurma)
+    .sort((a,b)=> (b.data||'').localeCompare(a.data||''));
+  if(!doTurma.length){
+    list.innerHTML = `<div class="provas-empty">Nenhuma prova registrada para o ${activeTurma}º ano.</div>`;
+    return;
+  }
+  list.innerHTML = doTurma.map(p=>{
+    const meta = [p.trimestre ? `${p.trimestre}º tri.` : '', formatDateShort(p.data)].filter(Boolean).join(' · ');
+    const nomeHtml = `<svg viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h1M5 4h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5a1 1 0 011-1z"/></svg>${escapeHtml(p.nome)}`;
+    return `<div class="prova-row ${p.link ? 'linked' : ''}" data-id="${p.id}">
+      <span class="prova-info" data-id="${p.id}" title="Ver / editar prova">
+        <span class="prova-nome">${nomeHtml}</span>${meta ? `<span class="prova-meta">${meta}</span>` : ''}
+      </span>
+      <span class="prova-actions">
+        <button type="button" class="prova-mini" data-action="edit" data-id="${p.id}" title="Editar">${iconPencil()}</button>
+        <button type="button" class="prova-mini" data-action="open" data-id="${p.id}" title="Abrir" ${p.link ? '' : 'disabled'}>${iconExternal()}</button>
+        <button type="button" class="prova-mini" data-action="delete" data-id="${p.id}" title="Excluir">${iconTrash()}</button>
+      </span>
+    </div>`;
+  }).join('');
+}
+function iconPencil(){return '<svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>';}
+function iconExternal(){return '<svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>';}
+document.getElementById('btn-add-prova').addEventListener('click', ()=> openProvaModal(null));
+document.getElementById('provas-list').addEventListener('click', (ev)=>{
+  const btn = ev.target.closest('.prova-mini');
+  if(btn){
+    const id = btn.dataset.id;
+    const p = provas.find(x=>x.id===id);
+    if(!p) return;
+    const action = btn.dataset.action;
+    if(action === 'edit') openProvaModal(id);
+    else if(action === 'open'){ if(p.link) openViewer(p.link, p.nome); }
+    else if(action === 'delete'){
+      openConfirm(`Excluir a prova "${p.nome}"? Essa ação não pode ser desfeita.`, ()=>{
+        provas = provas.filter(x=>x.id!==id);
+        renderProvas();
+        saveProvas();
+      });
+    }
+    return;
+  }
+  const info = ev.target.closest('.prova-info');
+  if(info) openProvaModal(info.dataset.id);
+});
+
+/* small reusable confirmation window */
+const confirmOverlay = document.getElementById('confirm-overlay');
+let confirmCallback = null;
+function openConfirm(message, onConfirm){
+  document.getElementById('confirm-message').textContent = message;
+  confirmCallback = onConfirm;
+  confirmOverlay.classList.add('open');
+}
+function closeConfirm(){
+  confirmOverlay.classList.remove('open');
+  confirmCallback = null;
+}
+document.getElementById('confirm-cancel').addEventListener('click', closeConfirm);
+confirmOverlay.addEventListener('click', (ev)=>{ if(ev.target === confirmOverlay) closeConfirm(); });
+document.getElementById('confirm-ok').addEventListener('click', ()=>{
+  const cb = confirmCallback;
+  closeConfirm();
+  if(cb) cb();
+});
+
+/* prova modal (create / view / edit) */
+const provaOverlay = document.getElementById('prova-overlay');
+const provaForm = document.getElementById('prova-form');
+let editingProvaId = null;
+
+function openProvaModal(id){
+  editingProvaId = id || null;
+  const p = id ? provas.find(x=>x.id===id) : null;
+  document.getElementById('prova-modal-title').textContent = p ? 'Editar prova' : 'Nova prova';
+  document.getElementById('pv-btn-delete').style.display = p ? 'inline-flex' : 'none';
+  setRadioGroup('r-pv-turma', p ? p.turma : activeTurma);
+  document.getElementById('pv-nome').value = p ? p.nome : '';
+  document.getElementById('pv-trimestre').value = p ? (p.trimestre || '') : '';
+  document.getElementById('pv-data').value = p ? (p.data || '') : new Date().toISOString().slice(0,10);
+  document.getElementById('pv-link').value = p ? (p.link || '') : '';
+  provaOverlay.classList.add('open');
+  document.getElementById('pv-nome').focus();
+}
+function closeProvaModal(){
+  provaOverlay.classList.remove('open');
+  editingProvaId = null;
+}
+document.getElementById('pv-btn-cancel').addEventListener('click', closeProvaModal);
+provaOverlay.addEventListener('click', (ev)=>{ if(ev.target === provaOverlay) closeProvaModal(); });
+document.getElementById('pv-btn-delete').addEventListener('click', ()=>{
+  if(!editingProvaId) return;
+  const p = provas.find(x=>x.id===editingProvaId);
+  openConfirm(`Excluir a prova "${p ? p.nome : ''}"? Essa ação não pode ser desfeita.`, ()=>{
+    provas = provas.filter(x=>x.id!==editingProvaId);
+    saveProvas();
+    renderProvas();
+    closeProvaModal();
+  });
+});
+document.getElementById('pv-open-link').addEventListener('click', ()=>{
+  const url = document.getElementById('pv-link').value.trim();
+  const nome = document.getElementById('pv-nome').value.trim() || 'Prova';
+  if(!url){ document.getElementById('pv-link').focus(); return; }
+  openViewer(url, nome);
+});
+provaForm.addEventListener('submit', (ev)=>{
+  ev.preventDefault();
+  const nome = document.getElementById('pv-nome').value.trim();
+  if(!nome){ document.getElementById('pv-nome').focus(); return; }
+  const payload = {
+    turma: getRadioValue('r-pv-turma') || activeTurma,
+    nome,
+    trimestre: document.getElementById('pv-trimestre').value,
+    data: document.getElementById('pv-data').value,
+    link: document.getElementById('pv-link').value.trim(),
+  };
+  if(editingProvaId){
+    const idx = provas.findIndex(x=>x.id===editingProvaId);
+    if(idx>-1) provas[idx] = { ...provas[idx], ...payload };
+  }else{
+    provas.push({ id: uid(), ...payload });
+  }
+  saveProvas();
+  activeTurma = payload.turma;
+  syncTurmaTabs();
+  renderProvas();
+  closeProvaModal();
+  renderAll();
+});
+
+/* in-app content viewer: keeps activities, provas and livro didático links inside the platform */
+const viewerOverlay = document.getElementById('viewer-overlay');
+function openViewer(url, title){
+  if(!url) return;
+  document.getElementById('viewer-title').textContent = title || 'Conteúdo';
+  document.getElementById('viewer-external').href = url;
+  document.getElementById('viewer-frame').src = url;
+  viewerOverlay.classList.add('open');
+}
+function closeViewer(){
+  viewerOverlay.classList.remove('open');
+  document.getElementById('viewer-frame').src = 'about:blank';
+}
+document.getElementById('viewer-close').addEventListener('click', closeViewer);
+viewerOverlay.addEventListener('click', (ev)=>{ if(ev.target === viewerOverlay) closeViewer(); });
+document.addEventListener('keydown', (ev)=>{
+  if(ev.key === 'Escape' && viewerOverlay.classList.contains('open')) closeViewer();
+});
+
+/* open activity links (link-chip, from atividades/registros) inside the platform instead of a new tab */
+document.addEventListener('click', (ev)=>{
+  const chip = ev.target.closest('.link-chip');
+  if(chip){
+    ev.preventDefault();
+    openViewer(chip.getAttribute('href'), chip.textContent.trim());
+  }
+});
+
+
+async function loadPlanning(){
+  try{
+    const res = await storageAdapter.get(PLANNING_KEY);
+    planningData = res && res.value ? JSON.parse(res.value) : null;
+  }catch(e){
+    planningData = null;
+  }
+  if(!planningData){
+    planningData = seedPlanning();
+    await savePlanning();
+  }
+}
+async function savePlanning(){
+  try{
+    await storageAdapter.set(PLANNING_KEY, JSON.stringify(planningData));
+  }catch(e){
+    console.error('Falha ao salvar planejamento', e);
+  }
+}
+function getPlanEntry(turma, trimestre){
+  if(!planningData[turma]) planningData[turma] = {};
+  if(!planningData[turma][trimestre]) planningData[turma][trimestre] = defaultPlanningEntry(trimestre);
+  return planningData[turma][trimestre];
+}
+
+function ministradoLines(turma, trimestre){
+  return entries.filter(e=> e.turma===turma && String(e.trimestre)===String(trimestre) && e.status==='ministrado')
+    .sort((a,b)=> (a.tipo+a.codigo).localeCompare(b.tipo+b.codigo))
+    .map(e=>{
+      let line = e.codigo ? `${e.codigo} – ${e.tema}` : e.tema;
+      if(e.paginas) line += ` (${e.paginas})`;
+      return line;
+    });
+}
+
+function renderPlan(){
+  const turma = activeTurma;
+  const trimestre = planTrimestre;
+  document.getElementById('plan-trim').value = trimestre;
+  const pe = getPlanEntry(turma, trimestre);
+  const lines = ministradoLines(turma, trimestre);
+  const doc = document.getElementById('plan-doc');
+  doc.innerHTML = `
+    <div class="plan-paper">
+      <div class="plan-header">
+        <div class="plan-title">Registro dos Conteúdos e Estratégias</div>
+        <div class="plan-subtitle">${(TRIM_LABELS[trimestre]||'Trimestre '+trimestre).toUpperCase()} · GEOGRAFIA · ${turma}º ANO</div>
+      </div>
+      <div class="plan-table">
+        <div class="plan-col">
+          <h3>Conteúdo planejado</h3>
+          <textarea class="plan-textarea" id="plan-f-planejado" rows="15">${escapeHtml(pe.planejado)}</textarea>
+        </div>
+        <div class="plan-col">
+          <h3>Conteúdo ministrado e estratégias utilizadas</h3>
+          <ul class="plan-list">
+            ${lines.length ? lines.map(l=>`<li>${escapeHtml(l)}</li>`).join('') : '<li class="plan-empty-line">Nenhum registro ministrado neste trimestre ainda — vá em "Novo registro" e marque como Ministrado para que apareça aqui automaticamente.</li>'}
+          </ul>
+          <div class="plan-obs-label">Observação</div>
+          <textarea class="plan-textarea" id="plan-f-observacao" rows="6">${escapeHtml(pe.observacao)}</textarea>
+          <div class="plan-obs-label">Estratégias utilizadas</div>
+          <textarea class="plan-textarea" id="plan-f-estrategias" rows="4">${escapeHtml(pe.estrategias)}</textarea>
+        </div>
+      </div>
+      <div class="plan-legend">
+        As letras G, A e P representam tipos de abordagens para os conteúdos. Sendo G: registros dos assuntos e/ou correções; A: atividades em folha e/ou do livro didático; P: pesquisas solicitadas e entregues em folhas separadas e/ou registradas no caderno.
+      </div>
+      <div class="plan-signatures">
+        <div class="sig-block"><span>Assinatura</span><span>Data</span></div>
+        <div class="sig-block"><span>Assinatura</span><span>Data</span></div>
+      </div>
+    </div>
+  `;
+  ['planejado','observacao','estrategias'].forEach(field=>{
+    document.getElementById('plan-f-'+field).addEventListener('input', (ev)=>{
+      const target = getPlanEntry(turma, trimestre);
+      target[field] = ev.target.value;
+      savePlanning();
+    });
+  });
+}
+
+document.getElementById('plan-trim').addEventListener('change', (ev)=>{
+  planTrimestre = ev.target.value;
+  renderPlan();
+});
+
+document.getElementById('btn-plan-print').addEventListener('click', ()=>{
+  window.print();
+});
+
+document.getElementById('btn-plan-copy').addEventListener('click', async ()=>{
+  const turma = activeTurma, trimestre = planTrimestre;
+  const pe = getPlanEntry(turma, trimestre);
+  const lines = ministradoLines(turma, trimestre);
+  const text = [
+    'REGISTRO DOS CONTEÚDOS E ESTRATÉGIAS',
+    (TRIM_LABELS[trimestre]||'Trimestre '+trimestre).toUpperCase(),
+    'GEOGRAFIA',
+    '',
+    'CONTEÚDO PLANEJADO',
+    pe.planejado,
+    '',
+    'CONTEÚDO MINISTRADO E ESTRATÉGIAS UTILIZADAS',
+    lines.length ? lines.map(l=>'• '+l).join('\n') : '(nenhum registro ministrado ainda)',
+    '',
+    'Observação: ' + pe.observacao,
+    '',
+    'Estratégia utilizada: ' + pe.estrategias,
+    '',
+    'As letras G, A e P representam tipos de abordagens para os conteúdos. Sendo G: registros dos assuntos e/ou correções; A: atividades em folha e/ou do livro didático; P: pesquisas solicitadas e entregues em folhas separadas e/ou registradas no caderno.',
+  ].join('\n');
+  const btn = document.getElementById('btn-plan-copy');
+  const original = btn.textContent;
+  try{
+    await navigator.clipboard.writeText(text);
+    btn.textContent = 'Copiado!';
+  }catch(e){
+    btn.textContent = 'Não foi possível copiar';
+  }
+  setTimeout(()=>{ btn.textContent = original; }, 1800);
+});
+
+document.getElementById('mode-toggle').addEventListener('click', (ev)=>{
+  const btn = ev.target.closest('.mode-btn');
+  if(!btn) return;
+  viewMode = btn.dataset.mode;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active', b===btn));
+  document.getElementById('content').style.display = viewMode==='list' ? '' : 'none';
+  document.getElementById('book-viewer').style.display = viewMode==='book' ? '' : 'none';
+  document.getElementById('plan-viewer').style.display = viewMode==='plan' ? '' : 'none';
+  document.querySelector('.filters').style.display = viewMode==='plan' ? 'none' : '';
+  document.getElementById('f-status').style.display = viewMode==='list' ? '' : 'none';
+  document.getElementById('book-mode-note').style.display = viewMode==='book' ? '' : 'none';
+  if(viewMode==='book'){ bookIndex = 0; renderBook(); }
+  if(viewMode==='plan'){ renderPlan(); }
+});
+
+function renderStats(){
+  const list = entries.filter(e=>e.turma===activeTurma);
+  document.getElementById('stat-total').textContent = list.length;
+  document.getElementById('stat-ministrado').textContent = list.filter(e=>e.status==='ministrado').length;
+  document.getElementById('stat-planejado').textContent = list.filter(e=>e.status==='planejado').length;
+}
+
+/* ---------- modal / form ---------- */
+const overlay = document.getElementById('overlay');
+const form = document.getElementById('entry-form');
+
+function setRadioGroup(groupId, value){
+  document.querySelectorAll(`#${groupId} .radio-opt`).forEach(el=>{
+    el.classList.toggle('selected', el.dataset.val === value);
+  });
+}
+function getRadioValue(groupId){
+  const sel = document.querySelector(`#${groupId} .radio-opt.selected`);
+  return sel ? sel.dataset.val : null;
+}
+document.querySelectorAll('.radio-group').forEach(group=>{
+  group.addEventListener('click', (ev)=>{
+    const opt = ev.target.closest('.radio-opt');
+    if(!opt) return;
+    group.querySelectorAll('.radio-opt').forEach(o=>o.classList.remove('selected'));
+    opt.classList.add('selected');
+  });
+});
+
+function linkRowHtml(label,url){
+  return `<div class="link-row">
+    <input type="text" class="link-label" placeholder="Rótulo (ex.: Vídeo, Texto, Atividade)" value="${escapeHtml(label||'')}" />
+    <input type="text" class="link-url" placeholder="https://…" value="${escapeHtml(url||'')}" />
+    <button type="button" class="icon-btn remove-link" aria-label="Remover link">${iconTrash()}</button>
+  </div>`;
+}
+document.getElementById('btn-add-link').addEventListener('click', ()=>{
+  document.getElementById('links-editor').insertAdjacentHTML('beforeend', linkRowHtml('',''));
+});
+document.getElementById('links-editor').addEventListener('click', (ev)=>{
+  const btn = ev.target.closest('.remove-link');
+  if(btn) btn.closest('.link-row').remove();
+});
+
+document.getElementById('turmas-editor').addEventListener('click', (ev)=>{
+  const btn = ev.target.closest('.turma-toggle');
+  if(!btn) return;
+  btn.classList.toggle('selected');
+  const letra = btn.dataset.letra;
+  const dateInput = document.querySelector(`.turma-date-input[data-letra="${letra}"]`);
+  dateInput.style.display = btn.classList.contains('selected') ? '' : 'none';
+});
+
+function openModal(id){
+  editingId = id || null;
+  const e = id ? entries.find(x=>x.id===id) : null;
+  document.getElementById('modal-title').textContent = e ? 'Editar registro' : 'Novo registro';
+  document.getElementById('btn-delete').style.display = e ? 'inline-flex' : 'none';
+
+  setRadioGroup('r-turma', e ? e.turma : activeTurma);
+  setRadioGroup('r-tipo', e ? e.tipo : 'G');
+  setRadioGroup('r-status', e ? e.status : 'planejado');
+  document.getElementById('f-trim-input').value = e ? e.trimestre : (filters.trimestre !== 'all' ? filters.trimestre : '1');
+  document.getElementById('f-codigo').value = e ? e.codigo : '';
+  document.getElementById('f-tema').value = e ? e.tema : '';
+  document.getElementById('f-topico').value = e ? e.topico : '';
+  document.getElementById('f-paginas').value = e ? e.paginas : '';
+  document.getElementById('f-data').value = e ? e.data : '';
+  document.getElementById('f-obs').value = e ? e.observacoes : '';
+
+  const turmasDetalhe = (e && e.turmasDetalhe) ? e.turmasDetalhe : defaultTurmasDetalhe();
+  TURMA_LETRAS.forEach(l=>{
+    const info = turmasDetalhe[l] || {feito:false,data:''};
+    const btn = document.querySelector(`.turma-toggle[data-letra="${l}"]`);
+    const dateInput = document.querySelector(`.turma-date-input[data-letra="${l}"]`);
+    btn.classList.toggle('selected', !!info.feito);
+    dateInput.value = info.data || '';
+    dateInput.style.display = info.feito ? '' : 'none';
+  });
+
+  const editor = document.getElementById('links-editor');
+  editor.innerHTML = '';
+  const links = (e && e.links && e.links.length) ? e.links : [{label:'',url:''}];
+  links.forEach(l=> editor.insertAdjacentHTML('beforeend', linkRowHtml(l.label, l.url)));
+
+  overlay.classList.add('open');
+}
+function closeModal(){
+  overlay.classList.remove('open');
+  editingId = null;
+}
+document.getElementById('btn-new').addEventListener('click', ()=>openModal());
+document.getElementById('btn-cancel').addEventListener('click', closeModal);
+overlay.addEventListener('click', (ev)=>{ if(ev.target === overlay) closeModal(); });
+
+document.getElementById('btn-delete').addEventListener('click', ()=>{
+  if(editingId) deleteEntry(editingId);
+  closeModal();
+});
+
+function deleteEntry(id){
+  entries = entries.filter(e=>e.id!==id);
+  saveEntries();
+  renderAll();
+}
+
+form.addEventListener('submit', (ev)=>{
+  ev.preventDefault();
+  const tema = document.getElementById('f-tema').value.trim();
+  if(!tema){ document.getElementById('f-tema').focus(); return; }
+
+  const links = Array.from(document.querySelectorAll('#links-editor .link-row')).map(row=>({
+    label: row.querySelector('.link-label').value.trim(),
+    url: row.querySelector('.link-url').value.trim(),
+  })).filter(l=>l.url);
+
+  const turmasDetalhe = {};
+  TURMA_LETRAS.forEach(l=>{
+    const btn = document.querySelector(`.turma-toggle[data-letra="${l}"]`);
+    const dateInput = document.querySelector(`.turma-date-input[data-letra="${l}"]`);
+    turmasDetalhe[l] = { feito: btn.classList.contains('selected'), data: dateInput.value };
+  });
+
+  const payload = {
+    turma: getRadioValue('r-turma') || activeTurma,
+    trimestre: Number(document.getElementById('f-trim-input').value),
+    tipo: getRadioValue('r-tipo') || 'G',
+    codigo: document.getElementById('f-codigo').value.trim(),
+    tema,
+    topico: document.getElementById('f-topico').value.trim(),
+    paginas: document.getElementById('f-paginas').value.trim(),
+    data: document.getElementById('f-data').value,
+    status: getRadioValue('r-status') || 'planejado',
+    observacoes: document.getElementById('f-obs').value.trim(),
+    links,
+    turmasDetalhe,
+  };
+
+  if(editingId){
+    const idx = entries.findIndex(e=>e.id===editingId);
+    if(idx>-1) entries[idx] = { ...entries[idx], ...payload };
+  }else{
+    entries.push({ id:uid(), ...payload });
+  }
+  saveEntries();
+  activeTurma = payload.turma;
+  syncTurmaTabs();
+  renderProvas();
+  closeModal();
+  renderAll();
+});
+
+/* ---------- filters & tabs ---------- */
+function syncTurmaTabs(){
+  document.querySelectorAll('.turma-tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.turma === activeTurma);
+  });
+}
+document.getElementById('turma-tabs').addEventListener('click', (ev)=>{
+  const tab = ev.target.closest('.turma-tab');
+  if(!tab) return;
+  activeTurma = tab.dataset.turma;
+  bookIndex = 0;
+  syncTurmaTabs();
+  renderProvas();
+  renderAll();
+});
+document.getElementById('f-search').addEventListener('input', (ev)=>{
+  filters.search = ev.target.value;
+  renderAll();
+});
+document.getElementById('f-trimestre').addEventListener('change', (ev)=>{
+  filters.trimestre = ev.target.value;
+  renderAll();
+});
+document.getElementById('f-tipo').addEventListener('click', (ev)=>{
+  const chip = ev.target.closest('.chip');
+  if(!chip) return;
+  document.querySelectorAll('#f-tipo .chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');
+  filters.tipo = chip.dataset.tipo;
+  renderAll();
+});
+document.getElementById('f-status').addEventListener('click', (ev)=>{
+  const chip = ev.target.closest('.chip');
+  if(!chip) return;
+  document.querySelectorAll('#f-status .chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active');
+  filters.status = chip.dataset.status;
+  renderAll();
+});
+
+/* ---------- export ---------- */
+document.getElementById('btn-export').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(entries, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'diario-de-campo-geografia.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('dc-back-btn').addEventListener('click', ()=>{
+  try{
+    if(window.parent && window.parent !== window && typeof window.parent.goTab === 'function'){
+      window.parent.goTab('turmas');
+      return;
+    }
+  }catch(e){}
+  window.location.href = 'index.html';
+});
+setSyncStatus('saving','● conectando…');
+
+loadEntries();
+loadPlanning();
+loadBookLinks();
+loadProvas();
+</script>
+</body>
+</html>
