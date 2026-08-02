@@ -1461,6 +1461,20 @@ alter table alunos add column if not exists foto text;</pre>
     </div>
   </section>
 
+  <!-- ABA DIÁRIO DE CAMPO (abre a plataforma de registro de aulas embutida, mesma base Supabase) -->
+  <section id="page-diario" class="page">
+    <div class="toolbar no-print">
+      <div class="toolbar-title">🧭 Diário de Campo</div>
+      <div class="btn-group">
+        <button class="btn" onclick="const f=document.getElementById('diario-iframe'); if(f&&f.contentWindow) f.contentWindow.location.reload();">🔄 Atualizar</button>
+        <button class="btn" onclick="window.open('diario-de-campo.html','_blank')">↗️ Abrir em nova aba</button>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Registro de aulas, atividades e pesquisas — os dados são salvos na mesma base do Diário de Notas.</p>
+    <iframe id="diario-iframe" data-src="diario-de-campo.html" title="Diário de Campo"
+      style="width:100%;height:calc(100vh - 230px);min-height:600px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--white);box-shadow:var(--shadow)"></iframe>
+  </section>
+
 </main>
 </div><!-- /.app-body-wrap -->
 
@@ -2175,6 +2189,7 @@ function construirNav() {
   if (isEverton) {
     tabs.push({ id: 'turmas',      icon: '🏫', label: 'Gestão de Turmas' });
     tabs.push({ id: 'notas',       icon: '📊', label: 'Diário de Notas' });
+    tabs.push({ id: 'diario',      icon: '🧭', label: 'Diário de Campo' });
     tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
     tabs.push({ id: 'relatorios',  icon: '📋', label: 'Pendências' });
     tabs.push({ id: 'anotacoes',   icon: '📝', label: 'Anotações · ' + (sessao.turmaReferencia || '—') });
@@ -2183,6 +2198,7 @@ function construirNav() {
   } else {
     tabs.push({ id: 'turmas',      icon: '📚', label: 'Minhas Turmas' });
     tabs.push({ id: 'notas',       icon: '📊', label: 'Diário de Notas' });
+    tabs.push({ id: 'diario',      icon: '🧭', label: 'Diário de Campo' });
     tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
     tabs.push({ id: 'relatorios',  icon: '📋', label: 'Pendências' });
     if (sessao && sessao.turmaReferencia)
@@ -2230,6 +2246,10 @@ function goTab(tab) {
   if (tab === 'professores') { popularCheckboxesTurmas(); renderizarListaProfessores(); }
   if (tab === 'dashboard') { renderizarDashboard(); }
   if (tab === 'relatorios') { popularSelectRelatorios(); renderizarRelatorios(); }
+  if (tab === 'diario') {
+    const f = document.getElementById('diario-iframe');
+    if (f && !f.src) f.src = f.dataset.src;
+  }
 }
 
 // ─── HELPERS SEXO / ETNIA ────────────────────────────────────────────────────
