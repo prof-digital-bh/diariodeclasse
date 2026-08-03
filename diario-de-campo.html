@@ -2251,6 +2251,25 @@ async function vistosSyncTurma(turmaReal, tr){
       tabela.ativPosicao[tr] = posicao;
       vistos[tabelaKey] = tabela;
       await saveVistos();
+    } else if(posicao !== VISTOS_POSICAO_RESERVADA){
+      // Sincronização antiga (de antes da vaga reservada existir) presa em outra
+      // posição — migra para a vaga 7, apagando o registro antigo daquela posição.
+      const posAntiga = posicao;
+      try{
+        await fetch(SB_URL + '/rest/v1/atividades?id=eq.' + encodeURIComponent(vistosAtivId(turmaReal, tr, posAntiga)), {
+          method:'DELETE', headers: SB_HEADERS,
+        });
+        await fetch(SB_URL + '/rest/v1/notas?turma=eq.' + encodeURIComponent(turmaReal) +
+          '&trimestre=eq.' + tr + '&atividade=eq.' + posAntiga + '&prof_id=eq.' + encodeURIComponent(pid), {
+          method:'DELETE', headers: SB_HEADERS,
+        });
+      }catch(e){
+        console.warn('[vistos] falha ao limpar posição antiga durante migração', turmaReal, tr, posAntiga, e);
+      }
+      posicao = VISTOS_POSICAO_RESERVADA;
+      tabela.ativPosicao[tr] = posicao;
+      vistos[tabelaKey] = tabela;
+      await saveVistos();
     }
 
     const valorMaximo = cols.length * 1 * (parseFloat(tabela.coeficiente)||0);
