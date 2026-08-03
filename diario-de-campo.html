@@ -1946,6 +1946,7 @@ function vistosNotaId(turma, nome, tr, ativ){
   return pid + '_' + vistosAlunoId(turma, nome) + '_t' + tr + '_a' + ativ;
 }
 const VISTOS_N_ATIV = 6;
+const VISTOS_POSICAO_RESERVADA = 7; // vaga fixa e exclusiva para "Vistos" no Diário de Notas (deve bater com N_ATIV/VISTOS_POSICAO_RESERVADA de lá)
 
 async function vistosFetchAlunos(turmaReal){
   if(vistosAlunosCache[turmaReal]) return vistosAlunosCache[turmaReal];
@@ -2243,24 +2244,10 @@ async function vistosSyncTurma(turmaReal, tr){
     let posicao = tabela.ativPosicao[tr] || null;
 
     if(!posicao){
-      // 1ª vez para essa turma/trimestre: acha um slot livre (ou reaproveita um "Vistos" já criado)
-      const url = SB_URL + '/rest/v1/atividades?select=*&turma=eq.' + encodeURIComponent(turmaReal) +
-        '&trimestre=eq.' + tr + '&prof_id=eq.' + encodeURIComponent(pid) + '&order=posicao';
-      const res = await fetch(url, { headers: SB_HEADERS });
-      if(!res.ok) throw new Error('erro ao ler atividades (HTTP ' + res.status + ')');
-      const existentes = await res.json();
-
-      const jaVistos = existentes.find(a=> (a.nome||'').trim().toLowerCase().startsWith('vistos'));
-      if(jaVistos){
-        posicao = jaVistos.posicao;
-      }else{
-        const ocupadas = new Set(existentes.filter(a=>a.nome && a.nome.trim()).map(a=>a.posicao));
-        for(let i=1;i<=VISTOS_N_ATIV;i++){ if(!ocupadas.has(i)){ posicao = i; break; } }
-      }
-      if(!posicao){
-        vistosSetSyncStatus('error', '⚠️ sem slot de atividade livre em ' + turmaReal + ' — libere uma no Diário de Notas');
-        return;
-      }
+      // Vaga fixa e reservada — não compete mais com as atividades manuais (1..6).
+      // Isso garante que o Vistos sempre tem onde sincronizar, mesmo com as 6
+      // atividades manuais do trimestre já preenchidas.
+      posicao = VISTOS_POSICAO_RESERVADA;
       tabela.ativPosicao[tr] = posicao;
       vistos[tabelaKey] = tabela;
       await saveVistos();
@@ -2303,6 +2290,30 @@ async function vistosSyncTurma(turmaReal, tr){
     console.error('[vistos] falha ao sincronizar com o diário de notas', e);
     if(vistosTurmaReal() === turmaReal && String(vistosTrimestre) === String(tr)){
       vistosSetSyncStatus('error', '⚠️ erro ao sincronizar — ' + e.message);
+    }
+  }
+}
+
+/* Varre TODAS as turmas/trimestres (não só a aba aberta no momento) e
+   sincroniza qualquer Vistos pendente com o Diário de Notas — usada logo
+   após carregar os dados, para "curar" de uma vez turmas/trimestres cujo
+   Vistos nunca tinha conseguido sincronizar antes (por falta de vaga). */
+async function vistosBackfillTudo(){
+  const grades = ['8','9'];
+  for(const grade of grades){
+    for(const letra of TURMA_LETRAS){
+      const turmaReal = grade + 'º' + letra;
+      for(const tr of ['1','2','3']){
+        const cols = entries.filter(e=>{
+          if(e.turma !== grade) return false;
+          if(String(e.trimestre) !== String(tr)) return false;
+          const info = e.turmasDetalhe && e.turmasDetalhe[letra];
+          return info && info.feito;
+        });
+        if(!cols.length) continue;
+        try{ await vistosSyncTurma(turmaReal, tr); }
+        catch(e){ console.error('[vistos] backfill falhou para', turmaReal, tr, e); }
+      }
     }
   }
 }
@@ -2523,11 +2534,16 @@ document.getElementById('dc-back-btn').addEventListener('click', ()=>{
 });
 setSyncStatus('saving','● conectando…');
 
-loadEntries();
-loadPlanning();
-loadBookLinks();
-loadProvas();
-loadVistos();
+(async function(){
+  await loadEntries();
+  loadPlanning();
+  loadBookLinks();
+  loadProvas();
+  await loadVistos();
+  // Preenche a vaga reservada em qualquer turma/trimestre que já tinha
+  // registros marcados mas nunca tinha conseguido sincronizar antes.
+  vistosBackfillTudo();
+})();
 </script>
 </body>
 </html>
