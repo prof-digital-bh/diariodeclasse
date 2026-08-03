@@ -527,8 +527,8 @@
     color:var(--ink-soft);padding:8px 6px;vertical-align:bottom;
   }
   table.vistos-table th.vistos-th-aluno{text-align:left;position:sticky;left:0;background:var(--paper);z-index:2;min-width:170px;}
-  table.vistos-table th.vistos-th-entry{max-width:110px;white-space:normal;line-height:1.25;}
-  table.vistos-table th.vistos-th-entry .th-codigo{font-family:var(--font-mono);color:var(--teal-text);display:block;font-size:11px;}
+  table.vistos-table th.vistos-th-entry{max-width:70px;white-space:nowrap;}
+  table.vistos-table th.vistos-th-entry .th-codigo{font-family:var(--font-mono);color:var(--teal-text);font-size:13px;font-weight:700;}
   table.vistos-table th.vistos-th-total{background:var(--ink);color:#fff;min-width:80px;}
   table.vistos-table td.vistos-td-aluno{
     text-align:left;padding:8px 10px;font-weight:500;position:sticky;left:0;background:var(--paper-raised);z-index:1;
@@ -555,6 +555,32 @@
   .vistos-sync.saving{color:var(--ochre-text);}
   .vistos-sync.ok{color:var(--moss-text);}
   .vistos-sync.error{color:var(--clay-text);}
+
+  /* impressão da listagem de vistos — só o conteúdo de #vistos-print-area aparece */
+  #vistos-print-area{display:none;}
+  @media print{
+    @page{ size: landscape; margin: 9mm; }
+    body *{ visibility:hidden; }
+    #vistos-print-area, #vistos-print-area *{ visibility:visible; }
+    #vistos-print-area{
+      display:block; position:absolute; top:0; left:0; width:100%; margin:0; padding:0;
+      background:#fff;
+    }
+  }
+  .pv-header{text-align:center;margin-bottom:10px;}
+  .pv-header h1{font-family:var(--font-display);font-size:19px;font-weight:700;margin:0 0 2px;color:#000;}
+  .pv-header .pv-sub{font-family:var(--font-body);font-size:11px;color:#444;}
+  table.pv-table{width:100%;border-collapse:collapse;table-layout:fixed;font-family:var(--font-body);font-size:10px;}
+  table.pv-table th, table.pv-table td{border:1px solid #888;padding:3px 2px;text-align:center;color:#000;}
+  table.pv-table thead th{font-weight:700;font-family:var(--font-mono);}
+  table.pv-table th.pv-aluno-th, table.pv-table td.pv-aluno{text-align:left;padding-left:6px;width:150px;}
+  table.pv-table td.pv-total{font-weight:700;}
+  table.pv-table tr{page-break-inside:avoid;}
+  .pv-cell.ok{background:#d7f3de;}
+  .pv-cell.pm{background:#fde8c2;}
+  .pv-cell.nf{background:#fbd7d7;}
+  .pv-cell.fp{background:#dbe7fb;}
+  .pv-legend{margin-top:9px;font-family:var(--font-body);font-size:9.5px;color:#333;text-align:center;}
 
   /* planejamento view */
   .plan-viewer{margin-top:6px;}
@@ -785,6 +811,7 @@
     <div id="content"></div>
     <div id="book-viewer" class="book-viewer" style="display:none;"></div>
     <div id="vistos-viewer" class="vistos-viewer" style="display:none;"></div>
+    <div id="vistos-print-area"></div>
     <div id="plan-viewer" class="plan-viewer" style="display:none;">
       <div class="plan-toolbar">
         <div class="plan-trim-select">
@@ -1991,6 +2018,7 @@ async function renderVistos(){
           <span>Coeficiente</span>
           <input type="number" id="vistos-coef-input" step="0.1" min="0" value="${tabela.coeficiente}" />
         </div>
+        <button type="button" class="btn ghost" id="btn-print-vistos"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v7H6z"/></svg>Imprimir ${turmaReal}</button>
       </div>
     </div>
     <div class="vistos-legend">
@@ -2027,6 +2055,7 @@ async function renderVistos(){
       renderVistos();
     });
   });
+  document.getElementById('btn-print-vistos').addEventListener('click', imprimirVistos);
 
   const nomes = await vistosFetchAlunos(turmaReal);
   // evita renderizar resultado obsoleto se a turma/subturma mudou durante o fetch
@@ -2054,7 +2083,9 @@ function vistosRenderTabela(nomes, cols, tabela, turmaReal){
   const theadCols = cols.map(e=>{
     const info = e.turmasDetalhe[vistosSub] || {};
     const d = formatDateShort(info.data);
-    return `<th class="vistos-th-entry" title="${escapeHtml(e.tema)}">${e.codigo?`<span class="th-codigo">${escapeHtml(e.codigo)}</span>`:''}${escapeHtml(e.tema).slice(0,26)}${e.tema.length>26?'…':''}${d?`<br><span class="th-codigo">${d}</span>`:''}</th>`;
+    const rotulo = e.codigo ? e.codigo : '—';
+    const tituloCompleto = e.tema + (d ? (' · ' + d) : '');
+    return `<th class="vistos-th-entry" title="${escapeHtml(tituloCompleto)}"><span class="th-codigo">${escapeHtml(rotulo)}</span></th>`;
   }).join('');
 
   const bodyRows = nomes.map(nome=>{
@@ -2122,6 +2153,46 @@ function vistosRenderTabela(nomes, cols, tabela, turmaReal){
 let vistosTotaisRenderer = null;
 function vistosRenderTotais(){
   if(typeof vistosTotaisRenderer === 'function') vistosTotaisRenderer();
+}
+
+/* monta uma listagem enxuta (aluno × código do registro) da turma/subturma/
+   trimestre atualmente abertos e manda para a impressão do navegador —
+   de lá o professor escolhe "Salvar como PDF". Pensada para caber numa
+   única folha: paisagem, colunas estreitas e fonte compacta. */
+async function imprimirVistos(){
+  const tabela = getVistosTabela();
+  const cols = vistosEntriesDaSubturma();
+  const turmaReal = vistosTurmaReal();
+
+  if(!cols.length){ alert('Não há registros marcados como dados para ' + turmaReal + ' neste trimestre.'); return; }
+
+  const nomes = await vistosFetchAlunos(turmaReal);
+  if(!nomes || !nomes.length){ alert('Não foi possível carregar os alunos de ' + turmaReal + '.'); return; }
+
+  const theadCols = cols.map(e=>`<th>${escapeHtml(e.codigo || '—')}</th>`).join('');
+  const bodyRows = nomes.map(nome=>{
+    const cells = cols.map(e=>{
+      const mark = tabela.marks[e.id] && tabela.marks[e.id][nome];
+      return `<td class="pv-cell${mark?' '+mark:''}">${mark?VISTOS_MARK_LABELS[mark]:''}</td>`;
+    }).join('');
+    const soma = vistosSomaAluno(tabela, cols, nome);
+    const total = (soma * (parseFloat(tabela.coeficiente)||0)).toFixed(1).replace('.', ',');
+    return `<tr><td class="pv-aluno">${escapeHtml(nome)}</td>${cells}<td class="pv-total">${total}</td></tr>`;
+  }).join('');
+
+  const area = document.getElementById('vistos-print-area');
+  area.innerHTML = `
+    <div class="pv-header">
+      <h1>Vistos — ${escapeHtml(turmaReal)}</h1>
+      <div class="pv-sub">${TRIM_LABELS[vistosTrimestre]} · Coeficiente ${tabela.coeficiente} · Geografia · ${cols.length} registro(s)</div>
+    </div>
+    <table class="pv-table">
+      <thead><tr><th class="pv-aluno-th">Aluno</th>${theadCols}<th>Total</th></tr></thead>
+      <tbody>${bodyRows}</tbody>
+    </table>
+    <div class="pv-legend">OK = Completo (1,0) &nbsp;·&nbsp; +/- = Parcial (0,5) &nbsp;·&nbsp; NF = Não feito (0,0) &nbsp;·&nbsp; FP = Feito fora do prazo (0,5)</div>
+  `;
+  window.print();
 }
 
 function vistosSetSyncStatus(state, msg){
