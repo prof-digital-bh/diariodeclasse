@@ -2266,15 +2266,24 @@ async function vistosSyncTurma(turmaReal, tr){
     });
     if(!ativRes.ok) throw new Error('falha ao gravar atividade (HTTP ' + ativRes.status + ')');
 
-    const rows = nomes.map(nome=>{
+    // dedupe por id — evita "ON CONFLICT DO UPDATE cannot affect row a second
+    // time" quando dois nomes do cadastro geram o mesmo id (nome duplicado
+    // na turma, ou nomes que colidem depois de normalizados)
+    const rowsMap = new Map();
+    nomes.forEach(nome=>{
       const soma = vistosSomaAluno(tabela, cols, nome);
       const nota = soma * (parseFloat(tabela.coeficiente)||0);
-      return {
-        id: vistosNotaId(turmaReal, nome, tr, posicao), prof_id: pid,
+      const id = vistosNotaId(turmaReal, nome, tr, posicao);
+      rowsMap.set(id, {
+        id, prof_id: pid,
         aluno_id: vistosAlunoId(turmaReal, nome), turma: turmaReal, trimestre: Number(tr), atividade: posicao,
         nota, obs: '', atualizado_em: new Date().toISOString()
-      };
+      });
     });
+    const rows = Array.from(rowsMap.values());
+    if(rowsMap.size < nomes.length){
+      console.warn('[vistos] nomes duplicados/colidentes em', turmaReal, '— verifique o cadastro de alunos dessa turma');
+    }
     const notasRes = await fetch(SB_URL + '/rest/v1/notas', {
       method:'POST',
       headers: { ...SB_HEADERS, 'Prefer':'resolution=merge-duplicates,return=minimal' },
@@ -2284,7 +2293,8 @@ async function vistosSyncTurma(turmaReal, tr){
 
     // só atualiza o indicador visual se o professor ainda estiver olhando essa mesma tabela
     if(vistosTurmaReal() === turmaReal && String(vistosTrimestre) === String(tr)){
-      vistosSetSyncStatus('ok', '● atualizado no Diário de Notas — Atividade ' + posicao + ' (' + nomeAtiv + ')');
+      const aviso = rowsMap.size < nomes.length ? ' — ⚠️ nomes duplicados/colidentes no cadastro, confira a lista de alunos' : '';
+      vistosSetSyncStatus('ok', '● atualizado no Diário de Notas — Atividade ' + posicao + ' (' + nomeAtiv + ')' + aviso);
     }
   }catch(e){
     console.error('[vistos] falha ao sincronizar com o diário de notas', e);
