@@ -56,6 +56,7 @@
     background-position:-1px -1px;
   }
   .wrap{max-width:1240px;margin:0 auto;padding:28px 24px 80px;}
+  .main-scroll{padding-bottom:8px;}
 
   /* app shell: sidebar + main */
   .app-shell{display:flex;align-items:flex-start;gap:22px;}
@@ -523,10 +524,13 @@
   .sig-block span{border-top:1px solid var(--ink-faint);padding-top:4px;}
 
   @media print{
+    html, body{height:auto !important;overflow:visible !important;}
+    .wrap{height:auto !important;overflow:visible !important;display:block !important;padding:0;max-width:100%;}
+    .app-shell{display:block;}
+    .main{display:block !important;overflow:visible !important;height:auto !important;}
+    .main-scroll{overflow:visible !important;height:auto !important;flex:none !important;}
     body{background:#fff;}
     .sidebar, .legend, .filters, .toolbar-sticky, .plan-toolbar{display:none !important;}
-    .app-shell{display:block;}
-    .wrap{padding:0;max-width:100%;}
     .plan-paper{box-shadow:none;border:none;padding:0;}
     .plan-textarea{border:none;padding:0;resize:none;background:transparent;overflow:visible;}
   }
@@ -562,6 +566,33 @@
     .side-nav{flex-direction:column;}
     .turma-tabs, .mode-toggle, .book-links{flex-direction:column;}
     .side-actions{margin-left:0;flex-direction:column;}
+  }
+
+  /* Telas de computador/tablet largo: trava a barra lateral e o cabeçalho de
+     estatísticas/filtros na tela — apenas a lista de atividades rola.
+     (Este bloco fica por último de propósito, para vencer as regras acima.) */
+  @media (min-width:901px){
+    html, body{height:100%;}
+    body{overflow:hidden;}
+    .wrap{height:100vh;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;}
+    .app-shell{flex:1;min-height:0;align-items:stretch;}
+    .sidebar{position:static;top:auto;height:100%;overflow-y:auto;}
+    .main{display:flex;flex-direction:column;min-height:0;overflow:hidden;height:100%;}
+    .toolbar-sticky{position:static;top:auto;z-index:auto;background:none;background-image:none;padding-bottom:0;flex:none;}
+    .toolbar-sticky::after{display:none;}
+    .main-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;padding-bottom:40px;}
+    .trim-divider{
+      position:sticky;top:0;z-index:4;
+      background:var(--paper);
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size:28px 28px;
+      background-attachment:fixed;
+      background-position:-1px -1px;
+      padding:8px 0;
+      margin:22px 0 14px;
+    }
   }
 </style>
 </head>
@@ -681,6 +712,7 @@
     </div>
     </div>
 
+    <div id="main-scroll" class="main-scroll">
     <div id="content"></div>
     <div id="book-viewer" class="book-viewer" style="display:none;"></div>
     <div id="plan-viewer" class="plan-viewer" style="display:none;">
@@ -700,6 +732,7 @@
         </div>
       </div>
       <div id="plan-doc"></div>
+    </div>
     </div>
 
   </main>
