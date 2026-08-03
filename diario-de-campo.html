@@ -488,6 +488,74 @@
   .page-footer{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line-strong);font-family:var(--font-mono);font-size:11.5px;color:var(--ink-faint);text-align:right;flex:none;}
   .book-empty{max-width:620px;margin:0 auto;}
 
+  /* vistos view */
+  .vistos-viewer{margin-top:6px;}
+  .vistos-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+  .vistos-subtabs{display:flex;gap:6px;flex-wrap:wrap;}
+  .vistos-subtab{
+    font-family:var(--font-mono);font-size:12.5px;padding:8px 16px;border-radius:999px;
+    border:1px solid var(--line-strong);background:var(--paper-raised);color:var(--ink-soft);cursor:pointer;
+  }
+  .vistos-subtab.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+  .vistos-controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .vistos-trim-select{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);}
+  .vistos-trim-select select{
+    font-family:var(--font-body);font-size:13.5px;padding:7px 11px;border-radius:var(--radius-sm);
+    border:1px solid var(--line-strong);background:var(--paper-raised);color:var(--ink);cursor:pointer;
+  }
+  .vistos-coef{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-soft);}
+  .vistos-coef input{
+    width:70px;font-family:var(--font-mono);font-size:13.5px;padding:7px 10px;border-radius:var(--radius-sm);
+    border:1px solid var(--line-strong);background:var(--paper-raised);color:var(--ink);text-align:center;
+  }
+  .vistos-legend{display:flex;gap:14px;flex-wrap:wrap;margin:2px 0 16px;font-size:12px;color:var(--ink-faint);}
+  .vistos-legend .lg-item{display:flex;align-items:center;gap:6px;}
+  .vistos-legend .lg-dot{
+    width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-size:11px;font-weight:600;color:#fff;flex:none;
+  }
+  .vistos-paper{
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius-lg);
+    padding:6px;overflow-x:auto;
+  }
+  table.vistos-table{border-collapse:collapse;width:100%;font-size:12.5px;}
+  table.vistos-table th, table.vistos-table td{
+    border:1px solid var(--line);padding:0;text-align:center;white-space:nowrap;
+  }
+  table.vistos-table th{
+    background:var(--paper);font-family:var(--font-body);font-weight:600;font-size:11.5px;
+    color:var(--ink-soft);padding:8px 6px;vertical-align:bottom;
+  }
+  table.vistos-table th.vistos-th-aluno{text-align:left;position:sticky;left:0;background:var(--paper);z-index:2;min-width:170px;}
+  table.vistos-table th.vistos-th-entry{max-width:110px;white-space:normal;line-height:1.25;}
+  table.vistos-table th.vistos-th-entry .th-codigo{font-family:var(--font-mono);color:var(--teal-text);display:block;font-size:11px;}
+  table.vistos-table th.vistos-th-total{background:var(--ink);color:#fff;min-width:80px;}
+  table.vistos-table td.vistos-td-aluno{
+    text-align:left;padding:8px 10px;font-weight:500;position:sticky;left:0;background:var(--paper-raised);z-index:1;
+  }
+  table.vistos-table tbody tr:nth-child(even) td.vistos-td-aluno{background:#fafaf8;}
+  table.vistos-table tbody tr:nth-child(even) td.vistos-cell-wrap{background:#fafaf8;}
+  .vistos-cell-wrap{padding:4px;}
+  .vistos-cell{
+    width:38px;height:32px;margin:0 auto;border-radius:7px;border:1px solid var(--line-strong);
+    background:var(--paper);cursor:pointer;display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--ink-faint);
+    transition:transform .08s ease;
+  }
+  .vistos-cell:hover{transform:scale(1.06);border-color:var(--ink-faint);}
+  .vistos-cell.ok{background:var(--moss-bg);color:var(--moss-text);border-color:transparent;}
+  .vistos-cell.pm{background:var(--ochre-bg);color:var(--ochre-text);border-color:transparent;}
+  .vistos-cell.nf{background:var(--clay-bg);color:var(--clay-text);border-color:transparent;}
+  .vistos-cell.fp{background:var(--slate-bg);color:var(--slate-text);border-color:transparent;}
+  td.vistos-td-total{font-family:var(--font-mono);font-weight:700;font-size:14px;background:#f4faf7;color:var(--ink);}
+  .vistos-empty{padding:40px 20px;text-align:center;color:var(--ink-faint);font-size:13.5px;}
+  .vistos-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px;}
+  .vistos-footer .hint{font-size:12px;color:var(--ink-faint);}
+  .vistos-sync{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-faint);}
+  .vistos-sync.saving{color:var(--ochre-text);}
+  .vistos-sync.ok{color:var(--moss-text);}
+  .vistos-sync.error{color:var(--clay-text);}
+
   /* planejamento view */
   .plan-viewer{margin-top:6px;}
   .plan-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
@@ -636,6 +704,7 @@
           <button class="mode-btn active" data-mode="list">📋 Lista</button>
           <button class="mode-btn" data-mode="book">📖 Caderno</button>
           <button class="mode-btn" data-mode="plan">📄 Planejamento</button>
+          <button class="mode-btn" data-mode="vistos">✅ Vistos</button>
         </div>
       </div>
 
@@ -715,6 +784,7 @@
     <div id="main-scroll" class="main-scroll">
     <div id="content"></div>
     <div id="book-viewer" class="book-viewer" style="display:none;"></div>
+    <div id="vistos-viewer" class="vistos-viewer" style="display:none;"></div>
     <div id="plan-viewer" class="plan-viewer" style="display:none;">
       <div class="plan-toolbar">
         <div class="plan-trim-select">
@@ -1363,6 +1433,7 @@ function renderAll(){
   render();
   if(viewMode === 'book') renderBook();
   if(viewMode === 'plan') renderPlan();
+  if(viewMode === 'vistos') renderVistos();
 }
 
 /* ---------- planejamento (documento trimestral p/ prefeitura) ---------- */
@@ -1771,12 +1842,399 @@ document.getElementById('mode-toggle').addEventListener('click', (ev)=>{
   document.getElementById('content').style.display = viewMode==='list' ? '' : 'none';
   document.getElementById('book-viewer').style.display = viewMode==='book' ? '' : 'none';
   document.getElementById('plan-viewer').style.display = viewMode==='plan' ? '' : 'none';
-  document.querySelector('.filters').style.display = viewMode==='plan' ? 'none' : '';
+  document.getElementById('vistos-viewer').style.display = viewMode==='vistos' ? '' : 'none';
+  document.querySelector('.filters').style.display = (viewMode==='plan' || viewMode==='vistos') ? 'none' : '';
   document.getElementById('f-status').style.display = viewMode==='list' ? '' : 'none';
   document.getElementById('book-mode-note').style.display = viewMode==='book' ? '' : 'none';
   if(viewMode==='book'){ bookIndex = 0; renderBook(); }
   if(viewMode==='plan'){ renderPlan(); }
+  if(viewMode==='vistos'){ renderVistos(); }
 });
+
+/* ============================================================
+   VISTOS — planilha de chamada/vistos por turma real (8ºA/8ºB/8ºC…)
+   Cada registro do Diário de Campo (dado como "feito" para aquela
+   turma real) vira uma coluna. Cada aluno recebe um visto por
+   coluna: OK=Completo(1,0) · +/-=Parcial(0,5) · NF=Não feito(0,0) ·
+   FP=Feito fora do prazo(0,5). A soma dos vistos de um aluno,
+   multiplicada por um coeficiente editável, é enviada AUTOMATICAMENTE
+   (sem botão) como uma Atividade/nota do Diário de Notas (mesmo
+   Supabase). Sempre a MESMA coluna/atividade é usada e apenas
+   atualizada — nunca cria uma atividade nova a cada edição.
+   ============================================================ */
+const VISTOS_KEY = 'diario-campo-geografia-vistos';
+let vistos = {};              // { "8A": {coeficiente:1, marks:{...}, ativPosicao:{"1":3,"2":null,"3":null}}, ... }
+let vistosSub = 'A';          // subturma ativa (A/B/C) dentro do modo Vistos
+let vistosTrimestre = '1';    // '1' | '2' | '3' (só trimestres válidos no Diário de Notas)
+let vistosAlunosCache = {};   // { "8ºA": ['Nome 1','Nome 2', ...] }
+let vistosLoadingAlunos = false;
+let vistosSyncTimer = null;
+
+const VISTOS_MARK_CYCLE = [null, 'ok', 'pm', 'nf', 'fp'];
+const VISTOS_MARK_VALUES = { ok:1, pm:0.5, nf:0, fp:0.5 };
+const VISTOS_MARK_LABELS = { ok:'OK', pm:'+/-', nf:'NF', fp:'FP' };
+const VISTOS_MARK_TITLES = {
+  ok:'Completo (1,0)', pm:'Parcial +/- (0,5)', nf:'Não feito (0,0)', fp:'Feito fora do prazo (0,5)'
+};
+
+function vistosTurmaReal(){ return activeTurma + 'º' + vistosSub; } // ex.: "8ºA"
+function vistosChaveTabela(){ return activeTurma + vistosSub; }     // ex.: "8A"
+
+function vistosDefaultTabela(){ return { coeficiente:1, marks:{}, ativPosicao:{} }; }
+function getVistosTabela(){
+  const k = vistosChaveTabela();
+  if(!vistos[k]) vistos[k] = vistosDefaultTabela();
+  if(vistos[k].coeficiente === undefined || vistos[k].coeficiente === null || vistos[k].coeficiente === '') vistos[k].coeficiente = 1;
+  if(!vistos[k].marks) vistos[k].marks = {};
+  if(!vistos[k].ativPosicao) vistos[k].ativPosicao = {};
+  return vistos[k];
+}
+
+async function loadVistos(){
+  try{
+    const res = await storageAdapter.get(VISTOS_KEY);
+    vistos = res && res.value ? JSON.parse(res.value) : {};
+  }catch(e){
+    vistos = {};
+  }
+}
+async function saveVistos(){
+  try{ await storageAdapter.set(VISTOS_KEY, JSON.stringify(vistos)); }
+  catch(e){ console.error('Falha ao salvar vistos', e); }
+}
+
+/* ── réplica exata das funções de ID usadas no Diário de Notas
+      (index.html), para que o que gravarmos aqui seja lido/editado
+      normalmente por lá. ── */
+function vistosAlunoId(turma, nome){
+  const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return (norm(turma) + '_' + norm(nome)).replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
+}
+function vistosAtivId(turma, tr, pos){
+  const pid = DC_PROF.replace(/[^\w\-]/g,'');
+  return pid + '_' + turma.replace(/\s+/g, '_').replace(/[^\w\-]/g, '') + '_t' + tr + '_a' + pos;
+}
+function vistosNotaId(turma, nome, tr, ativ){
+  const pid = DC_PROF.replace(/[^\w\-]/g,'');
+  return pid + '_' + vistosAlunoId(turma, nome) + '_t' + tr + '_a' + ativ;
+}
+const VISTOS_N_ATIV = 6;
+
+async function vistosFetchAlunos(turmaReal){
+  if(vistosAlunosCache[turmaReal]) return vistosAlunosCache[turmaReal];
+  try{
+    const url = SB_URL + '/rest/v1/alunos?select=nome,posicao&turma=eq.' + encodeURIComponent(turmaReal) + '&order=posicao';
+    const res = await fetch(url, { headers: SB_HEADERS });
+    if(!res.ok) throw new Error('http ' + res.status);
+    const rows = await res.json();
+    const nomes = (rows||[]).map(r=>r.nome);
+    vistosAlunosCache[turmaReal] = nomes;
+    return nomes;
+  }catch(e){
+    console.error('[vistos] falha ao buscar alunos', e);
+    return null; // null = erro; [] = turma sem alunos cadastrados
+  }
+}
+
+/* registros (colunas) desta turma real, no trimestre selecionado, que
+   foram efetivamente dados nessa subturma (turmasDetalhe[letra].feito) */
+function vistosEntriesDaSubturma(){
+  return entries
+    .filter(e=>{
+      if(e.turma !== activeTurma) return false;
+      if(String(e.trimestre) !== String(vistosTrimestre)) return false;
+      const info = e.turmasDetalhe && e.turmasDetalhe[vistosSub];
+      return info && info.feito;
+    })
+    .sort((a,b)=>{
+      const da = (a.turmasDetalhe[vistosSub]||{}).data, db_ = (b.turmasDetalhe[vistosSub]||{}).data;
+      const ta = da ? Date.parse(da+'T00:00:00') : (a.criadoEm||0);
+      const tb = db_ ? Date.parse(db_+'T00:00:00') : (b.criadoEm||0);
+      return ta - tb;
+    });
+}
+
+function vistosSomaAluno(tabela, entriesCols, nome){
+  let soma = 0;
+  entriesCols.forEach(e=>{
+    const m = tabela.marks[e.id] && tabela.marks[e.id][nome];
+    if(m && VISTOS_MARK_VALUES[m] !== undefined) soma += VISTOS_MARK_VALUES[m];
+  });
+  return soma;
+}
+
+async function renderVistos(){
+  const host = document.getElementById('vistos-viewer');
+  if(!host) return;
+
+  const tabela = getVistosTabela();
+  const cols = vistosEntriesDaSubturma();
+  const turmaReal = vistosTurmaReal();
+
+  const subtabsHtml = TURMA_LETRAS.map(l=>
+    `<button type="button" class="vistos-subtab${l===vistosSub?' active':''}" data-sub="${l}">${activeTurma}º${l}</button>`
+  ).join('');
+
+  const trimOptionsHtml = ['1','2','3'].map(t=>
+    `<option value="${t}" ${String(vistosTrimestre)===t?'selected':''}>${TRIM_LABELS[t]}</option>`
+  ).join('');
+
+  host.innerHTML = `
+    <div class="vistos-toolbar">
+      <div class="vistos-subtabs">${subtabsHtml}</div>
+      <div class="vistos-controls">
+        <div class="vistos-trim-select">
+          <span>Trimestre</span>
+          <select id="vistos-trim">${trimOptionsHtml}</select>
+        </div>
+        <div class="vistos-coef">
+          <span>Coeficiente</span>
+          <input type="number" id="vistos-coef-input" step="0.1" min="0" value="${tabela.coeficiente}" />
+        </div>
+      </div>
+    </div>
+    <div class="vistos-legend">
+      <div class="lg-item"><span class="lg-dot" style="background:var(--moss)">OK</span> Completo (1,0)</div>
+      <div class="lg-item"><span class="lg-dot" style="background:var(--ochre)">+/-</span> Parcial (0,5)</div>
+      <div class="lg-item"><span class="lg-dot" style="background:var(--clay)">NF</span> Não feito (0,0)</div>
+      <div class="lg-item"><span class="lg-dot" style="background:var(--slate)">FP</span> Feito fora do prazo (0,5)</div>
+      <div class="lg-item">Clique numa célula para alternar entre os vistos.</div>
+    </div>
+    <div class="vistos-paper" id="vistos-paper">
+      <div class="vistos-empty">Carregando alunos de ${turmaReal}…</div>
+    </div>
+    <div class="vistos-footer">
+      <span class="hint" id="vistos-hint"></span>
+      <span class="vistos-sync" id="vistos-sync-status">● enviado ao Diário de Notas</span>
+    </div>
+  `;
+
+  document.getElementById('vistos-trim').addEventListener('change', (ev)=>{
+    vistosTrimestre = ev.target.value;
+    renderVistos();
+  });
+  document.getElementById('vistos-coef-input').addEventListener('change', (ev)=>{
+    const v = parseFloat(ev.target.value.replace(',','.'));
+    tabela.coeficiente = isNaN(v) ? 1 : v;
+    ev.target.value = tabela.coeficiente;
+    saveVistos();
+    vistosRenderTotais();
+    scheduleVistosSync();
+  });
+  document.querySelectorAll('.vistos-subtab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      vistosSub = btn.dataset.sub;
+      renderVistos();
+    });
+  });
+
+  const nomes = await vistosFetchAlunos(turmaReal);
+  // evita renderizar resultado obsoleto se a turma/subturma mudou durante o fetch
+  if(vistosTurmaReal() !== turmaReal) return;
+  vistosRenderTabela(nomes, cols, tabela, turmaReal);
+}
+
+function vistosRenderTabela(nomes, cols, tabela, turmaReal){
+  const paper = document.getElementById('vistos-paper');
+  if(!paper) return;
+
+  if(nomes === null){
+    paper.innerHTML = `<div class="vistos-empty">⚠️ Não foi possível carregar os alunos de <strong>${turmaReal}</strong> agora. Verifique a conexão e tente novamente.</div>`;
+    return;
+  }
+  if(!nomes.length){
+    paper.innerHTML = `<div class="vistos-empty">Nenhum aluno cadastrado em <strong>${turmaReal}</strong> ainda. Cadastre a turma no Diário de Notas primeiro.</div>`;
+    return;
+  }
+  if(!cols.length){
+    paper.innerHTML = `<div class="vistos-empty">Nenhum registro foi marcado como dado em <strong>${turmaReal}</strong> neste trimestre ainda.<br>Marque os registros correspondentes como "feito" para essa turma no modo Lista.</div>`;
+    return;
+  }
+
+  const theadCols = cols.map(e=>{
+    const info = e.turmasDetalhe[vistosSub] || {};
+    const d = formatDateShort(info.data);
+    return `<th class="vistos-th-entry" title="${escapeHtml(e.tema)}">${e.codigo?`<span class="th-codigo">${escapeHtml(e.codigo)}</span>`:''}${escapeHtml(e.tema).slice(0,26)}${e.tema.length>26?'…':''}${d?`<br><span class="th-codigo">${d}</span>`:''}</th>`;
+  }).join('');
+
+  const bodyRows = nomes.map(nome=>{
+    const cells = cols.map(e=>{
+      const mark = tabela.marks[e.id] && tabela.marks[e.id][nome] || null;
+      const cls = mark ? ' ' + mark : '';
+      const label = mark ? VISTOS_MARK_LABELS[mark] : '·';
+      const title = mark ? VISTOS_MARK_TITLES[mark] : 'Sem visto — clique para marcar';
+      return `<td class="vistos-cell-wrap"><div class="vistos-cell${cls}" data-entry="${e.id}" data-aluno="${escapeHtml(nome)}" title="${title}">${label}</div></td>`;
+    }).join('');
+    return `<tr><td class="vistos-td-aluno">${escapeHtml(nome)}</td>${cells}<td class="vistos-td-total" data-total-aluno="${escapeHtml(nome)}">0,0</td></tr>`;
+  }).join('');
+
+  paper.innerHTML = `
+    <table class="vistos-table">
+      <thead><tr>
+        <th class="vistos-th-aluno">Aluno</th>
+        ${theadCols}
+        <th class="vistos-th-total">Total ×coef.</th>
+      </tr></thead>
+      <tbody>${bodyRows}</tbody>
+    </table>
+  `;
+
+  paper.querySelectorAll('.vistos-cell').forEach(cell=>{
+    cell.addEventListener('click', ()=>{
+      const entryId = cell.dataset.entry;
+      const nome = cell.dataset.aluno;
+      if(!tabela.marks[entryId]) tabela.marks[entryId] = {};
+      const atual = tabela.marks[entryId][nome] || null;
+      const idx = VISTOS_MARK_CYCLE.indexOf(atual);
+      const proximo = VISTOS_MARK_CYCLE[(idx+1) % VISTOS_MARK_CYCLE.length];
+      if(proximo){ tabela.marks[entryId][nome] = proximo; }
+      else{ delete tabela.marks[entryId][nome]; }
+
+      cell.className = 'vistos-cell' + (proximo ? ' '+proximo : '');
+      cell.textContent = proximo ? VISTOS_MARK_LABELS[proximo] : '·';
+      cell.title = proximo ? VISTOS_MARK_TITLES[proximo] : 'Sem visto — clique para marcar';
+
+      saveVistos();
+      vistosRenderTotais();
+      scheduleVistosSync();
+    });
+  });
+
+  vistosRenderTotais();
+  if(cols.length) scheduleVistosSync(); // garante que dados já existentes (ou abertos pela 1ª vez) fiquem sincronizados
+
+  function vistosRenderTotaisLocal(){
+    const totalEls = paper.querySelectorAll('[data-total-aluno]');
+    totalEls.forEach(el=>{
+      const nome = el.dataset.totalAluno;
+      const soma = vistosSomaAluno(tabela, cols, nome);
+      const total = soma * (parseFloat(tabela.coeficiente)||0);
+      el.textContent = total.toFixed(1).replace('.', ',');
+    });
+    const hint = document.getElementById('vistos-hint');
+    if(hint) hint.textContent = `${cols.length} registro(s) computado(s) · soma máxima possível: ${(cols.length*1).toFixed(1).replace('.',',')} × coeficiente`;
+  }
+  // guarda referência para o handler de coeficiente/trimestre reaproveitar
+  vistosTotaisRenderer = vistosRenderTotaisLocal;
+  vistosRenderTotaisLocal();
+}
+
+let vistosTotaisRenderer = null;
+function vistosRenderTotais(){
+  if(typeof vistosTotaisRenderer === 'function') vistosTotaisRenderer();
+}
+
+function vistosSetSyncStatus(state, msg){
+  const el = document.getElementById('vistos-sync-status');
+  if(!el) return;
+  el.classList.remove('saving','error','ok');
+  el.classList.add(state);
+  el.textContent = msg;
+}
+
+/* dispara (com debounce de ~900ms) o envio automático da tabela atualmente
+   aberta para o Diário de Notas. Captura turma/subturma/trimestre no
+   momento da digitação/clique, para não se perder caso o professor troque
+   de aba enquanto o envio ainda está pendente. */
+function scheduleVistosSync(){
+  const turmaReal = vistosTurmaReal();
+  const tr = vistosTrimestre;
+  vistosSetSyncStatus('saving', '● sincronizando com o Diário de Notas…');
+  clearTimeout(vistosSyncTimer);
+  vistosSyncTimer = setTimeout(()=>{ vistosSyncTurma(turmaReal, tr); }, 900);
+}
+
+/* envia soma×coeficiente como Atividade/Nota no Diário de Notas, reaproveitando
+   as MESMAS tabelas/IDs do Supabase usadas por index.html. Sempre grava na
+   MESMA posição/atividade (memorizada em vistos[...].ativPosicao), então
+   reabrir e remarcar só ATUALIZA a nota — nunca cria uma coluna nova. */
+async function vistosSyncTurma(turmaReal, tr){
+  const grade = turmaReal.charAt(0);
+  const letra = turmaReal.charAt(2);
+  const tabelaKey = grade + letra;
+  const tabela = vistos[tabelaKey] || vistosDefaultTabela();
+  const cols = entries.filter(e=>{
+    if(e.turma !== grade) return false;
+    if(String(e.trimestre) !== String(tr)) return false;
+    const info = e.turmasDetalhe && e.turmasDetalhe[letra];
+    return info && info.feito;
+  });
+  if(!cols.length) return;
+
+  const nomes = await vistosFetchAlunos(turmaReal);
+  if(!nomes || !nomes.length){
+    vistosSetSyncStatus('error', '⚠️ sem alunos cadastrados em ' + turmaReal);
+    return;
+  }
+
+  try{
+    const pid = DC_PROF.replace(/[^\w\-]/g,'');
+    let posicao = tabela.ativPosicao[tr] || null;
+
+    if(!posicao){
+      // 1ª vez para essa turma/trimestre: acha um slot livre (ou reaproveita um "Vistos" já criado)
+      const url = SB_URL + '/rest/v1/atividades?select=*&turma=eq.' + encodeURIComponent(turmaReal) +
+        '&trimestre=eq.' + tr + '&prof_id=eq.' + encodeURIComponent(pid) + '&order=posicao';
+      const res = await fetch(url, { headers: SB_HEADERS });
+      if(!res.ok) throw new Error('erro ao ler atividades (HTTP ' + res.status + ')');
+      const existentes = await res.json();
+
+      const jaVistos = existentes.find(a=> (a.nome||'').trim().toLowerCase().startsWith('vistos'));
+      if(jaVistos){
+        posicao = jaVistos.posicao;
+      }else{
+        const ocupadas = new Set(existentes.filter(a=>a.nome && a.nome.trim()).map(a=>a.posicao));
+        for(let i=1;i<=VISTOS_N_ATIV;i++){ if(!ocupadas.has(i)){ posicao = i; break; } }
+      }
+      if(!posicao){
+        vistosSetSyncStatus('error', '⚠️ sem slot de atividade livre em ' + turmaReal + ' — libere uma no Diário de Notas');
+        return;
+      }
+      tabela.ativPosicao[tr] = posicao;
+      vistos[tabelaKey] = tabela;
+      await saveVistos();
+    }
+
+    const valorMaximo = cols.length * 1 * (parseFloat(tabela.coeficiente)||0);
+    const nomeAtiv = 'Vistos T' + tr;
+
+    const ativRes = await fetch(SB_URL + '/rest/v1/atividades', {
+      method:'POST',
+      headers: { ...SB_HEADERS, 'Prefer':'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify([{
+        id: vistosAtivId(turmaReal, tr, posicao), prof_id: pid, turma: turmaReal, trimestre: Number(tr), posicao,
+        nome: nomeAtiv, valor: valorMaximo, atualizado_em: new Date().toISOString()
+      }]),
+    });
+    if(!ativRes.ok) throw new Error('falha ao gravar atividade (HTTP ' + ativRes.status + ')');
+
+    const rows = nomes.map(nome=>{
+      const soma = vistosSomaAluno(tabela, cols, nome);
+      const nota = soma * (parseFloat(tabela.coeficiente)||0);
+      return {
+        id: vistosNotaId(turmaReal, nome, tr, posicao), prof_id: pid,
+        aluno_id: vistosAlunoId(turmaReal, nome), turma: turmaReal, trimestre: Number(tr), atividade: posicao,
+        nota, obs: '', atualizado_em: new Date().toISOString()
+      };
+    });
+    const notasRes = await fetch(SB_URL + '/rest/v1/notas', {
+      method:'POST',
+      headers: { ...SB_HEADERS, 'Prefer':'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(rows),
+    });
+    if(!notasRes.ok) throw new Error('falha ao gravar notas (HTTP ' + notasRes.status + ')');
+
+    // só atualiza o indicador visual se o professor ainda estiver olhando essa mesma tabela
+    if(vistosTurmaReal() === turmaReal && String(vistosTrimestre) === String(tr)){
+      vistosSetSyncStatus('ok', '● atualizado no Diário de Notas — Atividade ' + posicao + ' (' + nomeAtiv + ')');
+    }
+  }catch(e){
+    console.error('[vistos] falha ao sincronizar com o diário de notas', e);
+    if(vistosTurmaReal() === turmaReal && String(vistosTrimestre) === String(tr)){
+      vistosSetSyncStatus('error', '⚠️ erro ao sincronizar — ' + e.message);
+    }
+  }
+}
 
 function renderStats(){
   const list = entries.filter(e=>e.turma===activeTurma);
@@ -1998,6 +2456,7 @@ loadEntries();
 loadPlanning();
 loadBookLinks();
 loadProvas();
+loadVistos();
 </script>
 </body>
 </html>
