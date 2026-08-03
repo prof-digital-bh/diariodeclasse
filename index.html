@@ -1593,7 +1593,8 @@ const AUTH_ID = 'everton_2026_auth';
 
 // localStorage removido — Supabase é a única fonte de verdade.
 // sessionStorage é usado apenas para manter a sessão de login (SESSION_KEY).
-const N_ATIV = 6;
+const N_ATIV = 7; // atividades 1-6 são de lançamento manual; a 7ª é reservada e preenchida automaticamente pelo "Vistos" do Diário de Campo
+const VISTOS_POSICAO_RESERVADA = 7; // deve ser igual a N_ATIV
 const TRIMESTRES = [1, 2, 3];
 const TURMAS_FIXAS = ['8ºA','8ºB','8ºC','9ºA','9ºB','9ºC'];
 
@@ -4439,11 +4440,13 @@ function renderizarNotas() {
     const hasName = aNome.trim() !== '';
     const borderLeft = i===1 ? `border-left:2px solid ${c.border}` : '';
     const borderRight = i===N_ATIV ? `border-right:2px solid ${c.border}` : '';
-    row2 += `<th style="background:${c.light};${borderLeft};${borderRight};padding:4px;min-width:90px">
-      <input type="text" class="ativ-nome-input" placeholder="Atividade ${i}" value="${esc(aNome)}" ${isFechado?'disabled':''} onchange="salvarNomeAtiv('${esc(t)}',${tr},${i-1},this.value)" style="width:100%;font-size:10px;padding:3px 5px;text-align:center;margin-bottom:2px">
+    const isVistos = i === VISTOS_POSICAO_RESERVADA;
+    const bgVistos = isVistos ? 'background:#eef2ff;' : `background:${c.light};`;
+    row2 += `<th style="${bgVistos}${borderLeft};${borderRight};padding:4px;min-width:90px" title="${isVistos?'Preenchida automaticamente pelo Vistos do Diário de Campo':''}">
+      <input type="text" class="ativ-nome-input" placeholder="${isVistos?'🧭 Vistos (auto)':'Atividade '+i}" value="${esc(aNome)}" ${(isFechado||isVistos)?'disabled':''} onchange="salvarNomeAtiv('${esc(t)}',${tr},${i-1},this.value)" style="width:100%;font-size:10px;padding:3px 5px;text-align:center;margin-bottom:2px${isVistos?';color:#4338ca;font-weight:600':''}">
       <div style="display:flex;align-items:center;justify-content:center;gap:3px;margin-top:1px">
         <span style="font-size:9px;color:var(--ink-3)">Valor:</span>
-        <input type="number" class="nota-input" min="0" max="100" step="0.1" value="${esc(aValor)}" placeholder="—" ${(!hasName||isFechado)?'disabled':''} id="hdr-val-t${tr}-a${i}-${esc(t)}" onchange="salvarValorAtiv('${esc(t)}',${tr},${i-1},this.value)" style="width:44px;font-size:12px;padding:2px 4px;-moz-appearance:textfield;appearance:textfield">
+        <input type="number" class="nota-input" min="0" max="100" step="0.1" value="${esc(aValor)}" placeholder="—" ${(!hasName||isFechado||isVistos)?'disabled':''} id="hdr-val-t${tr}-a${i}-${esc(t)}" onchange="salvarValorAtiv('${esc(t)}',${tr},${i-1},this.value)" style="width:44px;font-size:12px;padding:2px 4px;-moz-appearance:textfield;appearance:textfield">
       </div></th>`;
   }
   row2 += '</tr>';
@@ -4485,7 +4488,8 @@ function renderizarNotas() {
       const hasName = aNome.trim() !== '';
       const bl = i===1 ? `border-left:2px solid ${c.border}` : '';
       const br = i===N_ATIV ? `border-right:2px solid ${c.border}` : '';
-      cells += `<td style="background:${c.light};${bl};${br};text-align:center;padding:4px"><input type="number" class="nota-input" min="0" step="0.1" value="${nota[key]!==''?nota[key]:''}" placeholder="—" ${(!hasName||isFechado)?'disabled':''} onchange="salvarNota('${esc(t)}','${esc(a)}','${key}',this.value)" style="width:60px;font-size:11px;${!hasName?'background:#f1f5f9;':''}"></td>`;
+      const isVistos = i === VISTOS_POSICAO_RESERVADA;
+      cells += `<td style="background:${isVistos?'#eef2ff':c.light};${bl};${br};text-align:center;padding:4px" title="${isVistos?'Nota automática vinda do Vistos (Diário de Campo)':''}"><input type="number" class="nota-input" min="0" step="0.1" value="${nota[key]!==''?nota[key]:''}" placeholder="—" ${(!hasName||isFechado||isVistos)?'disabled':''} onchange="salvarNota('${esc(t)}','${esc(a)}','${key}',this.value)" style="width:60px;font-size:11px;${!hasName?'background:#f1f5f9;':''}${isVistos?'color:#4338ca;':''}"></td>`;
     }
     const info = getInfoAluno(t, a);
     const perfilCell = `<td style="text-align:center;white-space:nowrap;padding:4px 6px">
