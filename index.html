@@ -454,6 +454,40 @@ body.dark-mode tr.linha-ativa td { background: #1e3a5f !important; }
 }
 .toast.show { transform: translateX(-50%) translateY(0); }
 
+/* ─── QUADRO DE HORÁRIOS ─────────────────────────────────────────────────── */
+.horario-wrap { overflow-x: auto; }
+.horario-legenda { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 16px; font-size: 11px; color: var(--ink-3); }
+.horario-legenda span.leg-item { display: inline-flex; align-items: center; gap: 5px; }
+.horario-legenda .leg-dot { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+table.tbl-horario { border-collapse: collapse; font-size: 11.5px; min-width: 980px; }
+table.tbl-horario thead th { position: sticky; top: 0; z-index: 2; }
+table.tbl-horario thead th.th-dia, table.tbl-horario thead th.th-hor { background: var(--ocean); color: #fff; }
+table.tbl-horario thead th.th-everton { background: linear-gradient(180deg, var(--ocean-mid), var(--ocean)); color: #fff; }
+table.tbl-horario tbody td.td-dia {
+  background: var(--sky-pale); color: var(--ocean); font-weight: 700; font-size: 10.5px;
+  writing-mode: vertical-rl; text-orientation: mixed; text-align: center; letter-spacing: .5px;
+  border-right: 2px solid var(--border-2);
+}
+table.tbl-horario tbody td.td-hor { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--ink-2); text-align: center; white-space: nowrap; background: var(--sky-pale); }
+table.tbl-horario tbody td.td-aula { text-align: center; font-weight: 500; color: var(--ink-2); white-space: nowrap; }
+table.tbl-horario tbody td.td-vazio { color: var(--border-2); }
+table.tbl-horario tbody td.td-everton-col { background: #f0f7ff; }
+body.dark-mode table.tbl-horario tbody td.td-everton-col { background: #16233a; }
+table.tbl-horario tbody td.td-geo2 {
+  background: linear-gradient(135deg, var(--ocean-mid), var(--ocean)) !important;
+  color: #fff !important; font-weight: 700; border-radius: 5px;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.25);
+}
+table.tbl-horario tbody td.td-geo2::before { content: '🌍 '; }
+table.tbl-horario tbody td.td-apg { font-size: 10px; color: var(--ink-3); white-space: normal; max-width: 160px; }
+table.tbl-horario tbody tr:hover td:not(.td-geo2) { background: var(--sky-pale); }
+.horario-resumo-everton {
+  display: flex; align-items: center; gap: 12px; background: linear-gradient(90deg,var(--ocean) 0%,var(--ocean-mid) 100%);
+  color: #fff; border-radius: var(--radius-lg); padding: 14px 20px; margin-bottom: 18px; flex-wrap: wrap;
+}
+.horario-resumo-everton .hre-title { font-family:'Syne',sans-serif; font-weight:700; font-size: 14px; }
+.horario-resumo-everton .hre-chip { background: rgba(255,255,255,.18); border-radius: 20px; padding: 4px 12px; font-size: 11.5px; font-weight: 600; }
+
 /* Cores por trimestre */
 .t1-bg { background: #f0f7ff !important; }
 .t2-bg { background: #f0fff4 !important; }
@@ -1475,6 +1509,38 @@ alter table alunos add column if not exists foto text;</pre>
       style="width:100%;height:calc(100vh - 230px);min-height:600px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--white);box-shadow:var(--shadow)"></iframe>
   </section>
 
+  <!-- ABA QUADRO DE HORÁRIOS (E.M. Albertina Alves do Nascimento — Turno da Manhã) -->
+  <section id="page-horarios" class="page">
+    <div class="toolbar no-print">
+      <div class="toolbar-title">🗓️ Quadro de Horários · Turno da Manhã</div>
+      <div class="btn-group">
+        <button class="btn" onclick="window.print()">🖨️ Imprimir</button>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--ink-3);margin-bottom:14px">E.M. Albertina Alves do Nascimento — 2026. As aulas de <strong>Geografia do Prof. Everton Correa (GEO2)</strong>, nas turmas de 8º e 9º ano, aparecem destacadas em azul com 🌍.</p>
+
+    <div class="horario-resumo-everton">
+      <span class="hre-title">🌍 Prof. Everton Correa · Geografia</span>
+      <span class="hre-chip" id="hre-total-aulas">— aulas/semana</span>
+      <span class="hre-chip">Turmas: 8ºA · 8ºB · 8ºC · 9ºA · 9ºB · 9ºC</span>
+    </div>
+
+    <div class="horario-legenda">
+      <span class="leg-item"><span class="leg-dot" style="background:linear-gradient(135deg,var(--ocean-mid),var(--ocean))"></span> GEO2 = Geografia · Prof. Everton Correa</span>
+      <span class="leg-item"><span class="leg-dot" style="background:#f0f7ff;border:1px solid var(--border-2)"></span> Colunas 8º/9º ano (turmas do Prof. Everton)</span>
+      <span class="leg-item">PORT = Português · MAT = Matemática · GEO = Geografia · HIST = História · CIÊN = Ciências · E.FIS = Ed. Física · ARTE = Arte · E.REL = Ens. Religioso · ING = Inglês · APG = Apoio Pedagógico</span>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="horario-wrap">
+        <table class="tbl-horario" id="tblHorarios">
+          <thead><tr id="theadHorarios"></tr></thead>
+          <tbody id="corpoHorarios"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
 </main>
 </div><!-- /.app-body-wrap -->
 
@@ -1597,6 +1663,83 @@ const N_ATIV = 7; // atividades 1-6 são de lançamento manual; a 7ª é reserva
 const VISTOS_POSICAO_RESERVADA = 7; // deve ser igual a N_ATIV
 const TRIMESTRES = [1, 2, 3];
 const TURMAS_FIXAS = ['8ºA','8ºB','8ºC','9ºA','9ºB','9ºC'];
+
+// ─── QUADRO DE HORÁRIOS · E.M. ALBERTINA ALVES DO NASCIMENTO (TURNO DA MANHÃ) ──
+const HORARIO_TURMAS = ['5ºA','6ºA','6ºB','6ºC','7ºA','7ºB','7ºC','8ºA','8ºB','8ºC','9ºA','9ºB','9ºC'];
+const HORARIO_TURMAS_EVERTON = ['8ºA','8ºB','8ºC','9ºA','9ºB','9ºC'];
+const HORARIO_DATA = [
+  {"dia":"SEGUNDA","hor":"07:00","t":{"5ºA":"PORT","6ºA":"PORT2","6ºB":"PORT1","6ºC":"E.FIS1","7ºA":"GEO1","7ºB":"MAT1","7ºC":"HIST1","8ºA":"MAT2","8ºB":"E.REL","8ºC":"GEO2","9ºA":"MAT3","9ºB":"PORT3","9ºC":"HIST2"},"apg":"ARTE1"},
+  {"dia":null,"hor":"07:50","t":{"5ºA":"GEO","6ºA":"MAT2","6ºB":"GEO1","6ºC":"PORT3","7ºA":"E.REL","7ºB":"E.FIS1","7ºC":"MAT1","8ºA":"GEO2","8ºB":"PORT2","8ºC":"E.FIS2","9ºA":"HIST2","9ºB":"MAT3","9ºC":"ARTE2"},"apg":"PORT1"},
+  {"dia":null,"hor":"08:40","t":{"5ºA":"HIST","6ºA":"GEO1","6ºB":"MAT3","6ºC":"ARTE1","7ºA":"HIST1","7ºB":"PORT1","7ºC":"E.REL","8ºA":"PORT2","8ºB":"E.FIS2","8ºC":"ARTE2","9ºA":"GEO2","9ºB":"HIST2","9ºC":"PORT3"},"apg":"MAT1, E.FIS1"},
+  {"dia":null,"hor":"09:50","t":{"5ºA":"CIÊN","6ºA":"ARTE1","6ºB":"E.FIS1","6ºC":"GEO1","7ºA":"MAT1","7ºB":"HIST1","7ºC":"PORT1","8ºA":"E.REL","8ºB":"HIST2","8ºC":"MAT2","9ºA":"PORT3","9ºB":"GEO2","9ºC":"MAT3"},"apg":"E.FIS2, ARTE2"},
+  {"dia":null,"hor":"10:40","t":{"5ºA":"MAT","6ºA":"E.FIS1","6ºB":"HIST1","6ºC":"MAT1","7ºA":"PORT1","7ºB":"E.REL","7ºC":"ARTE1","8ºA":"HIST2","8ºB":"MAT2","8ºC":"PORT2","9ºA":"E.FIS2","9ºB":"ARTE2","9ºC":"GEO2"},"apg":"MAT3"},
+  {"dia":"TERÇA","hor":"07:00","t":{"5ºA":"PORT","6ºA":"E.REL","6ºB":"ING1","6ºC":"HIST1","7ºA":"GEO1","7ºB":"ARTE1","7ºC":"CIÊN1","8ºA":"PORT2","8ºB":"ING2","8ºC":"ARTE2","9ºA":"HIST2","9ºB":"CIÊN2","9ºC":"GEO2"},"apg":"PORT3"},
+  {"dia":null,"hor":"07:50","t":{"5ºA":"PORT","6ºA":"PORT2","6ºB":"HIST1","6ºC":"CIÊN1","7ºA":"PORT1","7ºB":"GEO1","7ºC":"ING1","8ºA":"HIST2","8ºB":"GEO2","8ºC":"CIÊN2","9ºA":"E.REL","9ºB":"PORT3","9ºC":"ING2"},"apg":"ARTE2, ARTE1"},
+  {"dia":null,"hor":"08:40","t":{"5ºA":"HIST","6ºA":"HIST1","6ºB":"GEO1","6ºC":"PORT3","7ºA":"ING1","7ºB":"PORT1","7ºC":"E.REL","8ºA":"CIÊN2","8ºB":"PORT2","8ºC":"ING2","9ºA":"ARTE2","9ºB":"GEO2","9ºC":"HIST2"},"apg":"ARTE1"},
+  {"dia":null,"hor":"09:50","t":{"5ºA":"MAT","6ºA":"GEO1","6ºB":"E.REL","6ºC":"ARTE1","7ºA":"HIST1","7ºB":"CIÊN1","7ºC":"PORT1","8ºA":"ARTE2","8ºB":"CIÊN2","8ºC":"GEO2","9ºA":"ING2","9ºB":"HIST2","9ºC":"PORT3"},"apg":"ING1"},
+  {"dia":null,"hor":"10:40","t":{"5ºA":"MAT","6ºA":"CIÊN1","6ºB":"PORT1","6ºC":"E.REL","7ºA":"ARTE1","7ºB":"HIST1","7ºC":"GEO1","8ºA":"ING2","8ºB":"HIST2","8ºC":"PORT2","9ºA":"PORT3","9ºB":"ARTE2","9ºC":"CIÊN2"},"apg":"ING1"},
+  {"dia":"QUARTA","hor":"07:00","t":{"5ºA":"E.FIS1","6ºA":"HIST1","6ºB":"E.REL","6ºC":"GEO1","7ºA":"CIÊN1","7ºB":"ARTE1","7ºC":"MAT1","8ºA":"MAT2","8ºB":"ARTE2","8ºC":"HIST2","9ºA":"ING2","9ºB":"CIÊN2","9ºC":"GEO2"},"apg":"ING1"},
+  {"dia":null,"hor":"07:50","t":{"5ºA":"E.FIS1","6ºA":"ING1","6ºB":"ARTE1","6ºC":"MAT1","7ºA":"GEO1","7ºB":"HIST1","7ºC":"CIÊN1","8ºA":"GEO2","8ºB":"ING2","8ºC":"CIÊN2","9ºA":"MAT3","9ºB":"HIST2","9ºC":"E.FIS2"},"apg":"ARTE2, MAT2"},
+  {"dia":null,"hor":"08:40","t":{"5ºA":"ING1","6ºA":"E.REL","6ºB":"CIÊN1","6ºC":"HIST1","7ºA":"E.FIS1","7ºB":"MAT1","7ºC":"GEO1","8ºA":"ARTE2","8ºB":"MAT2","8ºC":"GEO2","9ºA":"CIÊN2","9ºB":"ING2","9ºC":"MAT3"},"apg":"ARTE1, E.FIS2"},
+  {"dia":null,"hor":"09:50","t":{"5ºA":"ARTE1","6ºA":"CIÊN1","6ºB":"MAT3","6ºC":"ING1","7ºA":"MAT1","7ºB":"GEO1","7ºC":"HIST1","8ºA":"HIST2","8ºB":"CIÊN2","8ºC":"MAT2","9ºA":"GEO2","9ºB":"E.REL","9ºC":"ING2"},"apg":"E.FIS1, E.FIS2"},
+  {"dia":null,"hor":"10:40","t":{"5ºA":"ARTE1","6ºA":"MAT2","6ºB":"GEO1","6ºC":"CIÊN1","7ºA":"HIST1","7ºB":"ING1","7ºC":"E.FIS1","8ºA":"ING2","8ºB":"GEO2","8ºC":"E.FIS2","9ºA":"HIST2","9ºB":"MAT3","9ºC":"CIÊN2"},"apg":"ARTE2, MAT1"},
+  {"dia":"QUINTA","hor":"07:00","t":{"5ºA":"E.FIS1","6ºA":"ARTE1","6ºB":"HIST1","6ºC":"MAT1","7ºA":"PORT1","7ºB":"CIÊN1","7ºC":"ING1","8ºA":"MAT2","8ºB":"HIST2","8ºC":"PORT2","9ºA":"E.FIS2","9ºB":"PORT3","9ºC":"ARTE2"},"apg":"MAT3"},
+  {"dia":null,"hor":"07:50","t":{"5ºA":"PORT","6ºA":"E.FIS1","6ºB":"MAT3","6ºC":"ING1","7ºA":"CIÊN1","7ºB":"PORT1","7ºC":"HIST1","8ºA":"CIÊN2","8ºB":"PORT2","8ºC":"MAT2","9ºA":"PORT3","9ºB":"ING2","9ºC":"HIST2"},"apg":"E.FIS2, ARTE2"},
+  {"dia":null,"hor":"08:40","t":{"5ºA":"CIÊN","6ºA":"HIST1","6ºB":"ARTE1","6ºC":"PORT3","7ºA":"MAT1","7ºB":"E.FIS1","7ºC":"PORT1","8ºA":"PORT2","8ºB":"CIÊN2","8ºC":"ING2","9ºA":"ARTE2","9ºB":"E.FIS2","9ºC":"MAT3"},"apg":"ING1"},
+  {"dia":null,"hor":"09:50","t":{"5ºA":"MAT","6ºA":"PORT2","6ºB":"CIÊN1","6ºC":"HIST1","7ºA":"E.FIS1","7ºB":"MAT1","7ºC":"ARTE1","8ºA":"ING2","8ºB":"MAT2","8ºC":"HIST2","9ºA":"MAT3","9ºB":"CIÊN2","9ºC":"E.FIS2"},"apg":"PORT3, ARTE2"},
+  {"dia":null,"hor":"10:40","t":{"5ºA":"MAT","6ºA":"MAT2","6ºB":"PORT1","6ºC":"CIÊN1","7ºA":"ARTE1","7ºB":"ING1","7ºC":"MAT1","8ºA":"E.FIS2","8ºB":"ARTE2","8ºC":"HIST2","9ºA":"ING2","9ºB":"MAT3","9ºC":"PORT3"},"apg":""},
+  {"dia":"SEXTA","hor":"07:00","t":{"5ºA":"GEO","6ºA":"PORT2","6ºB":"E.FIS1","6ºC":"PORT3","7ºA":"E.REL","7ºB":"CIÊN1","7ºC":"MAT1","8ºA":"MAT2","8ºB":"E.FIS2","8ºC":"ING2","9ºA":"CIÊN2","9ºB":"GEO2","9ºC":"MAT3"},"apg":"PORT1"},
+  {"dia":null,"hor":"07:50","t":{"5ºA":"MAT","6ºA":"ING1","6ºB":"CIÊN1","6ºC":"GEO1","7ºA":"PORT1","7ºB":"E.REL","7ºC":"E.FIS1","8ºA":"GEO2","8ºB":"MAT2","8ºC":"PORT2","9ºA":"CIÊN2","9ºB":"MAT3","9ºC":"ING2"},"apg":"HIST2"},
+  {"dia":null,"hor":"08:40","t":{"5ºA":"PORT","6ºA":"CIÊN1","6ºB":"ING1","6ºC":"E.REL","7ºA":"MAT1","7ºB":"GEO1","7ºC":"PORT1","8ºA":"CIÊN2","8ºB":"PORT2","8ºC":"MAT2","9ºA":"GEO2","9ºB":"ING2","9ºC":"PORT3"},"apg":"E.FIS2"},
+  {"dia":null,"hor":"09:50","t":{"5ºA":"E.REL","6ºA":"GEO1","6ºB":"MAT3","6ºC":"MAT1","7ºA":"ING1","7ºB":"PORT1","7ºC":"CIÊN1","8ºA":"PORT2","8ºB":"GEO2","8ºC":"CIÊN2","9ºA":"PORT3","9ºB":"E.FIS2","9ºC":"E.REL"},"apg":"E.FIS1, MAT2"},
+  {"dia":null,"hor":"10:40","t":{"5ºA":"ING1","6ºA":"MAT2","6ºB":"PORT1","6ºC":"E.FIS1","7ºA":"CIÊN1","7ºB":"MAT1","7ºC":"GEO1","8ºA":"E.FIS2","8ºB":"ING2","8ºC":"E.REL","9ºA":"MAT3","9ºB":"PORT3","9ºC":"CIÊN2"},"apg":"PORT2"}
+];
+
+function renderizarHorarios() {
+  const thead = document.getElementById('theadHorarios');
+  const corpo = document.getElementById('corpoHorarios');
+  if (!thead || !corpo) return;
+
+  // Cabeçalho
+  thead.innerHTML = '<th class="th-dia">DIA</th><th class="th-hor">HOR.</th>' +
+    HORARIO_TURMAS.map(t => {
+      const isEv = HORARIO_TURMAS_EVERTON.includes(t);
+      return `<th class="${isEv ? 'th-everton' : ''}">${t}${isEv ? ' 🌍' : ''}</th>`;
+    }).join('') +
+    '<th>APG</th>';
+
+  // Corpo — agrupa por dia usando rowspan (5 horários por dia)
+  let html = '';
+  let totalGeo2 = 0;
+  let i = 0;
+  while (i < HORARIO_DATA.length) {
+    const diaAtual = HORARIO_DATA[i].dia;
+    let span = 0;
+    let j = i;
+    while (j < HORARIO_DATA.length && (j === i || !HORARIO_DATA[j].dia)) { span++; j++; }
+
+    for (let k = i; k < j; k++) {
+      const row = HORARIO_DATA[k];
+      html += '<tr>';
+      if (k === i) html += `<td class="td-dia" rowspan="${span}">${diaAtual}</td>`;
+      html += `<td class="td-hor">${row.hor}</td>`;
+      HORARIO_TURMAS.forEach(t => {
+        const val = row.t[t] || '';
+        const isGeo2 = val === 'GEO2';
+        const isEvCol = HORARIO_TURMAS_EVERTON.includes(t);
+        if (isGeo2) totalGeo2++;
+        html += `<td class="td-aula ${val ? '' : 'td-vazio'} ${isGeo2 ? 'td-geo2' : (isEvCol ? 'td-everton-col' : '')}">${val || '—'}</td>`;
+      });
+      html += `<td class="td-aula td-apg">${row.apg || '—'}</td>`;
+      html += '</tr>';
+    }
+    i = j;
+  }
+  corpo.innerHTML = html;
+
+  const resumo = document.getElementById('hre-total-aulas');
+  if (resumo) resumo.textContent = totalGeo2 + ' aulas/semana (GEO2)';
+}
 
 // ─── ESTADO DA SESSÃO ────────────────────────────────────────────────────────
 // sessão: { profId, nome, isEverton, turmas[], turmaReferencia }
@@ -2191,6 +2334,7 @@ function construirNav() {
     tabs.push({ id: 'turmas',      icon: '🏫', label: 'Gestão de Turmas' });
     tabs.push({ id: 'notas',       icon: '📊', label: 'Diário de Notas' });
     tabs.push({ id: 'diario',      icon: '🧭', label: 'Diário de Campo' });
+    tabs.push({ id: 'horarios',    icon: '🗓️', label: 'Quadro de Horários' });
     tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
     tabs.push({ id: 'relatorios',  icon: '📋', label: 'Pendências' });
     tabs.push({ id: 'anotacoes',   icon: '📝', label: 'Anotações · ' + (sessao.turmaReferencia || '—') });
@@ -2200,6 +2344,7 @@ function construirNav() {
     tabs.push({ id: 'turmas',      icon: '📚', label: 'Minhas Turmas' });
     tabs.push({ id: 'notas',       icon: '📊', label: 'Diário de Notas' });
     tabs.push({ id: 'diario',      icon: '🧭', label: 'Diário de Campo' });
+    tabs.push({ id: 'horarios',    icon: '🗓️', label: 'Quadro de Horários' });
     tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
     tabs.push({ id: 'relatorios',  icon: '📋', label: 'Pendências' });
     if (sessao && sessao.turmaReferencia)
@@ -2251,6 +2396,7 @@ function goTab(tab) {
     const f = document.getElementById('diario-iframe');
     if (f && !f.src) f.src = f.dataset.src;
   }
+  if (tab === 'horarios') { renderizarHorarios(); }
 }
 
 // ─── HELPERS SEXO / ETNIA ────────────────────────────────────────────────────
