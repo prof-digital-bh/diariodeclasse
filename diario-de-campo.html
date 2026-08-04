@@ -525,11 +525,14 @@
   table.vistos-table th{
     background:var(--paper);font-family:var(--font-body);font-weight:600;font-size:11.5px;
     color:var(--ink-soft);padding:8px 6px;vertical-align:bottom;
+    /* trava o cabeçalho da tabela (nomes dos alunos / códigos das atividades)
+       no topo ao rolar a lista de alunos */
+    position:sticky;top:0;z-index:3;
   }
-  table.vistos-table th.vistos-th-aluno{text-align:left;position:sticky;left:0;background:var(--paper);z-index:2;min-width:170px;}
+  table.vistos-table th.vistos-th-aluno{text-align:left;position:sticky;left:0;top:0;background:var(--paper);z-index:4;min-width:170px;}
   table.vistos-table th.vistos-th-entry{max-width:70px;white-space:nowrap;}
   table.vistos-table th.vistos-th-entry .th-codigo{font-family:var(--font-mono);color:var(--teal-text);font-size:13px;font-weight:700;}
-  table.vistos-table th.vistos-th-total{background:var(--ink);color:#fff;min-width:80px;}
+  table.vistos-table th.vistos-th-total{background:var(--ink);color:#fff;min-width:80px;position:sticky;top:0;z-index:3;}
   table.vistos-table td.vistos-td-aluno{
     text-align:left;padding:8px 10px;font-weight:500;position:sticky;left:0;background:var(--paper-raised);z-index:1;
   }
@@ -1878,6 +1881,11 @@ document.getElementById('mode-toggle').addEventListener('click', (ev)=>{
   document.getElementById('plan-viewer').style.display = viewMode==='plan' ? '' : 'none';
   document.getElementById('vistos-viewer').style.display = viewMode==='vistos' ? '' : 'none';
   document.querySelector('.filters').style.display = (viewMode==='plan' || viewMode==='vistos') ? 'none' : '';
+  // Na aba de Vistos não faz sentido travar a barra de estatísticas
+  // (registros/ministrados/planejados) no topo: quem precisa ficar
+  // travado ali é o cabeçalho da própria tabela (nomes dos alunos e
+  // códigos das atividades), então escondemos a barra inteira.
+  document.querySelector('.toolbar-sticky').style.display = viewMode==='vistos' ? 'none' : '';
   document.getElementById('f-status').style.display = viewMode==='list' ? '' : 'none';
   document.getElementById('book-mode-note').style.display = viewMode==='book' ? '' : 'none';
   if(viewMode==='book'){ bookIndex = 0; renderBook(); }
