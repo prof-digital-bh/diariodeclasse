@@ -32,6 +32,15 @@
     --moss:#16a34a;
     --moss-bg:#bbf7d0;
     --moss-text:#166534;
+    --violet:#7c3aed;
+    --violet-bg:#ede9fe;
+    --violet-text:#5b21b6;
+    --rose:#db2777;
+    --rose-bg:#fce7f3;
+    --rose-text:#9d174d;
+    --stone:#57534e;
+    --stone-bg:#e7e5e4;
+    --stone-text:#44403c;
     --radius-sm:8px;
     --radius-md:10px;
     --radius-lg:16px;
@@ -232,6 +241,9 @@
   .card .spine.tipo-G{background:var(--teal);}
   .card .spine.tipo-A{background:var(--ochre);}
   .card .spine.tipo-P{background:var(--clay);}
+  .card .spine.tipo-S{background:var(--violet);}
+  .card .spine.tipo-PC{background:var(--rose);}
+  .card .spine.tipo-OT{background:var(--stone);}
   .card .body{flex:1;min-width:0;}
   .card .row1{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
   .stamp{
@@ -244,9 +256,13 @@
   .stamp.tipo-G{color:var(--teal-text);background:var(--teal-bg);border-color:transparent;}
   .stamp.tipo-A{color:var(--ochre-text);background:var(--ochre-bg);border-color:transparent;}
   .stamp.tipo-P{color:var(--clay-text);background:var(--clay-bg);border-color:transparent;}
+  .stamp.tipo-S{color:var(--violet-text);background:var(--violet-bg);border-color:transparent;}
+  .stamp.tipo-PC{color:var(--rose-text);background:var(--rose-bg);border-color:transparent;}
+  .stamp.tipo-OT{color:var(--stone-text);background:var(--stone-bg);border-color:transparent;}
   .tema{font-family:var(--font-display);font-weight:600;font-size:16.5px;}
+  .status-pills{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;}
   .status-pill{
-    font-size:11px;font-weight:500;padding:2px 9px;border-radius:999px;margin-left:auto;
+    font-size:11px;font-weight:500;padding:2px 9px;border-radius:999px;
     display:flex;align-items:center;gap:4px;
   }
   .status-pill.planejado{background:var(--slate-bg);color:var(--slate-text);}
@@ -349,6 +365,7 @@
   .mode-btn:hover{background:var(--paper);border-color:var(--line-strong);}
   .mode-btn.active{background:var(--ink);color:#fff;}
   .book-mode-note{font-size:12px;color:var(--ink-faint);font-style:italic;}
+  .field-hint{font-size:12px;color:var(--ink-faint);margin-top:6px;}
 
   /* book (didactic textbook) links in sidebar */
   .book-links{display:flex;flex-direction:column;gap:6px;}
@@ -800,6 +817,9 @@
         <button class="chip" data-tipo="G">G</button>
         <button class="chip" data-tipo="A">A</button>
         <button class="chip" data-tipo="P">P</button>
+        <button class="chip" data-tipo="S">S</button>
+        <button class="chip" data-tipo="PC">PC</button>
+        <button class="chip" data-tipo="OT">OT</button>
       </div>
       <div class="chip-toggle" id="f-status">
         <button class="chip active" data-status="all">Status: todos</button>
@@ -872,6 +892,9 @@
             <div class="radio-opt" data-val="G">G · registro</div>
             <div class="radio-opt" data-val="A">A · atividade</div>
             <div class="radio-opt" data-val="P">P · pesquisa</div>
+            <div class="radio-opt" data-val="S">S · suplementar</div>
+            <div class="radio-opt" data-val="PC">PC · para casa</div>
+            <div class="radio-opt" data-val="OT">OT · outros</div>
           </div>
         </div>
         <div class="field">
@@ -903,10 +926,11 @@
 
       <div class="field">
         <label>Status</label>
-        <div class="radio-group" id="r-status">
+        <div class="radio-group multi-select" id="r-status">
           <div class="radio-opt" data-val="planejado">Planejado</div>
           <div class="radio-opt" data-val="ministrado">Ministrado</div>
         </div>
+        <div class="field-hint">Um registro ministrado também conta como planejado — marque os dois quando fizer sentido.</div>
       </div>
 
       <div class="field">
@@ -1237,6 +1261,7 @@ async function loadEntries(){
   let migrated = false;
   entries.forEach((e,i)=>{
     if(!e.criadoEm){ e.criadoEm = Date.now() - (entries.length - i) * 1000; migrated = true; }
+    if(!Array.isArray(e.status)){ e.status = statusArray(e.status); migrated = true; }
   });
   if(migrated) await saveEntries();
   renderAll();
@@ -1262,6 +1287,15 @@ const TRIM_COLOR = {
 function iconCalendar(){return '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>';}
 function iconBook(){return '<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20V4H6.5A2.5 2.5 0 004 6.5v13z"/><path d="M4 19.5V6.5"/></svg>';}
 function iconLink(){return '<svg viewBox="0 0 24 24"><path d="M9 15l6-6M10 6l1-1a4 4 0 016 6l-1 1M14 18l-1 1a4 4 0 01-6-6l1-1"/></svg>';}
+/* normaliza o campo status: aceita tanto o formato antigo (string única)
+   quanto o novo (array), pois um registro pode estar Planejado e Ministrado ao mesmo tempo. */
+function statusArray(status){
+  if(Array.isArray(status)) return status;
+  if(status === 'ministrado') return ['planejado','ministrado']; // todo ministrado já foi planejado
+  if(status === 'planejado') return ['planejado'];
+  return status ? [status] : ['planejado'];
+}
+function hasStatus(e, s){ return statusArray(e.status).includes(s); }
 function iconCheck(){return '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>';}
 function iconClock(){return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';}
 function iconEdit(){return '<svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>';}
@@ -1305,7 +1339,7 @@ function filteredEntries(){
     if(e.turma !== activeTurma) return false;
     if(filters.trimestre !== 'all' && String(e.trimestre) !== filters.trimestre) return false;
     if(filters.tipo !== 'all' && e.tipo !== filters.tipo) return false;
-    if(filters.status !== 'all' && e.status !== filters.status) return false;
+    if(filters.status !== 'all' && !hasStatus(e, filters.status)) return false;
     if(filters.search){
       const hay = [e.tema,e.topico,e.codigo,e.paginas,e.observacoes].join(' ').toLowerCase();
       if(!hay.includes(filters.search.toLowerCase())) return false;
@@ -1354,7 +1388,10 @@ function renderCard(e){
       <div class="row1">
         ${e.codigo ? `<span class="stamp tipo-${e.tipo}">${escapeHtml(e.codigo)}</span>` : `<span class="stamp tipo-${e.tipo}">${e.tipo}</span>`}
         <span class="tema">${escapeHtml(e.tema)}</span>
-        <span class="status-pill ${e.status}">${e.status==='ministrado'?iconCheck():iconClock()}${e.status==='ministrado'?'Ministrado':'Planejado'}</span>
+        <div class="status-pills">
+          ${hasStatus(e,'planejado') ? `<span class="status-pill planejado">${iconClock()}Planejado</span>` : ''}
+          ${hasStatus(e,'ministrado') ? `<span class="status-pill ministrado">${iconCheck()}Ministrado</span>` : ''}
+        </div>
       </div>
       ${e.topico ? `<div class="topico">${escapeHtml(e.topico)}</div>` : ''}
       <div class="turmas-row">${turmasPillsHtml(e)}</div>
@@ -1373,7 +1410,7 @@ function renderCard(e){
 function ministradoPages(){
   return entries.filter(e=>{
     if(e.turma !== activeTurma) return false;
-    if(e.status !== 'ministrado') return false;
+    if(!hasStatus(e,'ministrado')) return false;
     if(filters.trimestre !== 'all' && String(e.trimestre) !== filters.trimestre) return false;
     if(filters.tipo !== 'all' && e.tipo !== filters.tipo) return false;
     if(filters.search){
@@ -1774,7 +1811,7 @@ function getPlanEntry(turma, trimestre){
 }
 
 function ministradoLines(turma, trimestre){
-  return entries.filter(e=> e.turma===turma && String(e.trimestre)===String(trimestre) && e.status==='ministrado')
+  return entries.filter(e=> e.turma===turma && String(e.trimestre)===String(trimestre) && hasStatus(e,'ministrado'))
     .sort((a,b)=> (a.tipo+a.codigo).localeCompare(b.tipo+b.codigo))
     .map(e=>{
       let line = e.codigo ? `${e.codigo} – ${e.tema}` : e.tema;
@@ -1813,7 +1850,7 @@ function renderPlan(){
         </div>
       </div>
       <div class="plan-legend">
-        As letras G, A e P representam tipos de abordagens para os conteúdos. Sendo G: registros dos assuntos e/ou correções; A: atividades em folha e/ou do livro didático; P: pesquisas solicitadas e entregues em folhas separadas e/ou registradas no caderno.
+        As letras G, A, P, S, PC e OT representam tipos de abordagens para os conteúdos. Sendo G: registros dos assuntos e/ou correções; A: atividades em folha e/ou do livro didático; P: pesquisas solicitadas e entregues em folhas separadas e/ou registradas no caderno; S: atividades suplementares; PC: atividades para casa; OT: outros tipos de registro.
       </div>
       <div class="plan-signatures">
         <div class="sig-block"><span>Assinatura</span><span>Data</span></div>
@@ -1858,7 +1895,7 @@ document.getElementById('btn-plan-copy').addEventListener('click', async ()=>{
     '',
     'Estratégia utilizada: ' + pe.estrategias,
     '',
-    'As letras G, A e P representam tipos de abordagens para os conteúdos. Sendo G: registros dos assuntos e/ou correções; A: atividades em folha e/ou do livro didático; P: pesquisas solicitadas e entregues em folhas separadas e/ou registradas no caderno.',
+    'As letras G, A, P, S, PC e OT representam tipos de abordagens para os conteúdos. Sendo G: registros dos assuntos e/ou correções; A: atividades em folha e/ou do livro didático; P: pesquisas solicitadas e entregues em folhas separadas e/ou registradas no caderno; S: atividades suplementares; PC: atividades para casa; OT: outros tipos de registro.',
   ].join('\n');
   const btn = document.getElementById('btn-plan-copy');
   const original = btn.textContent;
@@ -2367,8 +2404,8 @@ async function vistosBackfillTudo(){
 function renderStats(){
   const list = entries.filter(e=>e.turma===activeTurma);
   document.getElementById('stat-total').textContent = list.length;
-  document.getElementById('stat-ministrado').textContent = list.filter(e=>e.status==='ministrado').length;
-  document.getElementById('stat-planejado').textContent = list.filter(e=>e.status==='planejado').length;
+  document.getElementById('stat-ministrado').textContent = list.filter(e=>hasStatus(e,'ministrado')).length;
+  document.getElementById('stat-planejado').textContent = list.filter(e=>hasStatus(e,'planejado')).length;
 }
 
 /* ---------- modal / form ---------- */
@@ -2384,12 +2421,50 @@ function getRadioValue(groupId){
   const sel = document.querySelector(`#${groupId} .radio-opt.selected`);
   return sel ? sel.dataset.val : null;
 }
-document.querySelectorAll('.radio-group').forEach(group=>{
+document.querySelectorAll('.radio-group:not(.multi-select)').forEach(group=>{
   group.addEventListener('click', (ev)=>{
     const opt = ev.target.closest('.radio-opt');
     if(!opt) return;
     group.querySelectorAll('.radio-opt').forEach(o=>o.classList.remove('selected'));
     opt.classList.add('selected');
+  });
+});
+
+/* status: seleção múltipla — um registro pode estar Planejado e Ministrado ao mesmo tempo,
+   já que todo Ministrado necessariamente já foi Planejado. */
+function setStatusGroup(groupId, values){
+  const vals = Array.isArray(values) ? values : [values];
+  document.querySelectorAll(`#${groupId} .radio-opt`).forEach(el=>{
+    el.classList.toggle('selected', vals.includes(el.dataset.val));
+  });
+}
+function getStatusValues(groupId){
+  return Array.from(document.querySelectorAll(`#${groupId} .radio-opt.selected`)).map(el=>el.dataset.val);
+}
+document.querySelectorAll('.radio-group.multi-select').forEach(group=>{
+  group.addEventListener('click', (ev)=>{
+    const opt = ev.target.closest('.radio-opt');
+    if(!opt) return;
+    const val = opt.dataset.val;
+    const planejadoOpt = group.querySelector('[data-val="planejado"]');
+    const ministradoOpt = group.querySelector('[data-val="ministrado"]');
+    const turningOn = !opt.classList.contains('selected');
+
+    if(val === 'ministrado'){
+      opt.classList.toggle('selected', turningOn);
+      if(turningOn && planejadoOpt) planejadoOpt.classList.add('selected'); // ministrado sempre implica planejado
+    }else if(val === 'planejado'){
+      if(!turningOn && ministradoOpt && ministradoOpt.classList.contains('selected')){
+        // não pode desmarcar "planejado" enquanto "ministrado" estiver marcado
+        return;
+      }
+      opt.classList.toggle('selected', turningOn);
+    }else{
+      opt.classList.toggle('selected', turningOn);
+    }
+
+    // nunca deixar o grupo sem nenhuma opção marcada
+    if(!group.querySelector('.radio-opt.selected') && planejadoOpt) planejadoOpt.classList.add('selected');
   });
 });
 
@@ -2425,7 +2500,7 @@ function openModal(id){
 
   setRadioGroup('r-turma', e ? e.turma : activeTurma);
   setRadioGroup('r-tipo', e ? e.tipo : 'G');
-  setRadioGroup('r-status', e ? e.status : 'planejado');
+  setStatusGroup('r-status', e ? statusArray(e.status) : ['planejado']);
   document.getElementById('f-trim-input').value = e ? e.trimestre : (filters.trimestre !== 'all' ? filters.trimestre : '1');
   document.getElementById('f-codigo').value = e ? e.codigo : '';
   document.getElementById('f-tema').value = e ? e.tema : '';
@@ -2496,7 +2571,7 @@ form.addEventListener('submit', (ev)=>{
     topico: document.getElementById('f-topico').value.trim(),
     paginas: document.getElementById('f-paginas').value.trim(),
     data: document.getElementById('f-data').value,
-    status: getRadioValue('r-status') || 'planejado',
+    status: getStatusValues('r-status').length ? getStatusValues('r-status') : ['planejado'],
     observacoes: document.getElementById('f-obs').value.trim(),
     links,
     turmasDetalhe,
