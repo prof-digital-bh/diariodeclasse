@@ -4436,8 +4436,8 @@ function renderizarNotas() {
   let row2 = '<tr>';
   for (let i = 1; i <= N_ATIV; i++) {
     const aNome = ativ['t'+tr][i-1].nome || '';
-    const aValor = ativ['t'+tr][i-1].valor || '';
     const hasName = aNome.trim() !== '';
+    const aValor = hasName ? (ativ['t'+tr][i-1].valor || '') : ''; // sem nome, não exibe um valor "órfão" preso de antes
     const borderLeft = i===1 ? `border-left:2px solid ${c.border}` : '';
     const borderRight = i===N_ATIV ? `border-right:2px solid ${c.border}` : '';
     const isVistos = i === VISTOS_POSICAO_RESERVADA;
@@ -4509,9 +4509,13 @@ function renderizarNotas() {
 function salvarNomeAtiv(t, tr, idx, nome) {
   garantirAtividades(t);
   db.atividades[t]['t'+tr][idx].nome = nome;
+  if (nome.trim() === '') db.atividades[t]['t'+tr][idx].valor = ''; // sem nome, não faz sentido manter um valor "preso"
   salvar();
   const valInput = document.getElementById('hdr-val-t'+tr+'-a'+(idx+1)+'-'+t);
-  if (valInput) valInput.disabled = (nome.trim() === '' || db.status[t] === 'fechado');
+  if (valInput) {
+    valInput.disabled = (nome.trim() === '' || db.status[t] === 'fechado');
+    if (nome.trim() === '') valInput.value = '';
+  }
   _atualizarTotalHeader(t, tr);
 }
 function salvarValorAtiv(t, tr, idx, valor) {
