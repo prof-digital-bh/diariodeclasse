@@ -579,31 +579,42 @@
   .vistos-sync.ok{color:var(--moss-text);}
   .vistos-sync.error{color:var(--clay-text);}
 
-  /* impressão da listagem de vistos — só o conteúdo de #vistos-print-area aparece */
+  /* impressão da listagem de vistos — só o conteúdo de #vistos-print-area aparece.
+     O container vira uma coluna flexível do tamanho exato da folha (100vh na
+     visualização de impressão), com a tabela ocupando o espaço disponível e o
+     rodapé (legenda de vistos + lista de atividades) fixado embaixo — assim
+     tudo cabe numa única página. O tamanho da fonte da tabela é ajustado via
+     JS (ajustarImpressaoVistos) conforme o número de alunos/atividades. */
   #vistos-print-area{display:none;}
   @media print{
     @page{ size: landscape; margin: 9mm; }
     body *{ visibility:hidden; }
     #vistos-print-area, #vistos-print-area *{ visibility:visible; }
     #vistos-print-area{
-      display:block; position:absolute; top:0; left:0; width:100%; margin:0; padding:0;
-      background:#fff;
+      display:flex; flex-direction:column;
+      position:absolute; top:0; left:0; width:100%; height:100vh;
+      margin:0; padding:0; background:#fff; overflow:hidden;
     }
   }
-  .pv-header{text-align:center;margin-bottom:10px;}
-  .pv-header h1{font-family:var(--font-display);font-size:19px;font-weight:700;margin:0 0 2px;color:#000;}
-  .pv-header .pv-sub{font-family:var(--font-body);font-size:11px;color:#444;}
-  table.pv-table{width:100%;border-collapse:collapse;table-layout:fixed;font-family:var(--font-body);font-size:10px;}
-  table.pv-table th, table.pv-table td{border:1px solid #888;padding:3px 2px;text-align:center;color:#000;}
+  .pv-header{text-align:center;margin-bottom:8px;flex:none;}
+  .pv-header h1{font-family:var(--font-display);font-size:18px;font-weight:700;margin:0 0 2px;color:#000;}
+  .pv-header .pv-sub{font-family:var(--font-body);font-size:10.5px;color:#444;}
+  .pv-table-wrap{flex:1 1 auto;min-height:0;overflow:hidden;}
+  table.pv-table{width:100%;height:100%;border-collapse:collapse;table-layout:fixed;font-family:var(--font-body);font-size:10px;}
+  table.pv-table th, table.pv-table td{border:1px solid #888;padding:2px 2px;text-align:center;color:#000;overflow:hidden;}
   table.pv-table thead th{font-weight:700;font-family:var(--font-mono);}
-  table.pv-table th.pv-aluno-th, table.pv-table td.pv-aluno{text-align:left;padding-left:6px;width:150px;}
+  table.pv-table th.pv-aluno-th, table.pv-table td.pv-aluno{text-align:left;padding-left:6px;width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   table.pv-table td.pv-total{font-weight:700;}
-  table.pv-table tr{page-break-inside:avoid;}
   .pv-cell.ok{background:#d7f3de;}
   .pv-cell.pm{background:#fde8c2;}
   .pv-cell.nf{background:#fbd7d7;}
   .pv-cell.fp{background:#dbe7fb;}
-  .pv-legend{margin-top:9px;font-family:var(--font-body);font-size:9.5px;color:#333;text-align:center;}
+  .pv-footer{flex:none;margin-top:6px;}
+  .pv-legend{font-family:var(--font-body);font-size:9px;color:#333;text-align:center;}
+  .pv-atividades{margin-top:4px;padding-top:4px;border-top:1px solid #ccc;font-family:var(--font-body);font-size:7px;line-height:1.5;color:#333;}
+  .pv-atividades-title{font-weight:700;font-size:7.5px;text-transform:uppercase;letter-spacing:.03em;color:#000;margin-bottom:2px;}
+  .pv-atividades-list{display:flex;flex-wrap:wrap;gap:2px 14px;}
+  .pv-atividades-list span{white-space:nowrap;}
 
   /* planejamento view */
   .plan-viewer{margin-top:6px;}
@@ -1365,7 +1376,7 @@ function render(){
   }
   const byTrim = {};
   list.forEach(e=>{ (byTrim[e.trimestre] = byTrim[e.trimestre]||[]).push(e); });
-  const trims = Object.keys(byTrim).sort((a,b)=>a-b);
+  const trims = Object.keys(byTrim).sort((a,b)=>b-a);
   let html = '';
   trims.forEach(t=>{
     const items = byTrim[t].sort(byRecencyDesc);
@@ -2243,19 +2254,76 @@ async function imprimirVistos(){
     return `<tr><td class="pv-aluno">${escapeHtml(nome)}</td>${cells}<td class="pv-total">${total}</td></tr>`;
   }).join('');
 
+  // legenda das atividades (código – tópico/tema – páginas – data), em fonte
+  // reduzida, para o professor identificar cada coluna sem precisar de tooltip
+  const atividadesLegenda = cols.map(e=>{
+    const info = (e.turmasDetalhe && e.turmasDetalhe[vistosSub]) || {};
+    const d = formatDateShort(info.data);
+    const partes = [`<strong>${escapeHtml(e.codigo || '—')}</strong>`];
+    partes.push(escapeHtml(e.topico || e.tema));
+    if(e.paginas) partes.push('p. ' + escapeHtml(e.paginas));
+    if(d) partes.push(escapeHtml(d));
+    return `<span>${partes.join(' — ')}</span>`;
+  }).join('');
+
   const area = document.getElementById('vistos-print-area');
   area.innerHTML = `
     <div class="pv-header">
       <h1>Vistos — ${escapeHtml(turmaReal)}</h1>
       <div class="pv-sub">${TRIM_LABELS[vistosTrimestre]} · Coeficiente ${tabela.coeficiente} · Geografia · ${cols.length} registro(s)</div>
     </div>
-    <table class="pv-table">
-      <thead><tr><th class="pv-aluno-th">Aluno</th>${theadCols}<th>Total</th></tr></thead>
-      <tbody>${bodyRows}</tbody>
-    </table>
-    <div class="pv-legend">OK = Completo (1,0) &nbsp;·&nbsp; +/- = Parcial (0,5) &nbsp;·&nbsp; NF = Não feito (0,0) &nbsp;·&nbsp; FP = Feito fora do prazo (0,5)</div>
+    <div class="pv-table-wrap">
+      <table class="pv-table">
+        <thead><tr><th class="pv-aluno-th">Aluno</th>${theadCols}<th>Total</th></tr></thead>
+        <tbody>${bodyRows}</tbody>
+      </table>
+    </div>
+    <div class="pv-footer">
+      <div class="pv-legend">OK = Completo (1,0) &nbsp;·&nbsp; +/- = Parcial (0,5) &nbsp;·&nbsp; NF = Não feito (0,0) &nbsp;·&nbsp; FP = Feito fora do prazo (0,5)</div>
+      <div class="pv-atividades">
+        <div class="pv-atividades-title">Atividades</div>
+        <div class="pv-atividades-list">${atividadesLegenda}</div>
+      </div>
+    </div>
   `;
+  ajustarImpressaoVistos(nomes.length, cols.length);
   window.print();
+}
+
+/* ajusta o tamanho da fonte/preenchimento da tabela de impressão conforme o
+   número de alunos (linhas) e atividades (colunas), para que a tabela inteira
+   sempre caiba numa única folha paisagem, mesmo com turmas grandes ou muitas
+   atividades no trimestre. Usa uma estimativa da área útil da folha (A4/Carta
+   paisagem com margens de 9mm) já que o navegador não expõe o tamanho real
+   da página durante a montagem do HTML de impressão. */
+function ajustarImpressaoVistos(numAlunos, numAtividades){
+  const table = document.querySelector('#vistos-print-area .pv-table');
+  if(!table) return;
+
+  const ALTURA_UTIL_PX = 690;   // altura aproveitável para cabeçalho + tabela + rodapé
+  const LARGURA_UTIL_PX = 1010; // largura aproveitável da folha em paisagem
+
+  const alturaCabecalho = 40;
+  const linhasLegendaAtividades = Math.max(1, Math.ceil(numAtividades / 8));
+  const alturaRodape = 14 + (linhasLegendaAtividades * 9) + 10;
+  const alturaTabela = Math.max(ALTURA_UTIL_PX - alturaCabecalho - alturaRodape, 90);
+  const alturaPorLinha = alturaTabela / (numAlunos + 1); // +1 = linha de cabeçalho da tabela
+
+  let fonteTabela = Math.floor(alturaPorLinha * 0.62);
+  fonteTabela = Math.min(Math.max(fonteTabela, 5), 10);
+  const padY = fonteTabela <= 6 ? 0 : 1;
+
+  const larguraColunaAluno = 140;
+  const colunasRestantes = numAtividades + 1; // + coluna "Total"
+  const larguraPorColuna = (LARGURA_UTIL_PX - larguraColunaAluno) / colunasRestantes;
+  let fonteAtividades = Math.min(fonteTabela, Math.floor(larguraPorColuna * 0.42));
+  fonteAtividades = Math.max(fonteAtividades, 5);
+
+  table.style.fontSize = fonteTabela + 'px';
+  table.querySelectorAll('th, td').forEach(cell=>{ cell.style.padding = padY + 'px 2px'; });
+
+  const legendaAtividades = document.querySelector('#vistos-print-area .pv-atividades');
+  if(legendaAtividades) legendaAtividades.style.fontSize = fonteAtividades + 'px';
 }
 
 function vistosSetSyncStatus(state, msg){
