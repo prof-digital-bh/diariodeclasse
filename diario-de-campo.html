@@ -271,6 +271,7 @@
   }
   .status-pill.planejado{background:var(--slate-bg);color:var(--slate-text);}
   .status-pill.ministrado{background:var(--moss-bg);color:var(--moss-text);}
+  .status-pill.sem-data{background:var(--ochre-bg);color:var(--ochre-text);}
   .status-pill svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;}
   .topico{color:var(--ink-soft);font-size:14px;margin:4px 0 8px;}
   .meta-row{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-faint);margin-bottom:8px;}
@@ -1319,6 +1320,8 @@ function hasStatus(e, s){ return statusArray(e.status).includes(s); }
 function iconCheck(){return '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>';}
 function iconClock(){return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';}
 function iconEdit(){return '<svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>';}
+function iconCopy(){return '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"/></svg>';}
+function iconWarning(){return '<svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9L1.8 18a1.5 1.5 0 001.3 2.2h17.8a1.5 1.5 0 001.3-2.2L13.7 3.9a1.5 1.5 0 00-2.6 0z"/></svg>';}
 function iconTrash(){return '<svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6"/></svg>';}
 function iconChevronLeft(){return '<svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>';}
 function iconChevronRight(){return '<svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>';}
@@ -1394,6 +1397,16 @@ function render(){
   content.innerHTML = html;
 }
 
+/* true se o registro tiver ao menos uma data preenchida — geral (e.data) ou
+   de alguma turma/subturma (e.turmasDetalhe). Usado para avisar no cartão
+   quando não há nenhuma data, já que nesse caso a ordenação (na Lista e na
+   tabela de Vistos) cai para a data de criação, que não é a data real da aula. */
+function hasAnyDate(e){
+  if(e.data) return true;
+  const td = e.turmasDetalhe || {};
+  return TURMA_LETRAS.some(l => td[l] && td[l].data);
+}
+
 function renderCard(e){
   const linksHtml = (e.links||[]).filter(l=>l.url).map((l,i)=>
     `<a class="link-chip" href="${escapeHtml(l.url)}" target="_blank" rel="noopener" title="${escapeHtml(l.url)}">${iconLink()}<span class="link-chip-label">${escapeHtml(linkDisplayLabel(l,i))}</span></a>`
@@ -1409,6 +1422,7 @@ function renderCard(e){
         ${e.codigo ? `<span class="stamp tipo-${e.tipo}">${escapeHtml(e.codigo)}</span>` : `<span class="stamp tipo-${e.tipo}">${e.tipo}</span>`}
         <span class="tema">${escapeHtml(e.tema)}</span>
         <div class="status-pills">
+          ${!hasAnyDate(e) ? `<span class="status-pill sem-data" title="Nenhuma data preenchida — a ordenação usa a data de criação">${iconWarning()}Sem data</span>` : ''}
           ${hasStatus(e,'planejado') ? `<span class="status-pill planejado">${iconClock()}Planejado</span>` : ''}
           ${hasStatus(e,'ministrado') ? `<span class="status-pill ministrado">${iconCheck()}Ministrado</span>` : ''}
         </div>
@@ -1421,7 +1435,8 @@ function renderCard(e){
     </div>
     <div class="card-actions">
       <button class="icon-btn" aria-label="Editar" onclick="openModal('${e.id}')">${iconEdit()}</button>
-      <button class="icon-btn" aria-label="Excluir" onclick="deleteEntry('${e.id}')">${iconTrash()}</button>
+      <button class="icon-btn" aria-label="Duplicar" title="Duplicar registro" onclick="duplicateEntry('${e.id}')">${iconCopy()}</button>
+      <button class="icon-btn" aria-label="Excluir" onclick="confirmDeleteEntry('${e.id}')">${iconTrash()}</button>
     </div>
   </div>`;
 }
@@ -2627,14 +2642,51 @@ document.getElementById('btn-cancel').addEventListener('click', closeModal);
 overlay.addEventListener('click', (ev)=>{ if(ev.target === overlay) closeModal(); });
 
 document.getElementById('btn-delete').addEventListener('click', ()=>{
-  if(editingId) deleteEntry(editingId);
-  closeModal();
+  if(!editingId) return;
+  const e = entries.find(x=>x.id===editingId);
+  openConfirm(`Excluir o registro "${e ? (e.tema || e.codigo || 'sem título') : ''}"? Essa ação não pode ser desfeita.`, ()=>{
+    deleteEntry(editingId);
+    closeModal();
+  });
 });
 
 function deleteEntry(id){
   entries = entries.filter(e=>e.id!==id);
   saveEntries();
   renderAll();
+}
+
+/* pede confirmação antes de excluir um registro pelo botão do cartão (Lista) */
+function confirmDeleteEntry(id){
+  const e = entries.find(x=>x.id===id);
+  if(!e) return;
+  openConfirm(`Excluir o registro "${e.tema || e.codigo || 'sem título'}"? Essa ação não pode ser desfeita.`, ()=>{
+    deleteEntry(id);
+  });
+}
+
+/* clona um registro (mesmo tema/tópico/páginas/links), zera o "feito" das turmas
+   e abre o modal de edição na cópia — útil quando A/B/C repetem o mesmo tema
+   em datas diferentes, evitando redigitar tudo */
+function duplicateEntry(id){
+  const e = entries.find(x=>x.id===id);
+  if(!e) return;
+  const turmasDetalhe = {};
+  TURMA_LETRAS.forEach(l=>{
+    const info = (e.turmasDetalhe && e.turmasDetalhe[l]) || {feito:false,data:''};
+    turmasDetalhe[l] = { feito: info.feito, data: info.data };
+  });
+  const copy = {
+    ...e,
+    id: uid(),
+    criadoEm: Date.now(),
+    links: (e.links||[]).map(l=>({...l})),
+    turmasDetalhe,
+  };
+  entries.push(copy);
+  saveEntries();
+  renderAll();
+  openModal(copy.id);
 }
 
 form.addEventListener('submit', (ev)=>{
@@ -2734,6 +2786,25 @@ document.getElementById('btn-export').addEventListener('click', ()=>{
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+});
+
+/* atalhos de teclado no modo Lista: N = novo registro, / = focar na busca */
+document.addEventListener('keydown', (ev)=>{
+  if(viewMode !== 'list') return;
+  const tag = (ev.target.tagName || '').toLowerCase();
+  const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || ev.target.isContentEditable;
+  const anyModalOpen = overlay.classList.contains('open')
+    || provaOverlay.classList.contains('open')
+    || confirmOverlay.classList.contains('open')
+    || viewerOverlay.classList.contains('open');
+  if(anyModalOpen || isTyping) return;
+  if(ev.key === 'n' || ev.key === 'N'){
+    ev.preventDefault();
+    openModal();
+  }else if(ev.key === '/'){
+    ev.preventDefault();
+    document.getElementById('f-search').focus();
+  }
 });
 
 document.getElementById('dc-back-btn').addEventListener('click', ()=>{
