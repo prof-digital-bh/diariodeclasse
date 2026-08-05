@@ -533,7 +533,10 @@
   }
   .vistos-paper{
     background:var(--paper-raised);border:1px solid var(--line);border-radius:var(--radius-lg);
-    padding:6px;overflow-x:auto;
+    padding:6px;overflow:auto;
+    /* altura máxima própria para o cabeçalho (position:sticky) travar
+       de fato ao rolar a lista de alunos dentro do quadro */
+    max-height:calc(100vh - 260px);
   }
   table.vistos-table{border-collapse:collapse;width:100%;font-size:12.5px;}
   table.vistos-table th, table.vistos-table td{
@@ -2139,7 +2142,12 @@ function vistosRenderTabela(nomes, cols, tabela, turmaReal){
     const info = e.turmasDetalhe[vistosSub] || {};
     const d = formatDateShort(info.data);
     const rotulo = e.codigo ? e.codigo : '—';
-    const tituloCompleto = e.tema + (d ? (' · ' + d) : '');
+    // Tooltip do cabeçalho: tópico específico, página e data (em vez do tema geral)
+    const tituloPartes = [];
+    if(e.topico) tituloPartes.push(e.topico);
+    if(e.paginas) tituloPartes.push('p. ' + e.paginas);
+    if(d) tituloPartes.push(d);
+    const tituloCompleto = tituloPartes.length ? tituloPartes.join(' · ') : e.tema;
     return `<th class="vistos-th-entry" title="${escapeHtml(tituloCompleto)}"><span class="th-codigo">${escapeHtml(rotulo)}</span></th>`;
   }).join('');
 
