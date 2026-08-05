@@ -584,47 +584,38 @@
   .vistos-sync.error{color:var(--clay-text);}
 
   /* impressão da listagem de vistos — só o conteúdo de #vistos-print-area aparece.
-     A tabela flui normalmente (podendo gerar mais de uma página se a turma
-     tiver muitos alunos); o cabeçalho de linhas da tabela já repete
-     automaticamente em cada página nova (comportamento padrão de <thead>).
-     O título (pv-header) e o rodapé com a legenda/lista de atividades
-     (pv-footer) usam position:fixed para se repetirem em TODAS as páginas
-     impressas. O tamanho de fonte é ajustado por JS (ajustarImpressaoVistos)
-     apenas em função do número de atividades/colunas — garantindo que a
-     tabela sempre caiba na LARGURA da folha — nunca em função do número de
-     alunos, para que nenhum nome seja cortado; se não couber em altura,
-     simplesmente continua na página seguinte. */
+     Sempre cabe numa ÚNICA folha (paisagem): o container vira uma coluna
+     flexível do tamanho exato da página (100vh na visualização de impressão),
+     com a tabela ocupando o espaço disponível entre o título e o rodapé fixo
+     (legenda + lista de atividades). O tamanho de fonte da tabela é ajustado
+     por JS (ajustarImpressaoVistos) conforme o número de alunos E de
+     atividades, e o nome do aluno pode quebrar em mais de uma linha em vez
+     de ser cortado — assim nenhum nome fica incompleto. */
   #vistos-print-area{display:none;}
   @media print{
     @page{ size: landscape; margin: 9mm; }
     body *{ visibility:hidden; }
     #vistos-print-area, #vistos-print-area *{ visibility:visible; }
     #vistos-print-area{
-      display:block; position:absolute; top:0; left:0; width:100%;
-      margin:0; padding:0; background:#fff;
+      display:flex; flex-direction:column;
+      position:absolute; top:0; left:0; width:100%; height:100vh;
+      margin:0; padding:0; background:#fff; overflow:hidden;
     }
-    .pv-header{ position:fixed; top:0; left:0; width:100%; background:#fff; }
-    .pv-footer{ position:fixed; bottom:0; left:0; width:100%; background:#fff; }
-    table.pv-table thead{ display:table-header-group; } /* repete a linha de códigos em cada página */
-    table.pv-table tr{ page-break-inside:avoid; }
-    /* espaço reservado para o título (fixo no topo) e a legenda/atividades
-       (fixa embaixo) não sobreporem a tabela; os valores exatos são
-       ajustados por JS conforme o conteúdo (ajustarImpressaoVistos) */
-    .pv-table-wrap{ margin-top:52px; margin-bottom:96px; }
   }
-  .pv-header{text-align:center;padding-bottom:6px;}
+  .pv-header{text-align:center;padding-bottom:6px;flex:none;}
   .pv-header h1{font-family:var(--font-display);font-size:18px;font-weight:700;margin:0 0 2px;color:#000;}
   .pv-header .pv-sub{font-family:var(--font-body);font-size:10.5px;color:#444;}
-  table.pv-table{width:100%;border-collapse:collapse;table-layout:fixed;font-family:var(--font-body);font-size:10.5px;}
-  table.pv-table th, table.pv-table td{border:1px solid #888;padding:3px 3px;text-align:center;color:#000;}
+  .pv-table-wrap{flex:1 1 auto;min-height:0;overflow:hidden;}
+  table.pv-table{width:100%;height:100%;border-collapse:collapse;table-layout:fixed;font-family:var(--font-body);font-size:10.5px;}
+  table.pv-table th, table.pv-table td{border:1px solid #888;padding:2px 3px;text-align:center;color:#000;overflow:hidden;}
   table.pv-table thead th{font-weight:700;font-family:var(--font-mono);background:#fff;}
-  table.pv-table th.pv-aluno-th, table.pv-table td.pv-aluno{text-align:left;padding-left:6px;width:160px;white-space:normal;word-break:break-word;}
+  table.pv-table th.pv-aluno-th, table.pv-table td.pv-aluno{text-align:left;padding-left:6px;width:150px;white-space:normal;word-break:break-word;line-height:1.15;}
   table.pv-table td.pv-total{font-weight:700;}
   .pv-cell.ok{background:#d7f3de;}
   .pv-cell.pm{background:#fde8c2;}
   .pv-cell.nf{background:#fbd7d7;}
   .pv-cell.fp{background:#dbe7fb;}
-  .pv-footer{padding-top:4px;}
+  .pv-footer{flex:none;padding-top:4px;}
   .pv-legend{font-family:var(--font-body);font-size:9px;color:#333;text-align:center;}
   .pv-atividades{margin-top:4px;padding-top:4px;border-top:1px solid #ccc;font-family:var(--font-body);font-size:7px;line-height:1.5;color:#333;}
   .pv-atividades-title{font-weight:700;font-size:7.5px;text-transform:uppercase;letter-spacing:.03em;color:#000;margin-bottom:2px;}
@@ -2306,43 +2297,45 @@ async function imprimirVistos(){
   window.print();
 }
 
-/* ajusta o tamanho da fonte da tabela de impressão em função apenas do
-   número de atividades (colunas), para que todas as colunas sempre caibam
-   na LARGURA da folha paisagem — nunca em função do número de alunos, para
-   que nenhum nome de aluno seja cortado ou espremido. Se a turma tiver
-   muitos alunos, a tabela simplesmente continua na(s) página(s) seguinte(s):
-   o cabeçalho de códigos (thead) e o título/rodapé (fixos) se repetem
-   automaticamente em cada página impressa. */
+/* ajusta o tamanho da fonte da tabela de impressão em função do número de
+   alunos (linhas) E de atividades (colunas), para que a tabela inteira sempre
+   caiba numa ÚNICA folha paisagem. O nome do aluno pode quebrar em até 2
+   linhas (coluna mais estreita), e isso entra na conta da altura disponível
+   por linha — assim a fonte diminui o quanto for preciso, mas nenhum nome
+   fica cortado ou incompleto. */
 function ajustarImpressaoVistos(numAlunos, numAtividades){
   const table = document.querySelector('#vistos-print-area .pv-table');
-  const wrap = document.querySelector('#vistos-print-area .pv-table-wrap');
-  const header = document.querySelector('#vistos-print-area .pv-header');
-  const footer = document.querySelector('#vistos-print-area .pv-footer');
   if(!table) return;
 
-  const LARGURA_UTIL_PX = 1010; // largura aproveitável da folha em paisagem (A4/Carta, margens de 9mm)
-  const larguraColunaAluno = 160;
+  const ALTURA_UTIL_PX = 700;   // altura útil aproximada da folha paisagem (A4/Carta, margens de 9mm)
+  const LARGURA_UTIL_PX = 1010; // largura útil aproximada da folha paisagem
+
+  // fonte limitada pela LARGURA — garante que todas as colunas caibam lado a lado
+  const larguraColunaAluno = 150;
   const colunasRestantes = numAtividades + 1; // + coluna "Total"
   const larguraPorColuna = (LARGURA_UTIL_PX - larguraColunaAluno) / colunasRestantes;
+  const fontePorLargura = Math.floor(larguraPorColuna * 0.34);
 
-  let fonteTabela = Math.floor(larguraPorColuna * 0.34);
-  fonteTabela = Math.min(Math.max(fonteTabela, 7), 11);
+  // fonte limitada pela ALTURA — garante que todas as linhas de alunos caibam
+  const alturaCabecalho = 40;
+  const linhasLegendaAtividades = Math.max(1, Math.ceil(numAtividades / 8));
+  const alturaRodape = 18 + (linhasLegendaAtividades * 10) + 10;
+  const alturaTabela = Math.max(ALTURA_UTIL_PX - alturaCabecalho - alturaRodape, 100);
+  // reserva ~1,25 linha por aluno em média (nomes compridos costumam quebrar
+  // em 2 linhas na coluna estreita) + 1 linha para o cabeçalho da tabela
+  const alturaPorLinha = alturaTabela / ((numAlunos * 1.25) + 1);
+  const fontePorAltura = Math.floor(alturaPorLinha * 0.62);
+
+  let fonteTabela = Math.min(fontePorLargura, fontePorAltura);
+  fonteTabela = Math.min(Math.max(fonteTabela, 5), 11);
   table.style.fontSize = fonteTabela + 'px';
+  const padY = fonteTabela <= 6 ? 1 : 2;
+  table.querySelectorAll('th, td').forEach(cell=>{ cell.style.padding = padY + 'px 3px'; });
 
   let fonteAtividades = Math.min(fonteTabela, Math.floor(larguraPorColuna * 0.42));
-  fonteAtividades = Math.max(fonteAtividades, 6);
+  fonteAtividades = Math.max(fonteAtividades, 5);
   const legendaAtividades = document.querySelector('#vistos-print-area .pv-atividades');
   if(legendaAtividades) legendaAtividades.style.fontSize = fonteAtividades + 'px';
-
-  // reserva, na tabela, o espaço ocupado pelo título (fixo no topo) e pela
-  // legenda/lista de atividades (fixa embaixo), que se repetem em toda página
-  if(wrap){
-    const alturaCabecalho = 46;
-    const linhasAtividades = Math.max(1, Math.ceil(numAtividades / 8));
-    const alturaRodape = 20 + (linhasAtividades * fonteAtividades * 1.6) + 14;
-    wrap.style.marginTop = alturaCabecalho + 'px';
-    wrap.style.marginBottom = Math.ceil(alturaRodape) + 'px';
-  }
 }
 
 function vistosSetSyncStatus(state, msg){
