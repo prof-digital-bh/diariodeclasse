@@ -2048,7 +2048,11 @@ function vistosEntriesDaSubturma(){
       return info && info.feito;
     })
     .sort((a,b)=>{
-      const da = (a.turmasDetalhe[vistosSub]||{}).data, db_ = (b.turmasDetalhe[vistosSub]||{}).data;
+      // ordena pela data específica da subturma; se ela não estiver preenchida,
+      // usa a data geral do registro (campo "Data" do formulário) como reserva
+      // antes de cair para a data de criação — que não reflete a ordem real das aulas
+      const da = (a.turmasDetalhe[vistosSub]||{}).data || a.data;
+      const db_ = (b.turmasDetalhe[vistosSub]||{}).data || b.data;
       const ta = da ? Date.parse(da+'T00:00:00') : (a.criadoEm||0);
       const tb = db_ ? Date.parse(db_+'T00:00:00') : (b.criadoEm||0);
       return ta - tb;
