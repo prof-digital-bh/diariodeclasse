@@ -1662,6 +1662,38 @@ const AUTH_ID = 'everton_2026_auth';
 const N_ATIV = 7; // atividades 1-6 são de lançamento manual; a 7ª é reservada e preenchida automaticamente pelo "Vistos" do Diário de Campo
 const VISTOS_POSICAO_RESERVADA = 7; // deve ser igual a N_ATIV
 const TRIMESTRES = [1, 2, 3];
+
+// ─── STATUS DE TRAVAMENTO — POR TURMA E POR TRIMESTRE ────────────────────────
+function statusTurmaPadrao() { return { 1: 'aberto', 2: 'aberto', 3: 'aberto' }; }
+function normalizarStatusTurma(raw) {
+  if (raw && typeof raw === 'object') {
+    const norm = statusTurmaPadrao();
+    TRIMESTRES.forEach(tr => { if (raw[tr] === 'fechado' || raw[tr] === 'aberto') norm[tr] = raw[tr]; });
+    return norm;
+  }
+  if (typeof raw === 'string') {
+    // Formato novo: string JSON com o status de cada trimestre
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') return normalizarStatusTurma(parsed);
+    } catch (e) { /* não é JSON — trata como status legado (turma inteira) */ }
+    // Formato antigo: 'fechado' travava a turma inteira, em todos os trimestres
+    if (raw === 'fechado') return { 1: 'fechado', 2: 'fechado', 3: 'fechado' };
+    return statusTurmaPadrao();
+  }
+  return statusTurmaPadrao();
+}
+function isTurmaFechada(t, tr) {
+  const trUse = tr || trimestreFiltro;
+  return normalizarStatusTurma(db.status[t])[trUse] === 'fechado';
+}
+function trimestresFechados(t) {
+  const st = normalizarStatusTurma(db.status[t]);
+  return TRIMESTRES.filter(tr => st[tr] === 'fechado');
+}
+function algumTrimestreFechado(t) {
+  return trimestresFechados(t).length > 0;
+}
 const TURMAS_FIXAS = ['8ºA','8ºB','8ºC','9ºA','9ºB','9ºC'];
 
 // ─── QUADRO DE HORÁRIOS · E.M. ALBERTINA ALVES DO NASCIMENTO (TURNO DA MANHÃ) ──
@@ -1969,7 +2001,7 @@ async function _pushAnotacoes() {
 
 async function _pushStatus() {
   const rows = Object.keys(db.status).map(turma => ({
-    turma, status: db.status[turma] || 'aberto', atualizado_em: new Date().toISOString()
+    turma, status: JSON.stringify(normalizarStatusTurma(db.status[turma])), atualizado_em: new Date().toISOString()
   }));
   if (rows.length) await _upsert('turmas_status', rows);
 }
@@ -2111,7 +2143,7 @@ async function carregarDoSupabase() {
         }
       });
     }
-    if (Array.isArray(rStatus)) rStatus.forEach(row => { novoDb.status[row.turma] = row.status; if (!novoDb.turmas[row.turma]) novoDb.turmas[row.turma] = []; });
+    if (Array.isArray(rStatus)) rStatus.forEach(row => { novoDb.status[row.turma] = normalizarStatusTurma(row.status); if (!novoDb.turmas[row.turma]) novoDb.turmas[row.turma] = []; });
     if (Array.isArray(rMapas))  rMapas.forEach(row => { novoDb.mapas[row.turma] = row.imagem; });
 
     // Substitui db em memória pelo conteúdo do banco
@@ -2190,7 +2222,7 @@ function setSave(s) {
 
 function inicializarTurmasFixas() {
   TURMAS_FIXAS.forEach(t => {
-    if (!db.turmas[t]) { db.turmas[t] = []; db.status[t] = 'aberto'; }
+    if (!db.turmas[t]) { db.turmas[t] = []; db.status[t] = statusTurmaPadrao(); }
   });
 }
 
@@ -2721,10 +2753,10 @@ async function adicionarTurma() {
   const nome = document.getElementById('novaTurmaNome').value.trim();
   if (!nome) return toast('Digite o nome da turma.');
   if (db.turmas[nome]) return toast('Essa turma já existe!');
-  db.turmas[nome] = []; db.status[nome] = 'aberto';
+  db.turmas[nome] = []; db.status[nome] = statusTurmaPadrao();
   // Persiste imediatamente no Supabase (turmas vazias não têm alunos para salvar)
   try {
-    await _upsert('turmas_status', [{ turma: nome, status: 'aberto', atualizado_em: new Date().toISOString() }]);
+    await _upsert('turmas_status', [{ turma: nome, status: JSON.stringify(statusTurmaPadrao()), atualizado_em: new Date().toISOString() }]);
   } catch(e) { console.warn('Erro ao salvar turma:', e); }
   salvar(); renderizarTurmas(); atualizarSelects();
   document.getElementById('novaTurmaNome').value = '';
@@ -2804,7 +2836,7 @@ function processarInclusao() {
 }
 
 function removerAluno(t, i) {
-  if (db.status[t] === 'fechado') return toast('Turma travada! Destrave antes de editar.');
+  if (algumTrimestreFechado(t)) return toast('Turma travada (' + trimestresFechados(t).map(tr=>tr+'º Tri').join(', ') + ')! Destrave antes de editar.');
   const aluno = db.turmas[t][i];
   abrirModal('👤', 'Remover aluno?', '<strong>' + aluno + '</strong> será removido da turma ' + t + ' e suas notas apagadas.', async () => {
     db.turmas[t].splice(i, 1);
@@ -2852,7 +2884,7 @@ function renderizarTurmas() {
   if (!turmas.length) { cont.innerHTML = '<div class="empty"><span class="empty-icon">🏫</span>Nenhuma turma cadastrada ainda.</div>'; return; }
   cont.innerHTML = turmas.map(t => {
     const alunos = db.turmas[t];
-    const isFechado = db.status[t] === 'fechado';
+    const trisFechados = trimestresFechados(t);
     const isCol = alunos.length > 8;
     const rows = alunos.map((a, i) => {
       const info = getInfoAluno(t, a);
@@ -2878,7 +2910,7 @@ function renderizarTurmas() {
     return '<div class="turma-block' + (isCol ? ' collapsed' : '') + '" data-turma="' + esc(t) + '">' +
       '<div class="turma-block-header" onclick="toggleTurmaBlock(\'' + esc(t) + '\')">' +
       '<div class="turma-block-title">📍 ' + t +
-      (isFechado ? ' <span style="font-size:11px;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:20px;font-weight:400">🔒 Travada</span>' : '') +
+      (trisFechados.length ? ' <span style="font-size:11px;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:20px;font-weight:400">🔒 ' + trisFechados.map(tr=>tr+'º').join('/') + ' Tri</span>' : '') +
       ' <span class="turma-chevron">▼</span></div>' +
       '<div style="display:flex;align-items:center;gap:6px" onclick="event.stopPropagation()">' +
       '<span style="font-size:12px;opacity:.75">' + alunos.length + ' aluno(s)</span>' +
@@ -4552,11 +4584,11 @@ function renderizarNotas() {
   }
 
   garantirAtividades(t);
-  const isFechado = db.status[t] === 'fechado';
+  const isFechado = isTurmaFechada(t, trimestreFiltro);
   // Todos os professores podem travar suas turmas
   const podeTravar = sessao && (sessao.isEverton || sessao.turmas.includes(t));
   btnTrava.style.display = podeTravar ? '' : 'none';
-  btnTrava.textContent = isFechado ? '🔓 Destravar' : '🔒 Travar';
+  btnTrava.textContent = (isFechado ? '🔓 Destravar ' : '🔒 Travar ') + trimestreFiltro + 'º Tri';
   if (document.getElementById('page-notas').classList.contains('active'))
     document.getElementById('print-turma-txt').textContent = 'Turma: ' + t;
 
@@ -4659,7 +4691,7 @@ function salvarNomeAtiv(t, tr, idx, nome) {
   salvar();
   const valInput = document.getElementById('hdr-val-t'+tr+'-a'+(idx+1)+'-'+t);
   if (valInput) {
-    valInput.disabled = (nome.trim() === '' || db.status[t] === 'fechado');
+    valInput.disabled = (nome.trim() === '' || isTurmaFechada(t, tr));
     if (nome.trim() === '') valInput.value = '';
   }
   _atualizarTotalHeader(t, tr);
@@ -4703,7 +4735,7 @@ function abrirObsExpand(inputEl, t, aluno) {
   // Fecha eventual popup anterior
   fecharObsExpand(false);
 
-  const isFechado = db.status[t] === 'fechado';
+  const isFechado = isTurmaFechada(t, trimestreFiltro);
 
   // Posição do input na tela
   const rect = inputEl.getBoundingClientRect();
@@ -4814,9 +4846,12 @@ function toggleTrava() {
   const t = document.getElementById('selectTurmaNotas').value; if (!t) return;
   // Professor comum só pode travar suas próprias turmas
   if (sessao && !sessao.isEverton && !sessao.turmas.includes(t)) return toast('Você não tem permissão para travar esta turma.');
-  db.status[t] = db.status[t]==='fechado'?'aberto':'fechado';
+  const tr = trimestreFiltro;
+  const st = normalizarStatusTurma(db.status[t]);
+  st[tr] = st[tr] === 'fechado' ? 'aberto' : 'fechado';
+  db.status[t] = st;
   salvar(); renderizarNotas();
-  toast(db.status[t]==='fechado'?'🔒 Turma travada.':'🔓 Turma destravada.');
+  toast((st[tr]==='fechado' ? '🔒 ' + tr + 'º Trimestre travado.' : '🔓 ' + tr + 'º Trimestre destravado.'));
 }
 
 function exportarCSV() {
@@ -4950,7 +4985,7 @@ function executarImpressao() {
     garantirAtividades(t);
     const ativ = db.atividades[t] || {};
     const alunos = db.turmas[t] || [];
-    const isFechado = db.status[t] === 'fechado';
+    const isFechado = isTurmaFechada(t, triAtivo);
 
     // Cabeçalho da turma
     let cabecalho = '';
@@ -5307,7 +5342,7 @@ function fecharModal() { document.getElementById('modal').style.display = 'none'
 
 // ─── EDITAR ALUNO ─────────────────────────────────────────────────────────────
 function editarAluno(t, i) {
-  if (db.status[t] === 'fechado') return toast('Turma travada! Destrave antes de editar.');
+  if (algumTrimestreFechado(t)) return toast('Turma travada (' + trimestresFechados(t).map(tr=>tr+'º Tri').join(', ') + ')! Destrave antes de editar.');
   const nome = db.turmas[t][i];
   const aid = alunoId(t, nome);
   const info = (db.alunos_info && db.alunos_info[aid]) || {};
