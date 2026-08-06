@@ -488,6 +488,84 @@ table.tbl-horario tbody tr:hover td:not(.td-geo2) { background: var(--sky-pale);
 .horario-resumo-everton .hre-title { font-family:'Syne',sans-serif; font-weight:700; font-size: 14px; }
 .horario-resumo-everton .hre-chip { background: rgba(255,255,255,.18); border-radius: 20px; padding: 4px 12px; font-size: 11.5px; font-weight: 600; }
 
+/* ─── CALENDÁRIO ESCOLAR / CRUZAMENTO / ALERTAS ──────────────────────────── */
+.cal-subnav { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.cal-subnav button {
+  border: 1px solid var(--border-2); background: var(--white); color: var(--ink-2);
+  border-radius: 20px; padding: 7px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; transition: all .15s;
+}
+.cal-subnav button:hover { background: var(--sky-pale); }
+.cal-subnav button.active { background: var(--ocean); border-color: var(--ocean); color: #fff; }
+.cal-view { display: none; }
+.cal-view.active { display: block; }
+
+.cal-legenda { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 16px; font-size: 11px; color: var(--ink-3); }
+.cal-legenda .leg-item { display: inline-flex; align-items: center; gap: 5px; }
+.cal-legenda .leg-dot { width: 11px; height: 11px; border-radius: 4px; display: inline-block; border: 1px solid rgba(0,0,0,.08); }
+
+.cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+@media (max-width: 900px) { .cal-grid { grid-template-columns: 1fr; } }
+.cal-month { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+.cal-month-head {
+  background: linear-gradient(90deg, var(--ocean) 0%, var(--ocean-mid) 100%); color: #fff;
+  padding: 9px 12px; font-family:'Syne',sans-serif; font-weight: 700; font-size: 12.5px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.cal-month-head .cm-dl { background: rgba(255,255,255,.2); border-radius: 12px; padding: 2px 9px; font-size: 10.5px; font-weight: 600; }
+table.cal-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+table.cal-table th { font-size: 9.5px; color: var(--ink-3); font-weight: 700; padding: 5px 0; text-align: center; background: var(--sky-pale); }
+table.cal-table td { text-align: center; font-size: 11px; padding: 5px 0; position: relative; cursor: default; border: 1px solid var(--sand); }
+table.cal-table td.cd-empty { background: transparent; border-color: transparent; }
+table.cal-table td .cd-num { position: relative; z-index: 1; }
+table.cal-table td[title]:hover::after {
+  content: attr(title); position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: #fff; padding: 5px 9px; border-radius: 6px; font-size: 10.5px;
+  white-space: nowrap; z-index: 20; box-shadow: var(--shadow-lg); pointer-events: none;
+}
+.cd-DIA_LETIVO { background: var(--white); color: var(--ink-2); }
+.cd-FERIADO { background: #f8696b; color: #7a0e10; font-weight: 700; }
+.cd-DIA_ESCOLAR { background: #ffeb84; color: #7f6000; font-weight: 700; }
+.cd-INICIO_TERMINO { background: #63be7b; color: #08401f; font-weight: 700; }
+.cd-SABADO_LETIVO { background: #8db4e2; color: #1f3864; font-weight: 700; }
+.cd-FERIAS { background: #e2e2e2; color: #8a8a8a; }
+.cd-ASSEMBLEIA { background: #c9b7e8; color: #402c6e; font-weight: 700; }
+.cd-REUNIAO_PAIS { background: #f8cbad; color: #833c00; font-weight: 700; }
+.cd-REDUCAO_CH { background: #b4c7e7; color: #1f3864; font-weight: 700; }
+.cd-SEMANA_OUT { background: #d9c2e9; color: #4c2a72; font-weight: 700; }
+.cd-WEEKEND { background: #f2f2f2; color: #b0b0b0; }
+body.dark-mode table.cal-table td.cd-DIA_LETIVO { background: #1e293b; color: #cbd5e1; }
+body.dark-mode table.cal-table td.cd-WEEKEND { background: #162032; color: #64748b; }
+body.dark-mode table.cal-table td.cd-FERIAS { background: #1e293b; color: #64748b; }
+
+.cx-filtros, .al-filtros { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.cx-filtros select, .al-filtros select { padding: 7px 10px; border: 1px solid var(--border-2); border-radius: 8px; font-size: 12px; background: var(--white); color: var(--ink); }
+table.tbl-cruzamento, table.tbl-alertas { width: 100%; border-collapse: collapse; font-size: 12px; }
+table.tbl-cruzamento thead th, table.tbl-alertas thead th {
+  background: var(--ocean); color: #fff; text-align: left; padding: 9px 10px; font-size: 11px; position: sticky; top: 0;
+}
+table.tbl-cruzamento tbody td, table.tbl-alertas tbody td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.tbl-cruzamento tbody tr:hover, table.tbl-alertas tbody tr:hover { background: var(--sky-pale); }
+.tag-tipo { display: inline-block; padding: 3px 9px; border-radius: 12px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+.chip-aula { display: inline-block; background: var(--sky-pale); color: var(--ocean); border: 1px solid var(--sky); border-radius: 10px; padding: 2px 8px; font-size: 10.5px; font-weight: 600; margin: 1px 3px 1px 0; }
+.cx-sem-impacto { color: var(--ink-3); font-style: italic; font-size: 11.5px; }
+
+.al-card { border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; border-left: 5px solid; }
+.al-card .al-days { font-family:'Syne',sans-serif; font-weight: 800; font-size: 20px; min-width: 64px; text-align: center; line-height: 1.05; }
+.al-card .al-days small { display: block; font-size: 9px; font-weight: 600; text-transform: uppercase; opacity: .75; }
+.al-card .al-body { flex: 1; }
+.al-card .al-title { font-weight: 700; font-size: 13px; }
+.al-card .al-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+.al-urgente { background: #fee2e2; border-color: #dc2626; }
+.al-urgente .al-days { color: #dc2626; }
+.al-proximo { background: #fef9c3; border-color: #ca8a04; }
+.al-proximo .al-days { color: #92400e; }
+.al-futuro { background: #dcfce7; border-color: #16a34a; }
+.al-futuro .al-days { color: #166534; }
+.al-passado { background: var(--sand); border-color: var(--border-2); opacity: .6; }
+.al-passado .al-days { color: var(--ink-3); }
+body.dark-mode .al-passado { background: #1e293b; }
+
 /* Cores por trimestre */
 .t1-bg { background: #f0f7ff !important; }
 .t2-bg { background: #f0fff4 !important; }
@@ -1541,6 +1619,74 @@ alter table alunos add column if not exists foto text;</pre>
     </div>
   </section>
 
+  <!-- ABA CALENDÁRIO ESCOLAR 2026 — Calendário · Cruzamento com Quadro de Horários · Alertas -->
+  <section id="page-calendario" class="page">
+    <div class="toolbar no-print">
+      <div class="toolbar-title">📅 Calendário Escolar 2026</div>
+      <div class="btn-group">
+        <button class="btn" onclick="window.print()">🖨️ Imprimir</button>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--ink-3);margin-bottom:14px">E.M. Albertina Alves do Nascimento — 2026. Todos os dados abaixo são calculados dinamicamente a partir do calendário oficial e do <strong>Quadro de Horários</strong> das aulas de Geografia do Prof. Everton Correa.</p>
+
+    <div class="cal-subnav">
+      <button class="active" id="calsub-cal" onclick="calGoSub('cal')">📅 Calendário</button>
+      <button id="calsub-cx" onclick="calGoSub('cx')">🔀 Cruzamento com Horário</button>
+      <button id="calsub-al" onclick="calGoSub('al')">🔔 Alertas <span id="al-badge-count" style="display:none"></span></button>
+    </div>
+
+    <!-- SUBABA: CALENDÁRIO -->
+    <div class="cal-view active" id="calview-cal">
+      <div class="cal-legenda" id="calLegenda"></div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+
+    <!-- SUBABA: CRUZAMENTO -->
+    <div class="cal-view" id="calview-cx">
+      <div class="horario-resumo-everton" style="margin-bottom:14px">
+        <span class="hre-title">🌍 Cruzamento: eventos do calendário × aulas de Geografia</span>
+        <span class="hre-chip" id="cx-total-chip">—</span>
+      </div>
+      <div class="cx-filtros">
+        <select id="cxFiltroTipo" onchange="renderizarCruzamento()"><option value="">Todos os tipos</option></select>
+        <select id="cxFiltroMes" onchange="renderizarCruzamento()"><option value="">Todos os meses</option></select>
+        <select id="cxFiltroImpacto" onchange="renderizarCruzamento()">
+          <option value="">Todos (com ou sem impacto)</option>
+          <option value="com">Somente com aulas impactadas</option>
+          <option value="sem">Somente sem impacto</option>
+        </select>
+      </div>
+      <div class="card" style="padding:0;overflow:auto;max-height:560px">
+        <table class="tbl-cruzamento">
+          <thead><tr>
+            <th>Data</th><th>Dia</th><th>Tipo</th><th>Descrição</th><th>Aulas de Geografia impactadas</th><th>Qtd.</th>
+          </tr></thead>
+          <tbody id="corpoCruzamento"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SUBABA: ALERTAS -->
+    <div class="cal-view" id="calview-al">
+      <div class="al-filtros">
+        <select id="alFiltroTipo" onchange="renderizarAlertas()"><option value="">Todos os tipos</option></select>
+        <select id="alFiltroPrioridade" onchange="renderizarAlertas()">
+          <option value="">Todas as prioridades</option>
+          <option value="Alta">Alta</option>
+          <option value="Média">Média</option>
+          <option value="Baixa">Baixa</option>
+        </select>
+        <select id="alFiltroPeriodo" onchange="renderizarAlertas()">
+          <option value="">Todos (passados e futuros)</option>
+          <option value="proximos">Somente próximos eventos</option>
+          <option value="7">Próximos 7 dias</option>
+          <option value="30">Próximos 30 dias</option>
+        </select>
+      </div>
+      <div id="corpoAlertas"></div>
+    </div>
+  </section>
+
 </main>
 </div><!-- /.app-body-wrap -->
 
@@ -1771,6 +1917,268 @@ function renderizarHorarios() {
 
   const resumo = document.getElementById('hre-total-aulas');
   if (resumo) resumo.textContent = totalGeo2 + ' aulas/semana (GEO2)';
+}
+
+// ─── CALENDÁRIO ESCOLAR 2026 · CRUZAMENTO COM HORÁRIO · ALERTAS ──────────────
+// Fonte: Calendário Escolar 2026 · SME Contagem — E.M. Albertina Alves do Nascimento
+const CAL_ANO = 2026;
+const CAL_MESES = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+const CAL_DIAS_SEM = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const CAL_DIA_MAP = ['DOMINGO','SEGUNDA','TERÇA','QUARTA','QUINTA','SEXTA','SÁBADO'];
+const CAL_DL_POR_MES = {1:0,2:15,3:19,4:18,5:18,6:21,7:14,8:22,9:21,10:18,11:20,12:14};
+
+// Eventos pontuais extraídos do calendário oficial (data ISO, categoria, descrição)
+const EVENTOS_CALENDARIO_2026 = [
+  ['2026-02-02','DIA_ESCOLAR','Dia Escolar (planejamento – retorno da equipe)'],
+  ['2026-02-03','DIA_ESCOLAR','Dia Escolar (planejamento – retorno da equipe)'],
+  ['2026-02-04','INICIO_TERMINO','Início do 1º semestre letivo'],
+  ['2026-02-16','FERIAS','Recesso escolar'],
+  ['2026-02-17','FERIADO','Carnaval'],
+  ['2026-02-18','FERIADO','Quarta-feira de Cinzas'],
+  ['2026-02-28','ASSEMBLEIA','Assembleia Escolar (considerado dia letivo)'],
+  ['2026-03-27','FERIADO','Feriado de Nossa Senhora das Dores (municipal)'],
+  ['2026-04-02','FERIADO','Quinta-feira Santa'],
+  ['2026-04-03','FERIADO','Sexta-feira da Paixão'],
+  ['2026-04-21','FERIADO','Tiradentes'],
+  ['2026-04-25','SABADO_LETIVO','Sábado letivo'],
+  ['2026-05-01','FERIADO','Dia do Trabalhador'],
+  ['2026-05-05','REDUCAO_CH','Redução de carga horária'],
+  ['2026-05-30','REUNIAO_PAIS','Reunião de pais'],
+  ['2026-06-04','FERIADO','Corpus Christi'],
+  ['2026-06-05','FERIAS','Recesso escolar'],
+  ['2026-06-13','SABADO_LETIVO','Sábado letivo'],
+  ['2026-07-04','SABADO_LETIVO','Sábado letivo'],
+  ['2026-07-15','INICIO_TERMINO','Encerramento do 1º semestre letivo'],
+  ['2026-08-03','DIA_ESCOLAR','Dia Escolar (planejamento – retorno da equipe)'],
+  ['2026-08-04','INICIO_TERMINO','Início do 2º semestre letivo'],
+  ['2026-09-07','FERIADO','Independência do Brasil'],
+  ['2026-09-18','DIA_ESCOLAR','Dia escolar'],
+  ['2026-09-28','REUNIAO_PAIS','Reunião de pais'],
+  ['2026-10-03','SABADO_LETIVO','Sábado letivo (reposição / Mostra Cultural)'],
+  ['2026-10-12','SEMANA_OUT','Semana de Outubro'],
+  ['2026-10-13','SEMANA_OUT','Semana de Outubro'],
+  ['2026-10-14','SEMANA_OUT','Semana de Outubro'],
+  ['2026-10-15','SEMANA_OUT','Semana de Outubro'],
+  ['2026-10-16','SEMANA_OUT','Semana de Outubro'],
+  ['2026-11-02','FERIADO','Finados'],
+  ['2026-11-20','FERIADO','Consciência Negra'],
+  ['2026-12-05','ASSEMBLEIA','Assembleia Escolar (considerado dia letivo)'],
+  ['2026-12-17','INICIO_TERMINO','Encerramento do ano letivo'],
+];
+// Períodos de férias/recesso integral (sem evento pontual dedicado)
+const CAL_FERIAS_RANGES = [ ['2026-01-01','2026-02-01'], ['2026-07-16','2026-08-02'], ['2026-12-18','2026-12-31'] ];
+
+const CAL_CAT_LABEL = {
+  DIA_LETIVO:'Dia letivo', FERIADO:'Feriado', DIA_ESCOLAR:'Dia Escolar (sem aula)',
+  INICIO_TERMINO:'Início/Término de semestre', SABADO_LETIVO:'Sábado letivo',
+  FERIAS:'Férias / Recesso', ASSEMBLEIA:'Assembleia Escolar', REUNIAO_PAIS:'Reunião de Pais',
+  REDUCAO_CH:'Redução de carga horária', SEMANA_OUT:'Semana de Outubro', WEEKEND:'Fim de semana',
+};
+const CAL_CAT_ORDER = ['FERIADO','INICIO_TERMINO','SABADO_LETIVO','DIA_ESCOLAR','SEMANA_OUT','ASSEMBLEIA','REUNIAO_PAIS','REDUCAO_CH','FERIAS'];
+const CAL_PRIORIDADE = {
+  INICIO_TERMINO:'Alta', FERIADO:'Média', REUNIAO_PAIS:'Alta', ASSEMBLEIA:'Média',
+  SABADO_LETIVO:'Alta', DIA_ESCOLAR:'Média', REDUCAO_CH:'Baixa', FERIAS:'Baixa', SEMANA_OUT:'Média',
+};
+
+function calEventosPorData(iso) {
+  return EVENTOS_CALENDARIO_2026.filter(e => e[0] === iso);
+}
+function calEmFerias(iso) {
+  return CAL_FERIAS_RANGES.some(([a,b]) => iso >= a && iso <= b);
+}
+function calCategoriaDoDia(dt) {
+  const iso = dt.toISOString().slice(0,10);
+  const evs = calEventosPorData(iso);
+  if (evs.length) {
+    const cats = evs.map(e => e[1]);
+    const main = cats.slice().sort((a,b) => {
+      const ia = CAL_CAT_ORDER.includes(a) ? CAL_CAT_ORDER.indexOf(a) : 99;
+      const ib = CAL_CAT_ORDER.includes(b) ? CAL_CAT_ORDER.indexOf(b) : 99;
+      return ia - ib;
+    })[0];
+    return { cat: main, descs: evs.map(e => e[2]) };
+  }
+  if (calEmFerias(iso)) return { cat: 'FERIAS', descs: ['Férias / recesso escolar'] };
+  const dow = dt.getDay();
+  if (dow === 0 || dow === 6) return { cat: 'WEEKEND', descs: [] };
+  return { cat: 'DIA_LETIVO', descs: [] };
+}
+
+// ─── Cruzamento dinâmico: lê ao vivo do HORARIO_DATA / HORARIO_TURMAS_EVERTON ──
+function calAulasGeoEverton() {
+  // varre HORARIO_DATA e extrai as aulas de Geografia (GEO2) do Prof. Everton, agrupadas por dia da semana
+  const porDia = { SEGUNDA:[], 'TERÇA':[], QUARTA:[], QUINTA:[], SEXTA:[] };
+  let diaAtual = null;
+  HORARIO_DATA.forEach(row => {
+    if (row.dia) diaAtual = row.dia;
+    HORARIO_TURMAS_EVERTON.forEach(t => {
+      const val = row.t[t] || '';
+      if (val.startsWith('GEO') && porDia[diaAtual]) {
+        porDia[diaAtual].push({ turma: t, hor: row.hor });
+      }
+    });
+  });
+  return porDia;
+}
+
+function calGoSub(id) {
+  document.querySelectorAll('.cal-subnav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.cal-view').forEach(v => v.classList.remove('active'));
+  document.getElementById('calsub-' + id).classList.add('active');
+  document.getElementById('calview-' + id).classList.add('active');
+}
+
+function renderizarCalendario() {
+  const grid = document.getElementById('calGrid');
+  const leg = document.getElementById('calLegenda');
+  if (!grid) return;
+
+  leg.innerHTML = Object.keys(CAL_CAT_LABEL).map(cat =>
+    `<span class="leg-item"><span class="leg-dot cd-${cat}"></span> ${CAL_CAT_LABEL[cat]}</span>`
+  ).join('');
+
+  let html = '';
+  for (let m = 1; m <= 12; m++) {
+    const first = new Date(Date.UTC(CAL_ANO, m - 1, 1));
+    const firstDow = first.getUTCDay();
+    const diasNoMes = new Date(Date.UTC(CAL_ANO, m, 0)).getUTCDate();
+
+    html += `<div class="cal-month"><div class="cal-month-head"><span>${CAL_MESES[m-1]}</span><span class="cm-dl">DL: ${CAL_DL_POR_MES[m]}</span></div>`;
+    html += '<table class="cal-table"><thead><tr>' + CAL_DIAS_SEM.map(d => `<th>${d}</th>`).join('') + '</tr></thead><tbody><tr>';
+
+    for (let i = 0; i < firstDow; i++) html += '<td class="cd-empty"></td>';
+    let col = firstDow;
+    for (let day = 1; day <= diasNoMes; day++) {
+      const dt = new Date(Date.UTC(CAL_ANO, m - 1, day));
+      const { cat, descs } = calCategoriaDoDia(dt);
+      const title = descs.length ? ` title="${descs.join(' · ').replace(/"/g,'&quot;')}"` : '';
+      html += `<td class="cd-${cat}"${title}><span class="cd-num">${day}</span></td>`;
+      col++;
+      if (col === 7 && day !== diasNoMes) { html += '</tr><tr>'; col = 0; }
+    }
+    while (col < 7 && col !== 0) { html += '<td class="cd-empty"></td>'; col++; }
+    html += '</tr></tbody></table></div>';
+  }
+  grid.innerHTML = html;
+}
+
+function renderizarCruzamento() {
+  const corpo = document.getElementById('corpoCruzamento');
+  if (!corpo) return;
+  const porDia = calAulasGeoEverton();
+
+  // popula filtros (uma única vez)
+  const selTipo = document.getElementById('cxFiltroTipo');
+  const selMes = document.getElementById('cxFiltroMes');
+  if (selTipo.options.length <= 1) {
+    [...new Set(EVENTOS_CALENDARIO_2026.map(e => e[1]))].forEach(cat => {
+      const o = document.createElement('option'); o.value = cat; o.textContent = CAL_CAT_LABEL[cat] || cat;
+      selTipo.appendChild(o);
+    });
+  }
+  if (selMes.options.length <= 1) {
+    CAL_MESES.forEach((nome, idx) => {
+      const o = document.createElement('option'); o.value = String(idx+1); o.textContent = nome;
+      selMes.appendChild(o);
+    });
+  }
+  const fTipo = selTipo.value, fMes = selMes.value, fImpacto = document.getElementById('cxFiltroImpacto').value;
+
+  // apenas eventos em dias úteis (seg-sex), que são os únicos que cruzam com o quadro de horário
+  let linhas = EVENTOS_CALENDARIO_2026
+    .map(([iso, cat, desc]) => {
+      const dt = new Date(iso + 'T00:00:00Z');
+      const dow = dt.getUTCDay();
+      return { iso, cat, desc, dow, dt };
+    })
+    .filter(e => e.dow >= 1 && e.dow <= 5)
+    .sort((a,b) => a.iso.localeCompare(b.iso));
+
+  if (fTipo) linhas = linhas.filter(l => l.cat === fTipo);
+  if (fMes) linhas = linhas.filter(l => String(l.dt.getUTCMonth()+1) === fMes);
+
+  let totalAulasImpactadas = 0, totalEventosComImpacto = 0;
+  let html = '';
+  linhas.forEach(l => {
+    const diaSemana = CAL_DIA_MAP[l.dow];
+    const slots = porDia[diaSemana] || [];
+    const temImpacto = slots.length > 0;
+    if (fImpacto === 'com' && !temImpacto) return;
+    if (fImpacto === 'sem' && temImpacto) return;
+    if (temImpacto) { totalAulasImpactadas += slots.length; totalEventosComImpacto++; }
+
+    const [dd,mm,yyyy] = [l.dt.getUTCDate().toString().padStart(2,'0'), (l.dt.getUTCMonth()+1).toString().padStart(2,'0'), l.dt.getUTCFullYear()];
+    const aulasHtml = temImpacto
+      ? slots.map(s => `<span class="chip-aula">🌍 ${s.turma} · ${s.hor}</span>`).join('')
+      : `<span class="cx-sem-impacto">Sem aulas de Geografia (Everton) neste dia da semana</span>`;
+
+    html += `<tr>
+      <td><strong>${dd}/${mm}/${yyyy}</strong></td>
+      <td>${diaSemana.charAt(0) + diaSemana.slice(1).toLowerCase()}</td>
+      <td><span class="tag-tipo cd-${l.cat}">${CAL_CAT_LABEL[l.cat] || l.cat}</span></td>
+      <td>${l.desc}</td>
+      <td>${aulasHtml}</td>
+      <td style="text-align:center">${slots.length}</td>
+    </tr>`;
+  });
+  corpo.innerHTML = html || '<tr><td colspan="6" style="text-align:center;color:var(--ink-3);padding:20px">Nenhum evento encontrado para os filtros selecionados.</td></tr>';
+
+  const chip = document.getElementById('cx-total-chip');
+  if (chip) chip.textContent = `${totalEventosComImpacto} evento(s) afetam ${totalAulasImpactadas} aula(s) de Geografia`;
+}
+
+function renderizarAlertas() {
+  const corpo = document.getElementById('corpoAlertas');
+  if (!corpo) return;
+
+  const selTipo = document.getElementById('alFiltroTipo');
+  if (selTipo.options.length <= 1) {
+    [...new Set(EVENTOS_CALENDARIO_2026.map(e => e[1]))].forEach(cat => {
+      const o = document.createElement('option'); o.value = cat; o.textContent = CAL_CAT_LABEL[cat] || cat;
+      selTipo.appendChild(o);
+    });
+  }
+  const fTipo = selTipo.value, fPrio = document.getElementById('alFiltroPrioridade').value, fPeriodo = document.getElementById('alFiltroPeriodo').value;
+
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  let linhas = EVENTOS_CALENDARIO_2026.map(([iso, cat, desc]) => {
+    const dt = new Date(iso + 'T00:00:00');
+    const diffDias = Math.round((dt - hoje) / 86400000);
+    return { iso, cat, desc, dt, diffDias, prio: CAL_PRIORIDADE[cat] || 'Média' };
+  }).sort((a,b) => a.iso.localeCompare(b.iso));
+
+  if (fTipo) linhas = linhas.filter(l => l.cat === fTipo);
+  if (fPrio) linhas = linhas.filter(l => l.prio === fPrio);
+  if (fPeriodo === 'proximos') linhas = linhas.filter(l => l.diffDias >= 0);
+  if (fPeriodo === '7') linhas = linhas.filter(l => l.diffDias >= 0 && l.diffDias <= 7);
+  if (fPeriodo === '30') linhas = linhas.filter(l => l.diffDias >= 0 && l.diffDias <= 30);
+
+  const badge = document.getElementById('al-badge-count');
+  const urgentes = EVENTOS_CALENDARIO_2026.filter(([iso]) => {
+    const d = Math.round((new Date(iso+'T00:00:00') - hoje) / 86400000);
+    return d >= 0 && d <= 7;
+  }).length;
+  if (badge) { badge.textContent = urgentes; badge.style.display = urgentes > 0 ? '' : 'none'; }
+
+  let html = '';
+  linhas.forEach(l => {
+    let classe = 'al-futuro', label = `+${l.diffDias}`, sub = 'dias';
+    if (l.diffDias < 0) { classe = 'al-passado'; label = `${Math.abs(l.diffDias)}`; sub = 'dias atrás'; }
+    else if (l.diffDias === 0) { classe = 'al-urgente'; label = 'HOJE'; sub = ''; }
+    else if (l.diffDias <= 7) { classe = 'al-urgente'; label = `${l.diffDias}`; sub = 'dias'; }
+    else if (l.diffDias <= 30) { classe = 'al-proximo'; label = `${l.diffDias}`; sub = 'dias'; }
+
+    const [dd,mm,yyyy] = [l.dt.getDate().toString().padStart(2,'0'), (l.dt.getMonth()+1).toString().padStart(2,'0'), l.dt.getFullYear()];
+    const diaSemana = CAL_DIA_MAP[l.dt.getDay()];
+    html += `<div class="al-card ${classe}">
+      <div class="al-days">${label}<small>${sub}</small></div>
+      <div class="al-body">
+        <div class="al-title">${l.desc}</div>
+        <div class="al-sub">${dd}/${mm}/${yyyy} · ${diaSemana.charAt(0)+diaSemana.slice(1).toLowerCase()} · <span class="tag-tipo cd-${l.cat}">${CAL_CAT_LABEL[l.cat]||l.cat}</span> · Prioridade: ${l.prio}</div>
+      </div>
+    </div>`;
+  });
+  corpo.innerHTML = html || '<p style="color:var(--ink-3);font-size:12.5px;padding:14px 0">Nenhum evento encontrado para os filtros selecionados.</p>';
 }
 
 // ─── ESTADO DA SESSÃO ────────────────────────────────────────────────────────
@@ -2367,6 +2775,7 @@ function construirNav() {
     tabs.push({ id: 'notas',       icon: '📊', label: 'Diário de Notas' });
     tabs.push({ id: 'diario',      icon: '🧭', label: 'Diário de Campo' });
     tabs.push({ id: 'horarios',    icon: '🗓️', label: 'Quadro de Horários' });
+    tabs.push({ id: 'calendario',  icon: '📅', label: 'Calendário' });
     tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
     tabs.push({ id: 'relatorios',  icon: '📋', label: 'Pendências' });
     tabs.push({ id: 'anotacoes',   icon: '📝', label: 'Anotações · ' + (sessao.turmaReferencia || '—') });
@@ -2377,6 +2786,7 @@ function construirNav() {
     tabs.push({ id: 'notas',       icon: '📊', label: 'Diário de Notas' });
     tabs.push({ id: 'diario',      icon: '🧭', label: 'Diário de Campo' });
     tabs.push({ id: 'horarios',    icon: '🗓️', label: 'Quadro de Horários' });
+    tabs.push({ id: 'calendario',  icon: '📅', label: 'Calendário' });
     tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
     tabs.push({ id: 'relatorios',  icon: '📋', label: 'Pendências' });
     if (sessao && sessao.turmaReferencia)
@@ -2429,6 +2839,7 @@ function goTab(tab) {
     if (f && !f.src) f.src = f.dataset.src;
   }
   if (tab === 'horarios') { renderizarHorarios(); }
+  if (tab === 'calendario') { renderizarCalendario(); renderizarCruzamento(); renderizarAlertas(); }
 }
 
 // ─── HELPERS SEXO / ETNIA ────────────────────────────────────────────────────
