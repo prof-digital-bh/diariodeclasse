@@ -588,19 +588,32 @@
      Sempre cabe numa ÚNICA folha (paisagem): o container vira uma coluna
      flexível do tamanho exato da página (100vh na visualização de impressão),
      com a tabela ocupando o espaço disponível entre o título e o rodapé fixo
-     (legenda + lista de atividades). O tamanho de fonte da tabela é ajustado
+     (legenda das marcações). O tamanho de fonte da tabela é ajustado
      por JS (ajustarImpressaoVistos) conforme o número de alunos E de
      atividades, e o nome do aluno pode quebrar em mais de uma linha em vez
-     de ser cortado — assim nenhum nome fica incompleto. */
+     de ser cortado — assim nenhum nome fica incompleto.
+     A visibilidade é controlada por uma classe no <body> (printing-vistos /
+     printing-list), definida em JS antes de chamar window.print(), para que
+     cada botão de impressão mostre só a sua própria área. */
   #vistos-print-area{display:none;}
+  #list-print-area{display:none;}
   @media print{
-    @page{ size: landscape; margin: 9mm; }
     body *{ visibility:hidden; }
-    #vistos-print-area, #vistos-print-area *{ visibility:visible; }
-    #vistos-print-area{
+  }
+  @media print{
+    body.printing-vistos #vistos-print-area, body.printing-vistos #vistos-print-area *{ visibility:visible; }
+    body.printing-vistos #vistos-print-area{
       display:flex; flex-direction:column;
       position:absolute; top:0; left:0; width:100%; height:100vh;
       margin:0; padding:0; background:#fff; overflow:hidden;
+    }
+  }
+  @media print{
+    body.printing-list #list-print-area, body.printing-list #list-print-area *{ visibility:visible; }
+    body.printing-list #list-print-area{
+      display:block;
+      position:absolute; top:0; left:0; width:100%;
+      margin:0; padding:0; background:#fff;
     }
   }
   .pv-header{text-align:center;padding-bottom:6px;flex:none;}
@@ -622,6 +635,29 @@
   .pv-atividades-title{font-weight:700;font-size:7.5px;text-transform:uppercase;letter-spacing:.03em;color:#000;margin-bottom:2px;}
   .pv-atividades-list{display:flex;flex-wrap:wrap;gap:2px 14px;}
   .pv-atividades-list span{white-space:nowrap;}
+
+  /* impressão da listagem de registros (aba Lista) — folha retrato, uma
+     linha por registro, agrupada por trimestre. Sem limite de altura numa
+     única página: usa quantas folhas forem necessárias. */
+  .lp-header{text-align:center;padding-bottom:10px;}
+  .lp-header h1{font-family:var(--font-display);font-size:19px;font-weight:700;margin:0 0 3px;color:#000;}
+  .lp-header .lp-sub{font-family:var(--font-body);font-size:11px;color:#444;}
+  .lp-trim-title{
+    font-family:var(--font-mono);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+    color:#000;margin:16px 0 6px;padding-bottom:3px;border-bottom:1.5px solid #000;
+  }
+  .lp-trim-title:first-of-type{margin-top:10px;}
+  table.lp-table{width:100%;border-collapse:collapse;font-family:var(--font-body);font-size:10.5px;margin-bottom:4px;}
+  table.lp-table th, table.lp-table td{border:1px solid #999;padding:4px 6px;text-align:left;color:#000;vertical-align:top;}
+  table.lp-table thead th{font-weight:700;font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;background:#f0f0f0;}
+  table.lp-table td.lp-codigo{font-family:var(--font-mono);font-weight:700;white-space:nowrap;}
+  table.lp-table td.lp-tipo, table.lp-table td.lp-paginas, table.lp-table td.lp-data, table.lp-table td.lp-status{white-space:nowrap;}
+  table.lp-table tbody tr:nth-child(even){background:#fafafa;}
+  @media print{
+    .lp-trim-title{break-after:avoid;}
+    table.lp-table{break-inside:auto;}
+    table.lp-table tr{break-inside:avoid;}
+  }
 
   /* planejamento view */
   .plan-viewer{margin-top:6px;}
@@ -804,6 +840,7 @@
     </nav>
 
     <div class="side-actions">
+      <button class="btn ghost" id="btn-print-list"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v7H6z"/></svg>Imprimir</button>
       <button class="btn ghost" id="btn-export"><svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>Exportar</button>
       <button class="btn primary" id="btn-new"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Novo registro</button>
     </div>
@@ -856,6 +893,7 @@
     <div id="book-viewer" class="book-viewer" style="display:none;"></div>
     <div id="vistos-viewer" class="vistos-viewer" style="display:none;"></div>
     <div id="vistos-print-area"></div>
+    <div id="list-print-area"></div>
     <div id="plan-viewer" class="plan-viewer" style="display:none;">
       <div class="plan-toolbar">
         <div class="plan-trim-select">
@@ -1960,6 +1998,7 @@ document.getElementById('mode-toggle').addEventListener('click', (ev)=>{
   // códigos das atividades), então escondemos a barra inteira.
   document.querySelector('.toolbar-sticky').style.display = viewMode==='vistos' ? 'none' : '';
   document.getElementById('f-status').style.display = viewMode==='list' ? '' : 'none';
+  document.getElementById('btn-print-list').style.display = viewMode==='list' ? '' : 'none';
   document.getElementById('book-mode-note').style.display = viewMode==='book' ? '' : 'none';
   if(viewMode==='book'){ bookIndex = 0; renderBook(); }
   if(viewMode==='plan'){ renderPlan(); }
@@ -2280,18 +2319,6 @@ async function imprimirVistos(){
     return `<tr><td class="pv-aluno">${escapeHtml(nome)}</td>${cells}<td class="pv-total">${total}</td></tr>`;
   }).join('');
 
-  // legenda das atividades (código – tópico/tema – páginas – data), em fonte
-  // reduzida, para o professor identificar cada coluna sem precisar de tooltip
-  const atividadesLegenda = cols.map(e=>{
-    const info = (e.turmasDetalhe && e.turmasDetalhe[vistosSub]) || {};
-    const d = formatDateShort(info.data);
-    const partes = [`<strong>${escapeHtml(e.codigo || '—')}</strong>`];
-    partes.push(escapeHtml(e.topico || e.tema));
-    if(e.paginas) partes.push('p. ' + escapeHtml(e.paginas));
-    if(d) partes.push(escapeHtml(d));
-    return `<span>${partes.join(' — ')}</span>`;
-  }).join('');
-
   const area = document.getElementById('vistos-print-area');
   area.innerHTML = `
     <div class="pv-header">
@@ -2306,13 +2333,11 @@ async function imprimirVistos(){
     </div>
     <div class="pv-footer">
       <div class="pv-legend">OK = Completo (1,0) &nbsp;·&nbsp; +/- = Parcial (0,5) &nbsp;·&nbsp; NF = Não feito (0,0) &nbsp;·&nbsp; FP = Feito fora do prazo (0,5)</div>
-      <div class="pv-atividades">
-        <div class="pv-atividades-title">Atividades</div>
-        <div class="pv-atividades-list">${atividadesLegenda}</div>
-      </div>
     </div>
   `;
   ajustarImpressaoVistos(nomes.length, cols.length);
+  document.body.classList.remove('printing-list');
+  document.body.classList.add('printing-vistos');
   window.print();
 }
 
@@ -2335,10 +2360,11 @@ function ajustarImpressaoVistos(numAlunos, numAtividades){
   const larguraPorColuna = (LARGURA_UTIL_PX - larguraColunaAluno) / colunasRestantes;
   const fontePorLargura = Math.floor(larguraPorColuna * 0.34);
 
-  // fonte limitada pela ALTURA — garante que todas as linhas de alunos caibam
+  // fonte limitada pela ALTURA — garante que todas as linhas de alunos caibam.
+  // O rodapé agora só tem a legenda das marcações (OK/+-/NF/FP), então
+  // reserva um espaço fixo e pequeno para ele.
   const alturaCabecalho = 40;
-  const linhasLegendaAtividades = Math.max(1, Math.ceil(numAtividades / 8));
-  const alturaRodape = 18 + (linhasLegendaAtividades * 10) + 10;
+  const alturaRodape = 22;
   const alturaTabela = Math.max(ALTURA_UTIL_PX - alturaCabecalho - alturaRodape, 100);
   // reserva ~1,25 linha por aluno em média (nomes compridos costumam quebrar
   // em 2 linhas na coluna estreita) + 1 linha para o cabeçalho da tabela
@@ -2350,11 +2376,76 @@ function ajustarImpressaoVistos(numAlunos, numAtividades){
   table.style.fontSize = fonteTabela + 'px';
   const padY = fonteTabela <= 6 ? 1 : 2;
   table.querySelectorAll('th, td').forEach(cell=>{ cell.style.padding = padY + 'px 3px'; });
+}
 
-  let fonteAtividades = Math.min(fonteTabela, Math.floor(larguraPorColuna * 0.42));
-  fonteAtividades = Math.max(fonteAtividades, 5);
-  const legendaAtividades = document.querySelector('#vistos-print-area .pv-atividades');
-  if(legendaAtividades) legendaAtividades.style.fontSize = fonteAtividades + 'px';
+/* ---------- impressão da listagem de registros (aba Lista) ----------
+   Imprime os registros atualmente visíveis na Lista (mesma turma/filtros
+   já aplicados na tela), agrupados por trimestre, em uma tabela simples
+   — sem limite de altura numa única folha, usando quantas páginas forem
+   necessárias, para nunca cortar nome nenhum. */
+function imprimirLista(){
+  const list = filteredEntries();
+  if(!list.length){ alert('Não há registros para imprimir com os filtros atuais.'); return; }
+
+  const byTrim = {};
+  list.forEach(e=>{ (byTrim[e.trimestre] = byTrim[e.trimestre]||[]).push(e); });
+  const trims = Object.keys(byTrim).sort((a,b)=>a-b);
+
+  const turmaLabel = activeTurma + 'º ano';
+  let filtrosAplicados = [];
+  if(filters.trimestre !== 'all') filtrosAplicados.push(TRIM_LABELS[filters.trimestre] || ('Trimestre ' + filters.trimestre));
+  if(filters.tipo !== 'all') filtrosAplicados.push('Tipo ' + filters.tipo);
+  if(filters.status !== 'all') filtrosAplicados.push(filters.status === 'ministrado' ? 'Ministrado' : 'Planejado');
+  if(filters.search) filtrosAplicados.push('Busca: "' + filters.search + '"');
+
+  let bodyHtml = '';
+  trims.forEach(t=>{
+    const items = byTrim[t].sort(byRecencyDesc);
+    bodyHtml += `<div class="lp-trim-title">${escapeHtml(TRIM_LABELS[t] || ('Trimestre ' + t))} — ${items.length} registro${items.length===1?'':'s'}</div>`;
+    bodyHtml += `
+      <table class="lp-table">
+        <thead>
+          <tr>
+            <th style="width:52px;">Código</th>
+            <th style="width:34px;">Tipo</th>
+            <th>Tema</th>
+            <th>Tópico</th>
+            <th style="width:70px;">Páginas</th>
+            <th style="width:80px;">Turmas</th>
+            <th style="width:76px;">Status</th>
+          </tr>
+        </thead>
+        <tbody>`;
+    items.forEach(e=>{
+      const turmasFeitas = TURMA_LETRAS.filter(l=> e.turmasDetalhe && e.turmasDetalhe[l] && e.turmasDetalhe[l].feito);
+      const statusTxt = hasStatus(e,'ministrado') ? 'Ministrado' : 'Planejado';
+      bodyHtml += `
+          <tr>
+            <td class="lp-codigo">${escapeHtml(e.codigo || '—')}</td>
+            <td class="lp-tipo">${escapeHtml(e.tipo || '—')}</td>
+            <td>${escapeHtml(e.tema || '')}</td>
+            <td>${escapeHtml(e.topico || '')}</td>
+            <td class="lp-paginas">${escapeHtml(e.paginas || '')}</td>
+            <td class="lp-data">${turmasFeitas.length ? escapeHtml(turmasFeitas.join(', ')) : '—'}</td>
+            <td class="lp-status">${statusTxt}</td>
+          </tr>`;
+    });
+    bodyHtml += `
+        </tbody>
+      </table>`;
+  });
+
+  const area = document.getElementById('list-print-area');
+  area.innerHTML = `
+    <div class="lp-header">
+      <h1>Diário de campo — Listagem de registros</h1>
+      <div class="lp-sub">Geografia · ${escapeHtml(turmaLabel)}${filtrosAplicados.length ? ' · ' + escapeHtml(filtrosAplicados.join(' · ')) : ''} · ${list.length} registro${list.length===1?'':'s'}</div>
+    </div>
+    ${bodyHtml}
+  `;
+  document.body.classList.remove('printing-vistos');
+  document.body.classList.add('printing-list');
+  window.print();
 }
 
 function vistosSetSyncStatus(state, msg){
@@ -2774,6 +2865,9 @@ document.getElementById('f-status').addEventListener('click', (ev)=>{
   filters.status = chip.dataset.status;
   renderAll();
 });
+
+/* ---------- impressão (aba Lista) ---------- */
+document.getElementById('btn-print-list').addEventListener('click', imprimirLista);
 
 /* ---------- export ---------- */
 document.getElementById('btn-export').addEventListener('click', ()=>{
