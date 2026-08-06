@@ -533,6 +533,7 @@ table.cal-table td[title]:hover::after {
 .cd-REUNIAO_PAIS { background: #f8cbad; color: #833c00; font-weight: 700; }
 .cd-REDUCAO_CH { background: #b4c7e7; color: #1f3864; font-weight: 700; }
 .cd-SEMANA_OUT { background: #d9c2e9; color: #4c2a72; font-weight: 700; }
+.cd-CRONOGRAMA { background: #a2d9ce; color: #0d4d43; font-weight: 700; }
 .cd-WEEKEND { background: #f2f2f2; color: #b0b0b0; }
 body.dark-mode table.cal-table td.cd-DIA_LETIVO { background: #1e293b; color: #cbd5e1; }
 body.dark-mode table.cal-table td.cd-WEEKEND { background: #162032; color: #64748b; }
@@ -546,6 +547,38 @@ table.tbl-cruzamento thead th, table.tbl-alertas thead th {
 }
 table.tbl-cruzamento tbody td, table.tbl-alertas tbody td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
 table.tbl-cruzamento tbody tr:hover, table.tbl-alertas tbody tr:hover { background: var(--sky-pale); }
+
+/* ─── CRONOGRAMA ──────────────────────────────────────────────────────────── */
+.cro-view { display: none; }
+.cro-view.active { display: block; }
+.cro-pdf-box {
+  border: 1.5px dashed var(--border-2); border-radius: var(--radius); padding: 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 16px; background: var(--sky-pale); flex-wrap: wrap;
+}
+.cro-pdf-box .cro-pdf-info { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); }
+.cro-pdf-box .cro-pdf-info .ico { font-size: 22px; }
+.cro-pdf-upload { position: relative; display: inline-block; }
+.cro-pdf-upload input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+table.tbl-cronograma { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.tbl-cronograma thead th {
+  text-align: left; padding: 8px 10px; background: var(--sky-pale); color: var(--ink-2);
+  font-size: 11px; text-transform: uppercase; letter-spacing: .3px; border-bottom: 1px solid var(--border-2);
+}
+table.tbl-cronograma tbody td { padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.tbl-cronograma tbody tr:hover { background: var(--sky-pale); }
+table.tbl-cronograma input[type=text] {
+  width: 100%; border: 1px solid transparent; border-radius: 6px; padding: 6px 8px; font-size: 12.5px;
+  background: transparent; color: var(--ink); font-family: inherit;
+}
+table.tbl-cronograma input[type=text]:hover, table.tbl-cronograma input[type=text]:focus {
+  border-color: var(--border-2); background: var(--white);
+}
+table.tbl-cronograma td.cro-data-col { width: 150px; }
+table.tbl-cronograma td.cro-del-col { width: 36px; text-align: center; }
+.cro-del-btn { background: none; border: none; cursor: pointer; color: var(--red); font-size: 15px; opacity: .6; }
+.cro-del-btn:hover { opacity: 1; }
+.cro-add-row { margin-top: 10px; }
 .tag-tipo { display: inline-block; padding: 3px 9px; border-radius: 12px; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
 .chip-aula { display: inline-block; background: var(--sky-pale); color: var(--ocean); border: 1px solid var(--sky); border-radius: 10px; padding: 2px 8px; font-size: 10.5px; font-weight: 600; margin: 1px 3px 1px 0; }
 .cx-sem-impacto { color: var(--ink-3); font-style: italic; font-size: 11.5px; }
@@ -1107,7 +1140,17 @@ create table if not exists sessoes_ativas (
   atualizado_em timestamptz default now()
 );
 -- Coluna de foto nos alunos (adicione se ainda não existir):
-alter table alunos add column if not exists foto text;</pre>
+alter table alunos add column if not exists foto text;
+-- Aba Cronograma: um PDF + lista de eventos (data/evento) por trimestre
+create table if not exists cronograma (
+  trimestre int primary key,
+  pdf_url text,
+  pdf_nome text,
+  eventos jsonb not null default '[]',
+  atualizado_em timestamptz default now()
+);
+-- Crie também um bucket de Storage público chamado "cronogramas"
+-- (Painel Supabase → Storage → New bucket → nome: cronogramas → Public bucket: ON)</pre>
       <button onclick="copiarSQL()" style="font-size:12px;padding:6px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:white;cursor:pointer;font-family:'DM Sans',sans-serif">📋 Copiar SQL</button>
     </details>
   </div>
@@ -1687,6 +1730,25 @@ alter table alunos add column if not exists foto text;</pre>
     </div>
   </section>
 
+  <!-- ABA CRONOGRAMA — Upload de PDF por trimestre + tabela Data/Evento, cruza com o Calendário -->
+  <section id="page-cronograma" class="page">
+    <div class="toolbar no-print">
+      <div class="toolbar-title">🗂️ Cronograma por Trimestre</div>
+      <div class="btn-group">
+        <button class="btn" onclick="window.print()">🖨️ Imprimir</button>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--ink-3);margin-bottom:14px">Envie o PDF do cronograma de cada trimestre e registre os eventos (Data · Evento). Esses eventos aparecem automaticamente no <strong>Cruzamento com Horário</strong> e nos <strong>Alertas</strong> da aba Calendário.</p>
+
+    <div class="cal-subnav">
+      <button class="active" id="crosub-1" onclick="croGoSub(1)">1º Trimestre</button>
+      <button id="crosub-2" onclick="croGoSub(2)">2º Trimestre</button>
+      <button id="crosub-3" onclick="croGoSub(3)">3º Trimestre</button>
+    </div>
+
+    <div id="croViews"></div>
+  </section>
+
 </main>
 </div><!-- /.app-body-wrap -->
 
@@ -1973,15 +2035,46 @@ const CAL_CAT_LABEL = {
   INICIO_TERMINO:'Início/Término de semestre', SABADO_LETIVO:'Sábado letivo',
   FERIAS:'Férias / Recesso', ASSEMBLEIA:'Assembleia Escolar', REUNIAO_PAIS:'Reunião de Pais',
   REDUCAO_CH:'Redução de carga horária', SEMANA_OUT:'Semana de Outubro', WEEKEND:'Fim de semana',
+  CRONOGRAMA:'Cronograma do trimestre',
 };
-const CAL_CAT_ORDER = ['FERIADO','INICIO_TERMINO','SABADO_LETIVO','DIA_ESCOLAR','SEMANA_OUT','ASSEMBLEIA','REUNIAO_PAIS','REDUCAO_CH','FERIAS'];
+const CAL_CAT_ORDER = ['FERIADO','INICIO_TERMINO','SABADO_LETIVO','DIA_ESCOLAR','SEMANA_OUT','ASSEMBLEIA','REUNIAO_PAIS','CRONOGRAMA','REDUCAO_CH','FERIAS'];
 const CAL_PRIORIDADE = {
   INICIO_TERMINO:'Alta', FERIADO:'Média', REUNIAO_PAIS:'Alta', ASSEMBLEIA:'Média',
   SABADO_LETIVO:'Alta', DIA_ESCOLAR:'Média', REDUCAO_CH:'Baixa', FERIAS:'Baixa', SEMANA_OUT:'Média',
+  CRONOGRAMA:'Média',
 };
 
+// ─── EVENTOS DO CRONOGRAMA (aba Cronograma) — cadastrados pelo usuário, por trimestre ──
+// Converte apenas linhas com data única e inequívoca (ex.: "29/05", "03/08") em eventos ISO/2026,
+// para poderem cruzar com o Calendário/Quadro de Horários. Linhas com intervalos ("18/05 a 12/06")
+// ficam registradas na aba Cronograma mas não entram no grid diário do Calendário.
+function croDataParaISO(dataTxt) {
+  if (!dataTxt) return null;
+  const m = String(dataTxt).trim().match(/^([0-3]?\d)\s*\/\s*([01]?\d)(?:\s*\/\s*(\d{4}))?$/);
+  if (!m) return null;
+  const dd = m[1].padStart(2,'0'), mm = m[2].padStart(2,'0'), yyyy = m[3] || String(CAL_ANO);
+  return `${yyyy}-${mm}-${dd}`;
+}
+function croEventosFlat() {
+  const out = [];
+  TRIMESTRES.forEach(tr => {
+    const cro = db.cronograma && db.cronograma[tr];
+    if (!cro || !Array.isArray(cro.eventos)) return;
+    cro.eventos.forEach(ev => {
+      const iso = croDataParaISO(ev.data);
+      if (iso && ev.evento && ev.evento.trim()) {
+        out.push([iso, 'CRONOGRAMA', `[${tr}º Tri.] ${ev.evento.trim()}`]);
+      }
+    });
+  });
+  return out;
+}
+function eventosCombinados() {
+  return EVENTOS_CALENDARIO_2026.concat(croEventosFlat());
+}
+
 function calEventosPorData(iso) {
-  return EVENTOS_CALENDARIO_2026.filter(e => e[0] === iso);
+  return eventosCombinados().filter(e => e[0] === iso);
 }
 function calEmFerias(iso) {
   return CAL_FERIAS_RANGES.some(([a,b]) => iso >= a && iso <= b);
@@ -2070,12 +2163,11 @@ function renderizarCruzamento() {
   // popula filtros (uma única vez)
   const selTipo = document.getElementById('cxFiltroTipo');
   const selMes = document.getElementById('cxFiltroMes');
-  if (selTipo.options.length <= 1) {
-    [...new Set(EVENTOS_CALENDARIO_2026.map(e => e[1]))].forEach(cat => {
-      const o = document.createElement('option'); o.value = cat; o.textContent = CAL_CAT_LABEL[cat] || cat;
-      selTipo.appendChild(o);
-    });
-  }
+  const _evComb = eventosCombinados();
+  const _fTipoAnterior = selTipo.value;
+  selTipo.innerHTML = '<option value="">Todos os tipos</option>' +
+    [...new Set(_evComb.map(e => e[1]))].map(cat => `<option value="${cat}">${CAL_CAT_LABEL[cat] || cat}</option>`).join('');
+  selTipo.value = _fTipoAnterior;
   if (selMes.options.length <= 1) {
     CAL_MESES.forEach((nome, idx) => {
       const o = document.createElement('option'); o.value = String(idx+1); o.textContent = nome;
@@ -2085,7 +2177,7 @@ function renderizarCruzamento() {
   const fTipo = selTipo.value, fMes = selMes.value, fImpacto = document.getElementById('cxFiltroImpacto').value;
 
   // apenas eventos em dias úteis (seg-sex), que são os únicos que cruzam com o quadro de horário
-  let linhas = EVENTOS_CALENDARIO_2026
+  let linhas = _evComb
     .map(([iso, cat, desc]) => {
       const dt = new Date(iso + 'T00:00:00Z');
       const dow = dt.getUTCDay();
@@ -2132,16 +2224,15 @@ function renderizarAlertas() {
   if (!corpo) return;
 
   const selTipo = document.getElementById('alFiltroTipo');
-  if (selTipo.options.length <= 1) {
-    [...new Set(EVENTOS_CALENDARIO_2026.map(e => e[1]))].forEach(cat => {
-      const o = document.createElement('option'); o.value = cat; o.textContent = CAL_CAT_LABEL[cat] || cat;
-      selTipo.appendChild(o);
-    });
-  }
+  const _evCombAl = eventosCombinados();
+  const _fTipoAnteriorAl = selTipo.value;
+  selTipo.innerHTML = '<option value="">Todos os tipos</option>' +
+    [...new Set(_evCombAl.map(e => e[1]))].map(cat => `<option value="${cat}">${CAL_CAT_LABEL[cat] || cat}</option>`).join('');
+  selTipo.value = _fTipoAnteriorAl;
   const fTipo = selTipo.value, fPrio = document.getElementById('alFiltroPrioridade').value, fPeriodo = document.getElementById('alFiltroPeriodo').value;
 
   const hoje = new Date(); hoje.setHours(0,0,0,0);
-  let linhas = EVENTOS_CALENDARIO_2026.map(([iso, cat, desc]) => {
+  let linhas = _evCombAl.map(([iso, cat, desc]) => {
     const dt = new Date(iso + 'T00:00:00');
     const diffDias = Math.round((dt - hoje) / 86400000);
     return { iso, cat, desc, dt, diffDias, prio: CAL_PRIORIDADE[cat] || 'Média' };
@@ -2154,7 +2245,7 @@ function renderizarAlertas() {
   if (fPeriodo === '30') linhas = linhas.filter(l => l.diffDias >= 0 && l.diffDias <= 30);
 
   const badge = document.getElementById('al-badge-count');
-  const urgentes = EVENTOS_CALENDARIO_2026.filter(([iso]) => {
+  const urgentes = _evCombAl.filter(([iso]) => {
     const d = Math.round((new Date(iso+'T00:00:00') - hoje) / 86400000);
     return d >= 0 && d <= 7;
   }).length;
@@ -2181,12 +2272,179 @@ function renderizarAlertas() {
   corpo.innerHTML = html || '<p style="color:var(--ink-3);font-size:12.5px;padding:14px 0">Nenhum evento encontrado para os filtros selecionados.</p>';
 }
 
+// ─── ABA CRONOGRAMA — upload de PDF + tabela Data/Evento, por trimestre ──────
+let croTrimestreAtivo = 1;
+
+function croGarantirEstrutura() {
+  if (!db.cronograma) db.cronograma = {};
+  TRIMESTRES.forEach(tr => {
+    if (!db.cronograma[tr]) db.cronograma[tr] = { pdfUrl: null, pdfNome: null, eventos: [] };
+    if (!Array.isArray(db.cronograma[tr].eventos)) db.cronograma[tr].eventos = [];
+  });
+}
+
+function croGoSub(tr) {
+  croTrimestreAtivo = tr;
+  document.querySelectorAll('.cal-subnav button[id^="crosub-"]').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('crosub-' + tr);
+  if (btn) btn.classList.add('active');
+  renderizarCronograma();
+}
+
+function croEscAttr(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function croLinhaHtml(tr, idx, ev) {
+  return `<tr>
+    <td class="cro-data-col"><input type="text" value="${croEscAttr(ev.data || '')}" placeholder="ex: 29/05" oninput="croEditarCampo(${tr},${idx},'data',this.value)"></td>
+    <td><input type="text" value="${croEscAttr(ev.evento || '')}" placeholder="Descrição do evento" oninput="croEditarCampo(${tr},${idx},'evento',this.value)"></td>
+    <td class="cro-del-col"><button class="cro-del-btn" title="Remover linha" onclick="croRemoverLinha(${tr},${idx})">✕</button></td>
+  </tr>`;
+}
+
+function renderizarCronograma() {
+  croGarantirEstrutura();
+  const wrap = document.getElementById('croViews');
+  if (!wrap) return;
+
+  let html = '';
+  TRIMESTRES.forEach(tr => {
+    const cro = db.cronograma[tr];
+    const ativo = tr === croTrimestreAtivo;
+    html += `<div class="cro-view${ativo ? ' active' : ''}" id="croview-${tr}">`;
+
+    // Bloco de upload/exibição do PDF
+    if (cro.pdfUrl) {
+      html += `<div class="cro-pdf-box">
+        <div class="cro-pdf-info"><span class="ico">📄</span> <span>${croEscAttr(cro.pdfNome || ('Cronograma ' + tr + 'º trimestre.pdf'))}</span></div>
+        <div class="btn-group">
+          <a class="btn" href="${cro.pdfUrl}" target="_blank" rel="noopener">👁️ Ver PDF</a>
+          <div class="cro-pdf-upload"><button class="btn">🔄 Trocar PDF</button><input type="file" accept="application/pdf" onchange="croUploadPdf(event,${tr})"></div>
+          <button class="btn" style="color:var(--red)" onclick="croRemoverPdf(${tr})">🗑️ Remover</button>
+        </div>
+      </div>`;
+    } else {
+      html += `<div class="cro-pdf-box">
+        <div class="cro-pdf-info"><span class="ico">📎</span> <span>Nenhum PDF enviado para o ${tr}º trimestre ainda.</span></div>
+        <div class="cro-pdf-upload"><button class="btn btn-primary">⬆️ Enviar PDF do ${tr}º Trimestre</button><input type="file" accept="application/pdf" onchange="croUploadPdf(event,${tr})"></div>
+      </div>`;
+    }
+
+    // Tabela de eventos (Data / Evento)
+    html += `<div class="card" style="padding:0;overflow:auto;max-height:520px">
+      <table class="tbl-cronograma">
+        <thead><tr><th>Data</th><th>Evento</th><th></th></tr></thead>
+        <tbody id="croCorpo-${tr}">${cro.eventos.map((ev,idx) => croLinhaHtml(tr, idx, ev)).join('') || `<tr><td colspan="3" style="text-align:center;color:var(--ink-3);padding:16px">Nenhum evento cadastrado ainda para o ${tr}º trimestre.</td></tr>`}</tbody>
+      </table>
+    </div>
+    <div class="cro-add-row"><button class="btn" onclick="croAddLinha(${tr})">➕ Adicionar evento</button></div>
+    <p style="font-size:11px;color:var(--ink-3);margin-top:10px">Dica: use datas no formato <strong>DD/MM</strong> (ex.: 29/05) para que o evento apareça também no Calendário e no Cruzamento com Horário. Intervalos (ex.: "18/05 a 12/06") ficam registrados aqui, mas não entram no grid diário do Calendário.</p>
+  </div>`;
+  });
+
+  wrap.innerHTML = html;
+}
+
+function croAddLinha(tr) {
+  croGarantirEstrutura();
+  db.cronograma[tr].eventos.push({ data: '', evento: '' });
+  renderizarCronograma();
+  salvar();
+}
+
+function croRemoverLinha(tr, idx) {
+  croGarantirEstrutura();
+  db.cronograma[tr].eventos.splice(idx, 1);
+  renderizarCronograma();
+  salvar();
+}
+
+function croEditarCampo(tr, idx, campo, valor) {
+  croGarantirEstrutura();
+  if (!db.cronograma[tr].eventos[idx]) return;
+  db.cronograma[tr].eventos[idx][campo] = valor;
+  salvar();
+}
+
+async function croUploadPdf(event, tr) {
+  const file = event.target.files[0]; if (!file) return;
+  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+    toast('❌ Selecione um arquivo PDF.'); return;
+  }
+  try {
+    toast('⏳ Enviando PDF do ' + tr + 'º trimestre...');
+    const url = await _uploadCronogramaPdfStorage(file, tr);
+    croGarantirEstrutura();
+    db.cronograma[tr].pdfUrl = url;
+    db.cronograma[tr].pdfNome = file.name;
+    salvar(); renderizarCronograma();
+    toast('🗂️ PDF do ' + tr + 'º trimestre salvo! ✓');
+  } catch(err) {
+    console.error(err);
+    toast('❌ Erro ao enviar PDF: ' + err.message);
+  }
+}
+
+async function croRemoverPdf(tr) {
+  if (!confirm('Remover o PDF do ' + tr + 'º trimestre?')) return;
+  const url = db.cronograma[tr] && db.cronograma[tr].pdfUrl;
+  if (url && url.startsWith('http')) {
+    try {
+      const marker = '/object/public/cronogramas/';
+      const idx = url.indexOf(marker);
+      if (idx !== -1) {
+        const storagePath = url.substring(idx + marker.length);
+        await fetch(SB_URL + '/storage/v1/object/cronogramas', {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prefixes: [storagePath] })
+        });
+      }
+    } catch(e) { console.warn('Erro ao deletar PDF do Storage:', e); }
+  }
+  croGarantirEstrutura();
+  db.cronograma[tr].pdfUrl = null;
+  db.cronograma[tr].pdfNome = null;
+  salvar(); renderizarCronograma();
+  toast('🗂️ PDF removido.');
+}
+
+async function _uploadCronogramaPdfStorage(file, tr) {
+  const path = 'cronograma/trimestre-' + tr + '-' + Date.now() + '.pdf';
+  const res = await fetch(SB_URL + '/storage/v1/object/cronogramas/' + path, {
+    method: 'PUT',
+    headers: {
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': 'application/pdf',
+      'x-upsert': 'true'
+    },
+    body: file
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error('Storage error: ' + err);
+  }
+  return SB_URL + '/storage/v1/object/public/cronogramas/' + path;
+}
+
+async function _pushCronograma() {
+  croGarantirEstrutura();
+  const rows = TRIMESTRES.map(tr => ({
+    trimestre: tr,
+    pdf_url: db.cronograma[tr].pdfUrl || null,
+    pdf_nome: db.cronograma[tr].pdfNome || null,
+    eventos: JSON.stringify(db.cronograma[tr].eventos || []),
+    atualizado_em: new Date().toISOString()
+  }));
+  await _upsert('cronograma', rows);
+}
+
 // ─── ESTADO DA SESSÃO ────────────────────────────────────────────────────────
 // sessão: { profId, nome, isEverton, turmas[], turmaReferencia }
 let sessao = null;
 
 // db: estado em memória — populado do Supabase após login
-let db = { turmas: {}, notas: {}, status: {}, atividades: {}, mapas: {}, anotacoes: {}, autoavaliacao: {}, alunos_info: {}, fotos_alunos: {} };
+let db = { turmas: {}, notas: {}, status: {}, atividades: {}, mapas: {}, anotacoes: {}, autoavaliacao: {}, alunos_info: {}, fotos_alunos: {}, cronograma: {} };
 
 let trimestreFiltro = 1;
 let _saveTimer = null;
@@ -2261,7 +2519,7 @@ async function _pushSupabase() {
     // Se rodar em paralelo, o upsert de notas pode falhar por FK violation
     // para alunos recém-adicionados que ainda não existem no banco
     await _pushAlunos();
-    await Promise.all([_pushAtividades(), _pushNotas(), _pushAnotacoes(), _pushStatus(), _pushMapas()]);
+    await Promise.all([_pushAtividades(), _pushNotas(), _pushAnotacoes(), _pushStatus(), _pushMapas(), _pushCronograma()]);
     setSave('ok');
   } catch(e) { setSave('error'); console.warn('Supabase save error:', e); }
 }
@@ -2449,12 +2707,13 @@ async function carregarDoSupabase() {
     const profId = sessao ? sessao.profId : '__everton__';
     const profFilter = '&prof_id=eq.' + encodeURIComponent(profId);
     // Busca alunos e status primeiro para saber quais turmas existem
-    const [rAlunos, rAtiv, rAnot, rStatus, rMapas] = await Promise.all([
+    const [rAlunos, rAtiv, rAnot, rStatus, rMapas, rCronograma] = await Promise.all([
       sbFetch('/rest/v1/alunos?select=*&order=turma,posicao').then(r => r.ok ? r.json() : null),
       sbFetch('/rest/v1/atividades?select=*&order=turma,trimestre,posicao' + profFilter).then(r => r.ok ? r.json() : null),
       sbFetch('/rest/v1/anotacoes?select=*').then(r => r.ok ? r.json() : null),
       sbFetch('/rest/v1/turmas_status?select=*').then(r => r.ok ? r.json() : null),
-      sbFetch('/rest/v1/mapas?select=*').then(r => r.ok ? r.json() : null)
+      sbFetch('/rest/v1/mapas?select=*').then(r => r.ok ? r.json() : null),
+      sbFetch('/rest/v1/cronograma?select=*').then(r => r.ok ? r.json() : null)
     ]);
 
     // Busca notas por turma para nunca estourar o limite de 1000 linhas do Supabase
@@ -2476,6 +2735,7 @@ async function carregarDoSupabase() {
 
     // Se todas falharam, é erro de rede/tabela — aborta mas preserva estado em memória
     const todasFalharam = [rAlunos, rAtiv, rAnot, rStatus, rMapas].every(r => r === null);
+    if (rCronograma === null) console.warn('Tabela "cronograma" indisponível — execute o SQL de atualização (aba Cronograma ficará vazia até lá).');
     if (todasFalharam) {
       document.getElementById('sync-status').textContent = '⚠️ Sem conexão';
       setSave('error');
@@ -2484,7 +2744,7 @@ async function carregarDoSupabase() {
     }
 
     // Supabase é a ÚNICA fonte de verdade — constrói db direto dos dados do banco
-    const novoDb = { turmas: {}, notas: {}, status: {}, atividades: {}, mapas: {}, anotacoes: {}, autoavaliacao: {}, alunos_info: {}, fotos_alunos: {} };
+    const novoDb = { turmas: {}, notas: {}, status: {}, atividades: {}, mapas: {}, anotacoes: {}, autoavaliacao: {}, alunos_info: {}, fotos_alunos: {}, cronograma: {} };
 
     if (Array.isArray(rAlunos)) {
       rAlunos.forEach(row => {
@@ -2553,6 +2813,11 @@ async function carregarDoSupabase() {
     }
     if (Array.isArray(rStatus)) rStatus.forEach(row => { novoDb.status[row.turma] = normalizarStatusTurma(row.status); if (!novoDb.turmas[row.turma]) novoDb.turmas[row.turma] = []; });
     if (Array.isArray(rMapas))  rMapas.forEach(row => { novoDb.mapas[row.turma] = row.imagem; });
+    if (Array.isArray(rCronograma)) rCronograma.forEach(row => {
+      let eventos = [];
+      try { eventos = typeof row.eventos === 'string' ? JSON.parse(row.eventos) : (row.eventos || []); } catch(e) { eventos = []; }
+      novoDb.cronograma[row.trimestre] = { pdfUrl: row.pdf_url || null, pdfNome: row.pdf_nome || null, eventos };
+    });
 
     // Substitui db em memória pelo conteúdo do banco
     db = novoDb;
@@ -2562,6 +2827,8 @@ async function carregarDoSupabase() {
     if (!db.autoavaliacao) db.autoavaliacao = {};
     if (!db.alunos_info)   db.alunos_info = {};
     if (!db.fotos_alunos)  db.fotos_alunos = {};
+    if (!db.cronograma)    db.cronograma = {};
+    croGarantirEstrutura();
 
     const temDados = Object.keys(db.turmas).length > 0 || (Array.isArray(rStatus) && rStatus.length > 0);
     if (!temDados) await verificarDadosAntigos();
@@ -2604,6 +2871,8 @@ async function migrarDadosAntigos() {
     if (!db.mapas) db.mapas = {};
     if (!db.anotacoes) db.anotacoes = {};
     if (!db.fotos_alunos) db.fotos_alunos = {};
+    if (!db.cronograma) db.cronograma = {};
+    croGarantirEstrutura();
     await _pushSupabase();
     document.getElementById('aviso-migracao').style.display = 'none';
     toast('✅ Migração concluída!');
@@ -2776,6 +3045,7 @@ function construirNav() {
     tabs.push({ id: 'diario',      icon: '🧭', label: 'Diário de Campo' });
     tabs.push({ id: 'horarios',    icon: '🗓️', label: 'Quadro de Horários' });
     tabs.push({ id: 'calendario',  icon: '📅', label: 'Calendário' });
+    tabs.push({ id: 'cronograma',  icon: '🗂️', label: 'Cronograma' });
     tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
     tabs.push({ id: 'relatorios',  icon: '📋', label: 'Pendências' });
     tabs.push({ id: 'anotacoes',   icon: '📝', label: 'Anotações · ' + (sessao.turmaReferencia || '—') });
@@ -2787,6 +3057,7 @@ function construirNav() {
     tabs.push({ id: 'diario',      icon: '🧭', label: 'Diário de Campo' });
     tabs.push({ id: 'horarios',    icon: '🗓️', label: 'Quadro de Horários' });
     tabs.push({ id: 'calendario',  icon: '📅', label: 'Calendário' });
+    tabs.push({ id: 'cronograma',  icon: '🗂️', label: 'Cronograma' });
     tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
     tabs.push({ id: 'relatorios',  icon: '📋', label: 'Pendências' });
     if (sessao && sessao.turmaReferencia)
@@ -2840,6 +3111,7 @@ function goTab(tab) {
   }
   if (tab === 'horarios') { renderizarHorarios(); }
   if (tab === 'calendario') { renderizarCalendario(); renderizarCruzamento(); renderizarAlertas(); }
+  if (tab === 'cronograma') { renderizarCronograma(); }
 }
 
 // ─── HELPERS SEXO / ETNIA ────────────────────────────────────────────────────
