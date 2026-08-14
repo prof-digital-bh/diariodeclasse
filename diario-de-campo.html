@@ -576,6 +576,19 @@
   .vistos-cell.nf{background:var(--clay-bg);color:var(--clay-text);border-color:transparent;}
   .vistos-cell.fp{background:var(--slate-bg);color:var(--slate-text);border-color:transparent;}
   td.vistos-td-total{font-family:var(--font-mono);font-weight:700;font-size:14px;background:#f4faf7;color:var(--ink);}
+
+  /* destaque em cruz (linha + cabeçalho da atividade) ao passar o cursor
+     numa célula da tabela de Vistos, para deixar claro de quem/qual
+     atividade é o dado sob o cursor */
+  table.vistos-table tbody tr.vistos-row-active td.vistos-cell-wrap{background:var(--teal-bg);}
+  table.vistos-table tbody tr.vistos-row-active td.vistos-td-aluno{
+    background:var(--teal);color:#fff;font-weight:700;
+  }
+  table.vistos-table tbody tr.vistos-row-active td.vistos-td-total{background:var(--teal-bg);}
+  table.vistos-table th.vistos-th-entry.vistos-col-active{
+    background:var(--teal);color:#fff;
+  }
+  table.vistos-table th.vistos-th-entry.vistos-col-active .th-codigo{color:#fff;}
   .vistos-empty{padding:40px 20px;text-align:center;color:var(--ink-faint);font-size:13.5px;}
   .vistos-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px;}
   .vistos-footer .hint{font-size:12px;color:var(--ink-faint);}
@@ -2248,6 +2261,26 @@ function vistosRenderTabela(nomes, cols, tabela, turmaReal){
       <tbody>${bodyRows}</tbody>
     </table>
   `;
+
+  // destaque em cruz: ao passar o cursor numa célula, evidencia o nome do
+  // aluno (linha) e o cabeçalho da atividade (coluna) correspondentes
+  const theadRow = paper.querySelector('thead tr');
+  paper.querySelectorAll('td.vistos-cell-wrap').forEach(wrap=>{
+    wrap.addEventListener('mouseenter', ()=>{
+      const tr = wrap.closest('tr');
+      const colIndex = Array.prototype.indexOf.call(tr.children, wrap);
+      const th = theadRow ? theadRow.children[colIndex] : null;
+      tr.classList.add('vistos-row-active');
+      if(th) th.classList.add('vistos-col-active');
+    });
+    wrap.addEventListener('mouseleave', ()=>{
+      const tr = wrap.closest('tr');
+      const colIndex = Array.prototype.indexOf.call(tr.children, wrap);
+      const th = theadRow ? theadRow.children[colIndex] : null;
+      tr.classList.remove('vistos-row-active');
+      if(th) th.classList.remove('vistos-col-active');
+    });
+  });
 
   paper.querySelectorAll('.vistos-cell').forEach(cell=>{
     cell.addEventListener('click', ()=>{
