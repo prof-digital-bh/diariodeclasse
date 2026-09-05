@@ -1384,6 +1384,7 @@ create table if not exists calendario_ferias (
         <button id="btnTrava" class="btn btn-warning" onclick="toggleTrava()" style="display:none"></button>
         <button class="btn btn-success" onclick="exportarCSV()">📥 Exportar CSV</button>
         <button class="btn" onclick="abrirModalImportarCSV()" title="Importar notas de uma planilha CSV para uma coluna específica">📤 Importar CSV</button>
+        <button id="btn-desfazer-import" class="btn" style="display:none;background:#fef3c7;border-color:#fde68a;color:#92400e" onclick="desfazerImportacaoCSV()" title="Desfaz a última importação de CSV, restaurando os valores anteriores">↩️ Desfazer Importação</button>
         <button id="btn-gsheets" class="btn-gsheets" onclick="abrirModalGSheets()" title="Sincronizar notas com Google Sheets">📊 Google Sheets</button>
         <button class="btn" onclick="abrirModalImpressao()">🖨️ Imprimir</button>
         <button class="btn-ia-relatorio" onclick="gerarPerfilTurmaIA()" id="btn-perfil-turma" title="Gera perfil narrativo de todas as turmas com base nas observações dos alunos">🌍 Perfil das Turmas</button>
@@ -2152,7 +2153,12 @@ function calCategoriaDoDia(dt) {
     return { cat: main, descs: evs.map(e => e[2]) };
   }
   if (calEmFerias(iso)) return { cat: 'FERIAS', descs: ['Férias / recesso escolar'] };
-  const dow = dt.getDay();
+  // Importante: dt é sempre construído com Date.UTC(...), então o dia da semana
+  // precisa ser lido com getUTCDay(). Usar getDay() (hora local) faz o navegador
+  // "voltar" a data em fusos atrás de UTC (ex.: Brasil, UTC-3), deslocando a
+  // marcação de fim de semana um dia para trás (ex.: pintando a segunda-feira
+  // em vez do domingo).
+  const dow = dt.getUTCDay();
   if (dow === 0 || dow === 6) return { cat: 'WEEKEND', descs: [] };
   return { cat: 'DIA_LETIVO', descs: [] };
 }
@@ -2652,6 +2658,10 @@ let db = { turmas: {}, notas: {}, status: {}, atividades: {}, mapas: {}, anotaco
 
 let trimestreFiltro = 1;
 let _saveTimer = null;
+let _ultimaImportacaoCSV = null; // snapshot para permitir desfazer a última importação de CSV
+let _importCsvExpireTimer = null;
+const IMPORT_CSV_SNAPSHOT_KEY = 'diario_ultima_importacao_csv';
+const IMPORT_CSV_SNAPSHOT_VALIDADE_MS = 60 * 1000; // 1 minuto — depois disso o botão "Desfazer Importação" some
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 function sbFetch(path, options = {}) {
@@ -5984,11 +5994,80 @@ function _importCsvRefazerPreview() {
 }
 
 function _importCsvConfirmar() {
+  const resultados = (window._impCsv && window._impCsv.resultados) || [];
+  const validos = resultados.filter(r => r.aluno);
+  if (!validos.length) return _importCsvErro('Nenhum aluno correspondente encontrado para importar.');
+
   const t = (window._impCsv && window._impCsv.turma) || document.getElementById('selectTurmaNotas').value;
+  const tr = (window._impCsv && window._impCsv.trimestre) || trimestreFiltro;
+
+  const selNome = document.getElementById('imp-csv-col-nome');
+  const selValor = document.getElementById('imp-csv-col-valor');
+  const selDestino = document.getElementById('imp-csv-coluna-destino');
+  const labelNome = selNome && selNome.selectedOptions[0] ? selNome.selectedOptions[0].textContent : '';
+  const labelValor = selValor && selValor.selectedOptions[0] ? selValor.selectedOptions[0].textContent : '';
+  const labelDestino = selDestino && selDestino.selectedOptions[0] ? selDestino.selectedOptions[0].textContent : '';
+  const ignoradas = resultados.length - validos.length;
+
+  let mc = document.getElementById('modal-import-csv-confirm');
+  if (!mc) { mc = document.createElement('div'); mc.id = 'modal-import-csv-confirm'; document.body.appendChild(mc); }
+  mc.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.72);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .15s ease';
+
+  mc.innerHTML = `<div style="background:var(--white);border-radius:16px;padding:26px;max-width:480px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.35)">
+    <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--ocean);margin-bottom:4px">⚠️ Confirme antes de importar</div>
+    <div style="font-size:12px;color:var(--ink-3);margin-bottom:16px">Revise os itens abaixo antes de finalizar. Se algo estiver errado, clique em "Revisar" e ajuste as colunas.</div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+      <div style="background:var(--sky-pale);border:1px solid var(--border);border-radius:10px;padding:10px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Turma / Trimestre</div>
+        <div style="font-size:13px;font-weight:600">${_importCsvEscHtml(t)} · ${tr}º Trimestre</div>
+      </div>
+      <div style="background:var(--sky-pale);border:1px solid var(--border);border-radius:10px;padding:10px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">2. Coluna com o Nome (na sua planilha)</div>
+        <div style="font-size:13px;font-weight:600">${_importCsvEscHtml(labelNome)}</div>
+      </div>
+      <div style="background:var(--sky-pale);border:1px solid var(--border);border-radius:10px;padding:10px 14px">
+        <div style="font-size:10px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">3. Coluna com a Nota/Valor (na sua planilha)</div>
+        <div style="font-size:13px;font-weight:600">${_importCsvEscHtml(labelValor)}</div>
+      </div>
+      <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 14px">
+        <div style="font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">4. Vai importar PARA a coluna</div>
+        <div style="font-size:13px;font-weight:700;color:#92400e">${_importCsvEscHtml(labelDestino)}</div>
+      </div>
+      <div style="font-size:12px;color:var(--ink-2)">👥 <strong>${validos.length}</strong> aluno(s) reconhecido(s) receberão valores nesta coluna${ignoradas > 0 ? ' (' + ignoradas + ' linha(s) do CSV serão ignoradas por não terem correspondência)' : ''}.</div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-success" style="flex:1;justify-content:center" onclick="_importCsvExecutarConfirmado()">✅ Confirmar e Importar</button>
+      <button onclick="_fecharConfirmacaoImportCSV()" style="padding:10px 14px;background:var(--sky-pale);color:var(--ink-2);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">◀ Revisar</button>
+    </div>
+  </div>`;
+}
+
+function _fecharConfirmacaoImportCSV() {
+  const el = document.getElementById('modal-import-csv-confirm');
+  if (el) el.remove();
+}
+
+function _importCsvExecutarConfirmado() {
+  _fecharConfirmacaoImportCSV();
+  _importCsvExecutar();
+}
+
+function _importCsvExecutar() {
+  const t = (window._impCsv && window._impCsv.turma) || document.getElementById('selectTurmaNotas').value;
+  const tr = (window._impCsv && window._impCsv.trimestre) || trimestreFiltro;
   const destino = document.getElementById('imp-csv-coluna-destino').value;
   const resultados = (window._impCsv && window._impCsv.resultados) || [];
   const validos = resultados.filter(r => r.aluno);
   if (!validos.length) return _importCsvErro('Nenhum aluno correspondente encontrado para importar.');
+
+  // Guarda os valores ANTERIORES de cada célula que será sobrescrita, para permitir desfazer depois
+  const itensSnapshot = validos.map(r => {
+    const notaAluno = (db.notas[t] && db.notas[t][r.aluno]) || {};
+    const valorAntigo = destino === '__obs__' ? (notaAluno.obs || '') : (notaAluno[destino] !== undefined ? notaAluno[destino] : '');
+    return { aluno: r.aluno, valorAntigo };
+  });
 
   let importados = 0;
   validos.forEach(r => {
@@ -5999,9 +6078,112 @@ function _importCsvConfirmar() {
     importados++;
   });
 
+  _salvarSnapshotImportacaoCSV({ turma: t, trimestre: tr, coluna: destino, itens: itensSnapshot });
+
   fecharModalImportarCSV();
   renderizarNotas();
-  toast(importados + ' nota(s) importada(s) com sucesso! ✓');
+  toast(importados + ' nota(s) importada(s) com sucesso! ✓ (você tem 1 minuto para desfazer no botão "↩️ Desfazer Importação")');
+}
+
+// ─── DESFAZER IMPORTAÇÃO DE CSV ──────────────────────────────────────────────
+function _descreverColunaImport(t, coluna, trimestre) {
+  if (coluna === '__obs__') return 'Observações';
+  const m = /^t(\d)_a(\d+)$/.exec(coluna || '');
+  if (!m) return coluna;
+  const tr = parseInt(m[1], 10), idx = parseInt(m[2], 10) - 1;
+  garantirAtividades(t);
+  const nomeAtiv = (db.atividades[t] && db.atividades[t]['t'+tr] && db.atividades[t]['t'+tr][idx] && db.atividades[t]['t'+tr][idx].nome) || '';
+  return (tr + 'º Tri · ' + (nomeAtiv.trim() || ('Atividade ' + (idx+1))));
+}
+
+function _salvarSnapshotImportacaoCSV(snapshot) {
+  snapshot.timestamp = Date.now();
+  _ultimaImportacaoCSV = snapshot;
+  try { localStorage.setItem(IMPORT_CSV_SNAPSHOT_KEY, JSON.stringify(snapshot)); } catch(e) { /* ignora se localStorage indisponível */ }
+  _atualizarBotaoDesfazerImport();
+  _agendarExpiracaoImportCSV();
+}
+
+function _agendarExpiracaoImportCSV() {
+  if (_importCsvExpireTimer) { clearTimeout(_importCsvExpireTimer); _importCsvExpireTimer = null; }
+  if (!_ultimaImportacaoCSV || !_ultimaImportacaoCSV.timestamp) return;
+  const restante = IMPORT_CSV_SNAPSHOT_VALIDADE_MS - (Date.now() - _ultimaImportacaoCSV.timestamp);
+  if (restante <= 0) { _expirarImportacaoCSV(); return; }
+  _importCsvExpireTimer = setTimeout(_expirarImportacaoCSV, restante);
+}
+
+function _expirarImportacaoCSV() {
+  _ultimaImportacaoCSV = null;
+  _importCsvExpireTimer = null;
+  try { localStorage.removeItem(IMPORT_CSV_SNAPSHOT_KEY); } catch(e) {}
+  _atualizarBotaoDesfazerImport();
+}
+
+function _restaurarSnapshotImportacaoLocal() {
+  try {
+    const bruto = localStorage.getItem(IMPORT_CSV_SNAPSHOT_KEY);
+    if (!bruto) return;
+    const snap = JSON.parse(bruto);
+    if (!snap || !snap.timestamp || (Date.now() - snap.timestamp) > IMPORT_CSV_SNAPSHOT_VALIDADE_MS) {
+      localStorage.removeItem(IMPORT_CSV_SNAPSHOT_KEY);
+      return;
+    }
+    _ultimaImportacaoCSV = snap;
+  } catch(e) { /* snapshot corrompido — ignora */ }
+  _atualizarBotaoDesfazerImport();
+  _agendarExpiracaoImportCSV();
+}
+
+function _atualizarBotaoDesfazerImport() {
+  const btn = document.getElementById('btn-desfazer-import');
+  if (!btn) return;
+  if (!_ultimaImportacaoCSV || !_ultimaImportacaoCSV.itens || !_ultimaImportacaoCSV.itens.length) {
+    btn.style.display = 'none';
+    return;
+  }
+  const s = _ultimaImportacaoCSV;
+  const colunaDesc = _descreverColunaImport(s.turma, s.coluna, s.trimestre);
+  btn.style.display = '';
+  btn.title = 'Desfaz a importação em "' + colunaDesc + '" da turma ' + s.turma + ' (' + s.itens.length + ' aluno(s)) e restaura os valores anteriores. Disponível por 1 minuto após a importação.';
+}
+
+function desfazerImportacaoCSV() {
+  if (!_ultimaImportacaoCSV || !_ultimaImportacaoCSV.itens || !_ultimaImportacaoCSV.itens.length) {
+    toast('Não há nenhuma importação recente para desfazer.');
+    return;
+  }
+  const s = _ultimaImportacaoCSV;
+  const colunaDesc = _descreverColunaImport(s.turma, s.coluna, s.trimestre);
+
+  if (isTurmaFechada(s.turma, s.trimestre)) {
+    toast('O trimestre desta importação está travado. Destrave a turma para poder desfazer.');
+    return;
+  }
+
+  const ok = confirm(
+    'Desfazer a última importação de CSV?\n\n' +
+    'Turma: ' + s.turma + '\n' +
+    'Coluna: ' + colunaDesc + '\n' +
+    'Alunos afetados: ' + s.itens.length + '\n\n' +
+    'Os valores serão restaurados para o que estava antes da importação. Essa ação não pode ser desfeita novamente.'
+  );
+  if (!ok) return;
+
+  s.itens.forEach(item => {
+    if (s.coluna === '__obs__') salvarObs(s.turma, item.aluno, item.valorAntigo);
+    else salvarNota(s.turma, item.aluno, s.coluna, item.valorAntigo);
+  });
+
+  _ultimaImportacaoCSV = null;
+  if (_importCsvExpireTimer) { clearTimeout(_importCsvExpireTimer); _importCsvExpireTimer = null; }
+  try { localStorage.removeItem(IMPORT_CSV_SNAPSHOT_KEY); } catch(e) {}
+  _atualizarBotaoDesfazerImport();
+
+  // Atualiza a tela se a turma/trimestre desfeitos forem os que estão em exibição
+  const turmaAtual = document.getElementById('selectTurmaNotas') ? document.getElementById('selectTurmaNotas').value : null;
+  if (turmaAtual === s.turma && trimestreFiltro === s.trimestre) renderizarNotas();
+
+  toast('Importação desfeita — valores anteriores restaurados. ✓');
 }
 
 function imprimirRelatorio() { window.print(); }
@@ -7614,6 +7796,10 @@ function toggleDarkMode() {
     });
   }
 })();
+
+document.addEventListener('DOMContentLoaded', () => {
+  _restaurarSnapshotImportacaoLocal();
+});
 
 // ─── RELATÓRIOS DE PENDÊNCIAS ─────────────────────────────────────────────────
 function popularSelectRelatorios() {
