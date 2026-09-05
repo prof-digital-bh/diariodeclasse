@@ -1383,6 +1383,7 @@ create table if not exists calendario_ferias (
       <div class="btn-group">
         <button id="btnTrava" class="btn btn-warning" onclick="toggleTrava()" style="display:none"></button>
         <button class="btn btn-success" onclick="exportarCSV()">📥 Exportar CSV</button>
+        <button class="btn" onclick="abrirModalImportarCSV()" title="Importar notas de uma planilha CSV para uma coluna específica">📤 Importar CSV</button>
         <button id="btn-gsheets" class="btn-gsheets" onclick="abrirModalGSheets()" title="Sincronizar notas com Google Sheets">📊 Google Sheets</button>
         <button class="btn" onclick="abrirModalImpressao()">🖨️ Imprimir</button>
         <button class="btn-ia-relatorio" onclick="gerarPerfilTurmaIA()" id="btn-perfil-turma" title="Gera perfil narrativo de todas as turmas com base nas observações dos alunos">🌍 Perfil das Turmas</button>
@@ -5770,6 +5771,237 @@ function exportarCSV() {
   const blob = new Blob(['\uFEFF'+linhas.join('\n')], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='notas_'+t.replace(/\s+/g,'_')+'.csv'; a.click();
   toast('CSV exportado! ✓');
+}
+
+// ─── IMPORTAR CSV PARA UMA COLUNA ────────────────────────────────────────────
+function _importCsvEscHtml(s) {
+  return (s || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function _importNormNome(s) {
+  return (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+}
+
+function _importCsvParseTexto(texto) {
+  texto = texto.replace(/^\uFEFF/, '');
+  const linhas = texto.split(/\r\n|\n|\r/).filter(l => l.trim() !== '');
+  if (!linhas.length) return [];
+  const linha0 = linhas[0];
+  const candidatos = [';', ',', '\t'];
+  let sep = ';', melhor = -1;
+  candidatos.forEach(c => { const n = linha0.split(c).length; if (n > melhor) { melhor = n; sep = c; } });
+  return linhas.map(l => _importCsvSplitLinha(l, sep));
+}
+
+function _importCsvSplitLinha(linha, sep) {
+  const out = [];
+  let atual = '', dentroAspas = false;
+  for (let i = 0; i < linha.length; i++) {
+    const ch = linha[i];
+    if (ch === '"') {
+      if (dentroAspas && linha[i + 1] === '"') { atual += '"'; i++; }
+      else dentroAspas = !dentroAspas;
+    } else if (ch === sep && !dentroAspas) {
+      out.push(atual); atual = '';
+    } else {
+      atual += ch;
+    }
+  }
+  out.push(atual);
+  return out.map(c => c.trim());
+}
+
+function abrirModalImportarCSV() {
+  const t = document.getElementById('selectTurmaNotas').value;
+  if (!t) return toast('Selecione uma turma primeiro.');
+  garantirAtividades(t);
+  const tr = trimestreFiltro;
+  if (isTurmaFechada(t, tr)) return toast('Este trimestre está travado para esta turma. Destrave antes de importar.');
+
+  const ativ = db.atividades[t]['t' + tr];
+  const opcoesColuna = [];
+  for (let i = 1; i <= N_ATIV; i++) {
+    if (i === VISTOS_POSICAO_RESERVADA) continue; // preenchida automaticamente pelo Vistos
+    const nomeAtiv = (ativ[i - 1] && ativ[i - 1].nome) || '';
+    const label = nomeAtiv.trim() ? (i + '. ' + nomeAtiv) : ('Atividade ' + i + ' (sem nome)');
+    opcoesColuna.push('<option value="t' + tr + '_a' + i + '">' + _importCsvEscHtml(label) + '</option>');
+  }
+  opcoesColuna.push('<option value="__obs__">📝 Observações (texto)</option>');
+
+  let m = document.getElementById('modal-import-csv');
+  if (!m) { m = document.createElement('div'); m.id = 'modal-import-csv'; document.body.appendChild(m); }
+  m.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.65);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease';
+
+  m.innerHTML = `<div style="background:var(--white);border-radius:16px;padding:26px;max-width:640px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+    <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--ocean);margin-bottom:4px">📤 Importar Notas de CSV</div>
+    <div style="font-size:12px;color:var(--ink-3);margin-bottom:16px">Turma <strong>${_importCsvEscHtml(t)}</strong> · ${tr}º Trimestre — os nomes do arquivo serão comparados com os alunos da turma para preencher a coluna escolhida.</div>
+
+    <div style="margin-bottom:14px">
+      <label style="display:block;font-size:11px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">1. Arquivo CSV</label>
+      <input type="file" id="imp-csv-arquivo" accept=".csv,text/csv" onchange="_importCsvArquivoSelecionado(event)" style="width:100%;padding:8px;border:1px solid var(--border-2);border-radius:8px;font-size:12px">
+      <div style="font-size:11px;color:var(--ink-3);margin-top:5px">Aceita separador vírgula, ponto e vírgula ou tabulação.</div>
+    </div>
+
+    <div id="imp-csv-mapeamento" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">2. Coluna com o Nome do aluno</label>
+          <select id="imp-csv-col-nome" onchange="_importCsvRefazerPreview()" style="width:100%;padding:8px 10px;border:1px solid var(--border-2);border-radius:8px;font-size:12px"></select>
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">3. Coluna com a Nota/Valor</label>
+          <select id="imp-csv-col-valor" onchange="_importCsvRefazerPreview()" style="width:100%;padding:8px 10px;border:1px solid var(--border-2);border-radius:8px;font-size:12px"></select>
+        </div>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="imp-csv-tem-cabecalho" checked onchange="_importCsvRefazerPreview()"> A primeira linha é um cabeçalho (ignorar ao importar)
+        </label>
+      </div>
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">4. Importar valores para a coluna</label>
+        <select id="imp-csv-coluna-destino" style="width:100%;padding:8px 10px;border:1px solid var(--border-2);border-radius:8px;font-size:12px">${opcoesColuna.join('')}</select>
+      </div>
+
+      <div style="margin-bottom:8px;font-size:11px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.4px">Pré-visualização</div>
+      <div id="imp-csv-preview" style="max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:8px"></div>
+    </div>
+
+    <div id="imp-csv-erro" style="display:none;background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:12px;color:#991b1b;margin-top:12px"></div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px">
+      <button id="imp-csv-btn-confirmar" class="btn btn-success" style="flex:1;justify-content:center;display:none" onclick="_importCsvConfirmar()">✅ Importar</button>
+      <button onclick="fecharModalImportarCSV()" style="padding:10px 14px;background:var(--sky-pale);color:var(--ink-2);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Cancelar</button>
+    </div>
+  </div>`;
+
+  window._impCsv = { turma: t, trimestre: tr };
+}
+
+function fecharModalImportarCSV() {
+  const el = document.getElementById('modal-import-csv');
+  if (el) el.remove();
+  window._impCsv = null;
+}
+
+function _importCsvErro(msg) {
+  const el = document.getElementById('imp-csv-erro');
+  if (!el) return;
+  if (!msg) { el.style.display = 'none'; return; }
+  el.textContent = '⚠️ ' + msg;
+  el.style.display = '';
+}
+
+function _importCsvArquivoSelecionado(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const linhas = _importCsvParseTexto(String(reader.result));
+      if (!linhas.length) { _importCsvErro('O arquivo está vazio ou não pôde ser lido.'); return; }
+      window._impCsv = window._impCsv || {};
+      window._impCsv.linhas = linhas;
+
+      const numCols = Math.max(...linhas.map(l => l.length));
+      const opts = [];
+      for (let c = 0; c < numCols; c++) {
+        const amostra = (linhas[0][c] || '').slice(0, 22);
+        opts.push('<option value="' + c + '">Coluna ' + (c + 1) + (amostra ? ' — "' + _importCsvEscHtml(amostra) + '"' : '') + '</option>');
+      }
+      document.getElementById('imp-csv-col-nome').innerHTML = opts.join('');
+      document.getElementById('imp-csv-col-valor').innerHTML = opts.join('');
+      if (numCols >= 2) document.getElementById('imp-csv-col-valor').value = '1';
+      document.getElementById('imp-csv-mapeamento').style.display = '';
+      _importCsvErro('');
+      _importCsvRefazerPreview();
+    } catch (e) {
+      _importCsvErro('Erro ao ler o arquivo: ' + e.message);
+    }
+  };
+  reader.onerror = () => _importCsvErro('Não foi possível ler o arquivo selecionado.');
+  reader.readAsText(file, 'UTF-8');
+}
+
+function _importCsvRefazerPreview() {
+  const t = (window._impCsv && window._impCsv.turma) || document.getElementById('selectTurmaNotas').value;
+  const linhas = (window._impCsv && window._impCsv.linhas) || [];
+  const colNome = parseInt(document.getElementById('imp-csv-col-nome').value, 10);
+  const colValor = parseInt(document.getElementById('imp-csv-col-valor').value, 10);
+  const temCabecalho = document.getElementById('imp-csv-tem-cabecalho').checked;
+  const dados = temCabecalho ? linhas.slice(1) : linhas;
+
+  const alunosTurma = db.turmas[t] || [];
+  const mapaNormalizado = {};
+  alunosTurma.forEach(a => { mapaNormalizado[_importNormNome(a)] = a; });
+
+  const resultados = dados.map(linha => {
+    const nomeCsv = (linha[colNome] || '').trim();
+    const valorCsv = (linha[colValor] !== undefined ? linha[colValor] : '').trim();
+    if (!nomeCsv) return null;
+    const norm = _importNormNome(nomeCsv);
+    let alunoEncontrado = mapaNormalizado[norm];
+    if (!alunoEncontrado) {
+      const candidatos = alunosTurma.filter(a => {
+        const na = _importNormNome(a);
+        return na.includes(norm) || norm.includes(na);
+      });
+      if (candidatos.length === 1) alunoEncontrado = candidatos[0];
+    }
+    return { nomeCsv, valorCsv, aluno: alunoEncontrado || null };
+  }).filter(Boolean);
+
+  window._impCsv.resultados = resultados;
+
+  const linhasHtml = resultados.map(r => {
+    const ok = !!r.aluno;
+    return '<tr style="border-bottom:1px solid var(--border)">' +
+      '<td style="padding:6px 10px;font-size:12px">' + (ok ? '✅' : '⚠️') + '</td>' +
+      '<td style="padding:6px 10px;font-size:12px">' + _importCsvEscHtml(r.nomeCsv) + '</td>' +
+      '<td style="padding:6px 10px;font-size:12px;color:var(--ink-3)">' + (ok ? '→ ' + _importCsvEscHtml(r.aluno) : 'Aluno não encontrado na turma') + '</td>' +
+      '<td style="padding:6px 10px;font-size:12px;text-align:right;font-weight:600">' + (_importCsvEscHtml(r.valorCsv) || '—') + '</td>' +
+      '</tr>';
+  }).join('');
+
+  const encontrados = resultados.filter(r => r.aluno).length;
+  document.getElementById('imp-csv-preview').innerHTML = `<table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:var(--sky-pale)">
+      <th style="padding:6px 10px;font-size:10px;text-align:left">Status</th>
+      <th style="padding:6px 10px;font-size:10px;text-align:left">Nome no CSV</th>
+      <th style="padding:6px 10px;font-size:10px;text-align:left">Correspondência</th>
+      <th style="padding:6px 10px;font-size:10px;text-align:right">Valor</th>
+    </tr></thead>
+    <tbody>${linhasHtml || '<tr><td colspan="4" style="padding:12px;text-align:center;color:var(--ink-3);font-size:12px">Nenhuma linha de dados encontrada.</td></tr>'}</tbody>
+  </table>`;
+
+  const btn = document.getElementById('imp-csv-btn-confirmar');
+  if (resultados.length && encontrados > 0) {
+    btn.style.display = '';
+    btn.textContent = '✅ Importar ' + encontrados + ' nota(s) reconhecida(s)' + (encontrados < resultados.length ? ' (' + (resultados.length - encontrados) + ' ignorada(s))' : '');
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+function _importCsvConfirmar() {
+  const t = (window._impCsv && window._impCsv.turma) || document.getElementById('selectTurmaNotas').value;
+  const destino = document.getElementById('imp-csv-coluna-destino').value;
+  const resultados = (window._impCsv && window._impCsv.resultados) || [];
+  const validos = resultados.filter(r => r.aluno);
+  if (!validos.length) return _importCsvErro('Nenhum aluno correspondente encontrado para importar.');
+
+  let importados = 0;
+  validos.forEach(r => {
+    let valorFinal = r.valorCsv;
+    if (destino !== '__obs__') valorFinal = valorFinal.replace(',', '.').replace(/[^0-9.\-]/g, '');
+    if (destino === '__obs__') salvarObs(t, r.aluno, valorFinal);
+    else salvarNota(t, r.aluno, destino, valorFinal);
+    importados++;
+  });
+
+  fecharModalImportarCSV();
+  renderizarNotas();
+  toast(importados + ' nota(s) importada(s) com sucesso! ✓');
 }
 
 function imprimirRelatorio() { window.print(); }
