@@ -549,34 +549,55 @@ body.dark-mode table.cal-table td.cd-FERIAS { background: #1e293b; color: #64748
 .cal-modo-switch button:hover { background: var(--sky-pale); }
 .cal-modo-switch button.active { background: var(--ocean-mid); border-color: var(--ocean-mid); color: #fff; }
 
-.cal-mes-nav { display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 16px; }
+.cal-mes-nav { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 0 auto 16px; max-width: 1040px; }
 .cal-mes-arrow {
-  width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border-2); background: var(--white);
-  color: var(--ocean); font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center;
-  justify-content: center; transition: all .15s; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-2); background: var(--white);
+  color: var(--ocean); font-size: 19px; line-height: 1; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; transition: all .15s; flex-shrink: 0; box-shadow: var(--shadow);
 }
-.cal-mes-arrow:hover { background: var(--ocean); color: #fff; border-color: var(--ocean); }
-.cal-mes-nav-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--ocean); min-width: 200px; text-align: center; }
+.cal-mes-arrow:hover { background: var(--ocean); color: #fff; border-color: var(--ocean); transform: scale(1.06); }
+.cal-mes-nav-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; color: var(--ocean); min-width: 260px; text-align: center; letter-spacing: .3px; }
+.cal-mes-nav-dl { font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 12px; color: var(--ink-3); letter-spacing: 0; margin-left: 6px; }
 body.dark-mode .cal-mes-nav-title { color: #93c5fd; }
 
-.cal-mes-box { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+/* Grade "Por mês": ocupa a largura toda (sobrepõe o grid de 3 colunas do modo Ano) e fica centralizada */
+.cal-grid.cal-grid-mes { display: block; }
+.cal-mes-box {
+  max-width: 1040px; margin: 0 auto; background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-lg);
+}
 table.cal-table-mes { width: 100%; border-collapse: collapse; table-layout: fixed; }
-table.cal-table-mes th { font-size: 11px; color: var(--ink-3); font-weight: 700; padding: 10px 0; text-align: center; background: var(--sky-pale); }
-table.cal-table-mes td { height: 96px; vertical-align: top; text-align: left; padding: 6px 7px; font-size: 11px; border: 1px solid var(--sand); position: relative; }
-table.cal-table-mes td.cd-empty { background: transparent; border-color: transparent; }
-table.cal-table-mes td .cd-mes-num { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
-.cd-hoje-tag { background: var(--ocean); color: #fff; font-size: 8.5px; font-weight: 700; padding: 1px 5px; border-radius: 8px; text-transform: uppercase; letter-spacing: .3px; }
-.cd-mes-pills { display: flex; flex-direction: column; gap: 2px; }
+table.cal-table-mes th {
+  font-size: 12px; color: var(--ink-2); font-weight: 700; padding: 13px 0; text-align: center;
+  background: var(--sky-pale); text-transform: uppercase; letter-spacing: .4px; border-bottom: 1px solid var(--border);
+}
+table.cal-table-mes th.cal-th-fds { color: var(--ocean-mid); }
+table.cal-table-mes td {
+  height: 108px; vertical-align: top; text-align: left; padding: 8px 10px; font-size: 11.5px;
+  border: 1px solid var(--sand); position: relative;
+}
+table.cal-table-mes td.cd-empty { background: var(--sky-pale); border-color: var(--sand); opacity: .5; }
+table.cal-table-mes td .cd-mes-num {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+.cd-hoje-tag { background: var(--ocean); color: #fff; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 8px; text-transform: uppercase; letter-spacing: .3px; }
+td.cd-hoje-cel { box-shadow: inset 0 0 0 2px var(--ocean); }
+.cd-mes-pills { display: flex; flex-direction: column; gap: 3px; }
 .cd-mes-pill {
-  font-size: 9.5px; font-weight: 600; padding: 2px 6px; border-radius: 5px; background: rgba(255,255,255,.55);
+  font-size: 10.5px; font-weight: 600; padding: 3px 7px; border-radius: 6px; background: rgba(255,255,255,.6);
   color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid rgba(0,0,0,.08);
 }
 .cd-mes-pill-mais { background: rgba(15,23,42,.14); font-style: italic; }
 td.cd-clicavel { cursor: pointer; transition: filter .15s; }
 td.cd-clicavel:hover { filter: brightness(.94); }
+@media (max-width: 900px) {
+  table.cal-table-mes td { height: 92px; padding: 6px 7px; }
+}
 @media (max-width: 720px) {
-  table.cal-table-mes td { height: 74px; padding: 4px 5px; }
-  table.cal-table-mes td .cd-mes-num { font-size: 11px; }
+  .cal-mes-nav-title { min-width: 0; font-size: 16px; }
+  table.cal-table-mes td { height: 72px; padding: 4px 5px; }
+  table.cal-table-mes td .cd-mes-num { font-size: 12px; }
   .cd-mes-pill { display: none; }
 }
 
@@ -652,20 +673,31 @@ table.tbl-cronograma td.cro-del-col { width: 36px; text-align: center; }
 .cx-sem-impacto { color: var(--ink-3); font-style: italic; font-size: 11.5px; }
 
 .al-card { border-radius: var(--radius-lg); padding: 12px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; border-left: 5px solid; }
-.al-card .al-days { font-family:'Syne',sans-serif; font-weight: 800; font-size: 20px; min-width: 64px; text-align: center; line-height: 1.05; }
+.al-card .al-days { font-family:'Syne',sans-serif; font-weight: 800; font-size: 20px; min-width: 72px; text-align: center; line-height: 1.05; }
 .al-card .al-days small { display: block; font-size: 9px; font-weight: 600; text-transform: uppercase; opacity: .75; }
 .al-card .al-body { flex: 1; }
 .al-card .al-title { font-weight: 700; font-size: 13px; }
 .al-card .al-sub { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
-.al-urgente { background: #fee2e2; border-color: #dc2626; }
-.al-urgente .al-days { color: #dc2626; }
-.al-proximo { background: #fef9c3; border-color: #ca8a04; }
-.al-proximo .al-days { color: #92400e; }
-.al-futuro { background: #dcfce7; border-color: #16a34a; }
-.al-futuro .al-days { color: #166534; }
-.al-passado { background: var(--sand); border-color: var(--border-2); opacity: .6; }
-.al-passado .al-days { color: var(--ink-3); }
-body.dark-mode .al-passado { background: #1e293b; }
+.al-urgente { background: #dbeafe; border-color: #2563a8; }
+.al-urgente .al-days { color: #1a3a5c; }
+.al-proximo { background: #dcfce7; border-color: #16a34a; }
+.al-proximo .al-days { color: #166534; }
+.al-futuro { background: #f0f7ff; border-color: #93c5fd; }
+.al-futuro .al-days { color: #3b5c82; }
+.al-passado { background: #fee2e2; border-color: #ef4444; }
+.al-passado .al-days { color: #b91c1c; }
+.al-passado .al-title { color: #7f1d1d; }
+.al-passado .al-sub { color: #b45361; }
+body.dark-mode .al-urgente { background: #1e3a5c; border-color: #3b82d4; }
+body.dark-mode .al-urgente .al-days { color: #93c5fd; }
+body.dark-mode .al-proximo { background: #14301f; border-color: #22c55e; }
+body.dark-mode .al-proximo .al-days { color: #86efac; }
+body.dark-mode .al-futuro { background: #16223a; border-color: #3b5c82; }
+body.dark-mode .al-futuro .al-days { color: #93c5fd; }
+body.dark-mode .al-passado { background: #3b1414; border-color: #ef4444; }
+body.dark-mode .al-passado .al-days { color: #fca5a5; }
+body.dark-mode .al-passado .al-title { color: #fecaca; }
+body.dark-mode .al-passado .al-sub { color: #f0a3a3; }
 
 /* Cores por trimestre */
 .t1-bg { background: #f0f7ff !important; }
@@ -2399,7 +2431,7 @@ function renderizarCalendario() {
   if (calModoView === 'mes') {
     if (nav) nav.style.display = 'flex';
     const tit = document.getElementById('calMesNavTitulo');
-    if (tit) tit.textContent = CAL_MESES[calMesAtivo - 1] + ' · ' + CAL_ANO;
+    if (tit) tit.innerHTML = `${CAL_MESES[calMesAtivo - 1]} <span class="cal-mes-nav-dl">· ${CAL_ANO} · DL: ${CAL_DL_POR_MES[calMesAtivo]}</span>`;
     grid.className = 'cal-grid cal-grid-mes';
     grid.innerHTML = calRenderMesHtml(calMesAtivo);
   } else {
@@ -2445,7 +2477,7 @@ function calRenderMesHtml(m) {
   const MAX_PILLS = 2;
 
   let html = `<div class="cal-mes-box"><table class="cal-table-mes"><thead><tr>` +
-    CAL_DIAS_SEM.map(d => `<th>${d}</th>`).join('') + '</tr></thead><tbody><tr>';
+    CAL_DIAS_SEM.map((d,i) => `<th${(i === 0 || i === 6) ? ' class="cal-th-fds"' : ''}>${d}</th>`).join('') + '</tr></thead><tbody><tr>';
 
   for (let i = 0; i < firstDow; i++) html += '<td class="cd-empty"></td>';
   let col = firstDow;
@@ -2458,12 +2490,12 @@ function calRenderMesHtml(m) {
 
     let pillsHtml = '';
     if (descs.length) {
-      const visiveis = descs.slice(0, MAX_PILLS).map(d => `<span class="cd-mes-pill">${(d.length > 30 ? d.slice(0,28) + '…' : d).replace(/</g,'&lt;')}</span>`).join('');
+      const visiveis = descs.slice(0, MAX_PILLS).map(d => `<span class="cd-mes-pill">${(d.length > 42 ? d.slice(0,40) + '…' : d).replace(/</g,'&lt;')}</span>`).join('');
       const resto = descs.length > MAX_PILLS ? `<span class="cd-mes-pill cd-mes-pill-mais">+${descs.length - MAX_PILLS} evento(s)</span>` : '';
       pillsHtml = `<div class="cd-mes-pills">${visiveis}${resto}</div>`;
     }
 
-    html += `<td class="cd-${cat}${clicavel ? ' cd-clicavel' : ''}"${clicavel ? ` onclick="calAbrirDia('${iso}')"` : ''}>` +
+    html += `<td class="cd-${cat}${clicavel ? ' cd-clicavel' : ''}${ehHoje ? ' cd-hoje-cel' : ''}"${clicavel ? ` onclick="calAbrirDia('${iso}')"` : ''}>` +
       `<div class="cd-mes-num">${day}${ehHoje ? ' <span class="cd-hoje-tag">hoje</span>' : ''}</div>${pillsHtml}</td>`;
     col++;
     if (col === 7 && day !== diasNoMes) { html += '</tr><tr>'; col = 0; }
@@ -2546,14 +2578,14 @@ function renderizarCruzamento() {
   }
   const fTipo = selTipo.value, fMes = selMes.value, fImpacto = document.getElementById('cxFiltroImpacto').value;
 
-  // apenas eventos em dias úteis (seg-sex), que são os únicos que cruzam com o quadro de horário
+  // todos os eventos, incluindo fins de semana (ex.: sábado letivo); dias sem
+  // aula regular no Quadro de Horários simplesmente aparecem como "sem impacto"
   let linhas = _evComb
     .map(([iso, cat, desc]) => {
       const dt = new Date(iso + 'T00:00:00Z');
       const dow = dt.getUTCDay();
       return { iso, cat, desc, dow, dt };
     })
-    .filter(e => e.dow >= 1 && e.dow <= 5)
     .sort((a,b) => a.iso.localeCompare(b.iso));
 
   if (fTipo) linhas = linhas.filter(l => l.cat === fTipo);
@@ -2563,6 +2595,7 @@ function renderizarCruzamento() {
   let html = '';
   linhas.forEach(l => {
     const diaSemana = CAL_DIA_MAP[l.dow];
+    const ehFimDeSemana = l.dow === 0 || l.dow === 6;
     const slots = porDia[diaSemana] || [];
     const temImpacto = slots.length > 0;
     if (fImpacto === 'com' && !temImpacto) return;
@@ -2572,7 +2605,9 @@ function renderizarCruzamento() {
     const [dd,mm,yyyy] = [l.dt.getUTCDate().toString().padStart(2,'0'), (l.dt.getUTCMonth()+1).toString().padStart(2,'0'), l.dt.getUTCFullYear()];
     const aulasHtml = temImpacto
       ? slots.map(s => `<span class="chip-aula">🌍 ${s.turma} · ${s.hor}</span>`).join('')
-      : `<span class="cx-sem-impacto">Sem aulas de Geografia (Everton) neste dia da semana</span>`;
+      : ehFimDeSemana
+        ? `<span class="cx-sem-impacto">Sem aulas regulares aos ${diaSemana === 'SÁBADO' ? 'sábados' : 'domingos'} (fora do Quadro de Horários)</span>`
+        : `<span class="cx-sem-impacto">Sem aulas de Geografia (Everton) neste dia da semana</span>`;
 
     html += `<tr>
       <td><strong>${dd}/${mm}/${yyyy}</strong></td>
@@ -2624,7 +2659,7 @@ function renderizarAlertas() {
   let html = '';
   linhas.forEach(l => {
     let classe = 'al-futuro', label = `+${l.diffDias}`, sub = 'dias';
-    if (l.diffDias < 0) { classe = 'al-passado'; label = `${Math.abs(l.diffDias)}`; sub = 'dias atrás'; }
+    if (l.diffDias < 0) { classe = 'al-passado'; label = `-${Math.abs(l.diffDias)}`; sub = 'dias vencido'; }
     else if (l.diffDias === 0) { classe = 'al-urgente'; label = 'HOJE'; sub = ''; }
     else if (l.diffDias <= 7) { classe = 'al-urgente'; label = `${l.diffDias}`; sub = 'dias'; }
     else if (l.diffDias <= 30) { classe = 'al-proximo'; label = `${l.diffDias}`; sub = 'dias'; }
@@ -2634,7 +2669,7 @@ function renderizarAlertas() {
     html += `<div class="al-card ${classe}">
       <div class="al-days">${label}<small>${sub}</small></div>
       <div class="al-body">
-        <div class="al-title">${l.desc}</div>
+        <div class="al-title">${classe === 'al-passado' ? '⚠️ ' : ''}${l.desc}</div>
         <div class="al-sub">${dd}/${mm}/${yyyy} · ${diaSemana.charAt(0)+diaSemana.slice(1).toLowerCase()} · <span class="tag-tipo cd-${l.cat}">${CAL_CAT_LABEL[l.cat]||l.cat}</span> · Prioridade: ${l.prio}</div>
       </div>
     </div>`;
