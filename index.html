@@ -539,6 +539,74 @@ body.dark-mode table.cal-table td.cd-DIA_LETIVO { background: #1e293b; color: #c
 body.dark-mode table.cal-table td.cd-WEEKEND { background: #162032; color: #64748b; }
 body.dark-mode table.cal-table td.cd-FERIAS { background: #1e293b; color: #64748b; }
 
+/* ─── CALENDÁRIO: alternância Ano/Mês + modal de dia ─────────────────────── */
+.cal-modo-switch { display: flex; gap: 6px; margin-bottom: 14px; }
+.cal-modo-switch button {
+  border: 1px solid var(--border-2); background: var(--white); color: var(--ink-2);
+  border-radius: 20px; padding: 7px 16px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; transition: all .15s;
+}
+.cal-modo-switch button:hover { background: var(--sky-pale); }
+.cal-modo-switch button.active { background: var(--ocean-mid); border-color: var(--ocean-mid); color: #fff; }
+
+.cal-mes-nav { display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 16px; }
+.cal-mes-arrow {
+  width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border-2); background: var(--white);
+  color: var(--ocean); font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; transition: all .15s; flex-shrink: 0;
+}
+.cal-mes-arrow:hover { background: var(--ocean); color: #fff; border-color: var(--ocean); }
+.cal-mes-nav-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--ocean); min-width: 200px; text-align: center; }
+body.dark-mode .cal-mes-nav-title { color: #93c5fd; }
+
+.cal-mes-box { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+table.cal-table-mes { width: 100%; border-collapse: collapse; table-layout: fixed; }
+table.cal-table-mes th { font-size: 11px; color: var(--ink-3); font-weight: 700; padding: 10px 0; text-align: center; background: var(--sky-pale); }
+table.cal-table-mes td { height: 96px; vertical-align: top; text-align: left; padding: 6px 7px; font-size: 11px; border: 1px solid var(--sand); position: relative; }
+table.cal-table-mes td.cd-empty { background: transparent; border-color: transparent; }
+table.cal-table-mes td .cd-mes-num { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+.cd-hoje-tag { background: var(--ocean); color: #fff; font-size: 8.5px; font-weight: 700; padding: 1px 5px; border-radius: 8px; text-transform: uppercase; letter-spacing: .3px; }
+.cd-mes-pills { display: flex; flex-direction: column; gap: 2px; }
+.cd-mes-pill {
+  font-size: 9.5px; font-weight: 600; padding: 2px 6px; border-radius: 5px; background: rgba(255,255,255,.55);
+  color: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid rgba(0,0,0,.08);
+}
+.cd-mes-pill-mais { background: rgba(15,23,42,.14); font-style: italic; }
+td.cd-clicavel { cursor: pointer; transition: filter .15s; }
+td.cd-clicavel:hover { filter: brightness(.94); }
+@media (max-width: 720px) {
+  table.cal-table-mes td { height: 74px; padding: 4px 5px; }
+  table.cal-table-mes td .cd-mes-num { font-size: 11px; }
+  .cd-mes-pill { display: none; }
+}
+
+.cal-dia-modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,.55); z-index: 9200;
+  display: flex; align-items: center; justify-content: center; padding: 16px; animation: fadeIn .15s ease;
+}
+.cal-dia-modal-box {
+  background: var(--white); border-radius: var(--radius-lg); width: 100%; max-width: 440px; max-height: 80vh;
+  overflow: hidden; box-shadow: var(--shadow-lg); display: flex; flex-direction: column;
+}
+.cal-dia-modal-head {
+  background: linear-gradient(120deg, var(--ocean) 0%, var(--ocean-mid) 100%); color: #fff;
+  padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.cal-dia-modal-data { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 19px; }
+.cal-dia-modal-diasemana { font-size: 11.5px; opacity: .85; text-transform: capitalize; margin-top: 1px; }
+.cal-dia-modal-fechar {
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff;
+  width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 13px; flex-shrink: 0;
+}
+.cal-dia-modal-fechar:hover { background: rgba(255,255,255,.28); }
+.cal-dia-modal-sub { padding: 10px 20px 0; font-size: 11px; color: var(--ink-3); flex-shrink: 0; }
+.cal-dia-modal-lista { padding: 12px 16px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.cal-dia-evento-item { display: flex; gap: 10px; padding: 10px 12px; background: var(--sky-pale); border-radius: 10px; border: 1px solid var(--border); }
+.cal-dia-evento-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.cal-dia-evento-body { flex: 1; min-width: 0; }
+.cal-dia-evento-desc { font-size: 12.5px; color: var(--ink-2); margin-top: 4px; line-height: 1.45; }
+body.dark-mode .cal-dia-evento-item { background: #162032; border-color: #334155; }
+
 .cx-filtros, .al-filtros { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 .cx-filtros select, .al-filtros select { padding: 7px 10px; border: 1px solid var(--border-2); border-radius: 8px; font-size: 12px; background: var(--white); color: var(--ink); }
 table.tbl-cruzamento, table.tbl-alertas { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -1699,6 +1767,15 @@ create table if not exists calendario_ferias (
     <!-- SUBABA: CALENDÁRIO -->
     <div class="cal-view active" id="calview-cal">
       <div class="cal-legenda" id="calLegenda"></div>
+      <div class="cal-modo-switch no-print">
+        <button class="active" id="cal-modo-ano" onclick="calSetModo('ano')">🗓️ Ano inteiro</button>
+        <button id="cal-modo-mes" onclick="calSetModo('mes')">📆 Por mês</button>
+      </div>
+      <div class="cal-mes-nav no-print" id="calMesNav" style="display:none">
+        <button class="cal-mes-arrow" onclick="calMesNavegar(-1)" title="Mês anterior">‹</button>
+        <div class="cal-mes-nav-title" id="calMesNavTitulo"></div>
+        <button class="cal-mes-arrow" onclick="calMesNavegar(1)" title="Próximo mês">›</button>
+      </div>
       <div class="cal-grid" id="calGrid"></div>
     </div>
 
@@ -2282,15 +2359,57 @@ async function calEdRemoverFerias(idx) {
   toast('📅 Período removido.');
 }
 
+// ─── Alternância de visualização: ano inteiro × mês único ────────────────────
+let calModoView = 'ano';
+let calMesAtivo = (function() {
+  const hoje = new Date();
+  return hoje.getFullYear() === CAL_ANO ? hoje.getMonth() + 1 : 1;
+})();
+
+function calHojeISO() {
+  const hoje = new Date();
+  return hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0');
+}
+
+function calSetModo(modo) {
+  calModoView = modo;
+  const btnAno = document.getElementById('cal-modo-ano'), btnMes = document.getElementById('cal-modo-mes');
+  if (btnAno) btnAno.classList.toggle('active', modo === 'ano');
+  if (btnMes) btnMes.classList.toggle('active', modo === 'mes');
+  renderizarCalendario();
+}
+
+function calMesNavegar(delta) {
+  calMesAtivo += delta;
+  if (calMesAtivo < 1) calMesAtivo = 12;
+  if (calMesAtivo > 12) calMesAtivo = 1;
+  renderizarCalendario();
+}
+
 function renderizarCalendario() {
   const grid = document.getElementById('calGrid');
   const leg = document.getElementById('calLegenda');
+  const nav = document.getElementById('calMesNav');
   if (!grid) return;
 
   leg.innerHTML = Object.keys(CAL_CAT_LABEL).map(cat =>
     `<span class="leg-item"><span class="leg-dot cd-${cat}"></span> ${CAL_CAT_LABEL[cat]}</span>`
   ).join('');
 
+  if (calModoView === 'mes') {
+    if (nav) nav.style.display = 'flex';
+    const tit = document.getElementById('calMesNavTitulo');
+    if (tit) tit.textContent = CAL_MESES[calMesAtivo - 1] + ' · ' + CAL_ANO;
+    grid.className = 'cal-grid cal-grid-mes';
+    grid.innerHTML = calRenderMesHtml(calMesAtivo);
+  } else {
+    if (nav) nav.style.display = 'none';
+    grid.className = 'cal-grid';
+    grid.innerHTML = calRenderAnoHtml();
+  }
+}
+
+function calRenderAnoHtml() {
   let html = '';
   for (let m = 1; m <= 12; m++) {
     const first = new Date(Date.UTC(CAL_ANO, m - 1, 1));
@@ -2304,16 +2423,106 @@ function renderizarCalendario() {
     let col = firstDow;
     for (let day = 1; day <= diasNoMes; day++) {
       const dt = new Date(Date.UTC(CAL_ANO, m - 1, day));
+      const iso = dt.toISOString().slice(0,10);
       const { cat, descs } = calCategoriaDoDia(dt);
       const title = descs.length ? ` title="${descs.join(' · ').replace(/"/g,'&quot;')}"` : '';
-      html += `<td class="cd-${cat}"${title}><span class="cd-num">${day}</span></td>`;
+      const clicavel = descs.length > 0;
+      html += `<td class="cd-${cat}${clicavel ? ' cd-clicavel' : ''}"${title}${clicavel ? ` onclick="calAbrirDia('${iso}')"` : ''}><span class="cd-num">${day}</span></td>`;
       col++;
       if (col === 7 && day !== diasNoMes) { html += '</tr><tr>'; col = 0; }
     }
     while (col < 7 && col !== 0) { html += '<td class="cd-empty"></td>'; col++; }
     html += '</tr></tbody></table></div>';
   }
-  grid.innerHTML = html;
+  return html;
+}
+
+function calRenderMesHtml(m) {
+  const first = new Date(Date.UTC(CAL_ANO, m - 1, 1));
+  const firstDow = first.getUTCDay();
+  const diasNoMes = new Date(Date.UTC(CAL_ANO, m, 0)).getUTCDate();
+  const hojeISO = calHojeISO();
+  const MAX_PILLS = 2;
+
+  let html = `<div class="cal-mes-box"><table class="cal-table-mes"><thead><tr>` +
+    CAL_DIAS_SEM.map(d => `<th>${d}</th>`).join('') + '</tr></thead><tbody><tr>';
+
+  for (let i = 0; i < firstDow; i++) html += '<td class="cd-empty"></td>';
+  let col = firstDow;
+  for (let day = 1; day <= diasNoMes; day++) {
+    const dt = new Date(Date.UTC(CAL_ANO, m - 1, day));
+    const iso = dt.toISOString().slice(0,10);
+    const { cat, descs } = calCategoriaDoDia(dt);
+    const clicavel = descs.length > 0;
+    const ehHoje = iso === hojeISO;
+
+    let pillsHtml = '';
+    if (descs.length) {
+      const visiveis = descs.slice(0, MAX_PILLS).map(d => `<span class="cd-mes-pill">${(d.length > 30 ? d.slice(0,28) + '…' : d).replace(/</g,'&lt;')}</span>`).join('');
+      const resto = descs.length > MAX_PILLS ? `<span class="cd-mes-pill cd-mes-pill-mais">+${descs.length - MAX_PILLS} evento(s)</span>` : '';
+      pillsHtml = `<div class="cd-mes-pills">${visiveis}${resto}</div>`;
+    }
+
+    html += `<td class="cd-${cat}${clicavel ? ' cd-clicavel' : ''}"${clicavel ? ` onclick="calAbrirDia('${iso}')"` : ''}>` +
+      `<div class="cd-mes-num">${day}${ehHoje ? ' <span class="cd-hoje-tag">hoje</span>' : ''}</div>${pillsHtml}</td>`;
+    col++;
+    if (col === 7 && day !== diasNoMes) { html += '</tr><tr>'; col = 0; }
+  }
+  while (col < 7 && col !== 0) { html += '<td class="cd-empty"></td>'; col++; }
+  html += '</tr></tbody></table></div>';
+  return html;
+}
+
+// ─── Modal de dia: lista todos os eventos do dia clicado, em layout de cards ──
+function calAbrirDia(iso) {
+  const evs = calEventosPorData(iso).slice().sort((a,b) => {
+    const ia = CAL_CAT_ORDER.includes(a[1]) ? CAL_CAT_ORDER.indexOf(a[1]) : 99;
+    const ib = CAL_CAT_ORDER.includes(b[1]) ? CAL_CAT_ORDER.indexOf(b[1]) : 99;
+    return ia - ib;
+  });
+  if (!evs.length) return;
+
+  const dt = new Date(iso + 'T00:00:00Z');
+  const dd = String(dt.getUTCDate()).padStart(2,'0');
+  const mm = String(dt.getUTCMonth()+1).padStart(2,'0');
+  const yyyy = dt.getUTCFullYear();
+  const diaSemana = CAL_DIA_MAP[dt.getUTCDay()];
+  const diaSemanaFmt = (diaSemana === 'DOMINGO' || diaSemana === 'SÁBADO')
+    ? diaSemana.charAt(0) + diaSemana.slice(1).toLowerCase()
+    : diaSemana.charAt(0) + diaSemana.slice(1).toLowerCase() + '-feira';
+
+  fecharCalDiaModal();
+  const overlay = document.createElement('div');
+  overlay.className = 'cal-dia-modal-overlay';
+  overlay.id = 'cal-dia-modal-overlay';
+  overlay.onclick = (e) => { if (e.target === overlay) fecharCalDiaModal(); };
+  overlay.innerHTML = `
+    <div class="cal-dia-modal-box">
+      <div class="cal-dia-modal-head">
+        <div>
+          <div class="cal-dia-modal-data">${dd}/${mm}/${yyyy}</div>
+          <div class="cal-dia-modal-diasemana">${diaSemanaFmt}</div>
+        </div>
+        <button class="cal-dia-modal-fechar" onclick="fecharCalDiaModal()">✕</button>
+      </div>
+      <div class="cal-dia-modal-sub">${evs.length} evento(s) neste dia</div>
+      <div class="cal-dia-modal-lista">
+        ${evs.map(([, cat, desc]) => `
+          <div class="cal-dia-evento-item">
+            <span class="cal-dia-evento-dot cd-${cat}"></span>
+            <div class="cal-dia-evento-body">
+              <span class="tag-tipo cd-${cat}">${CAL_CAT_LABEL[cat] || cat}</span>
+              <div class="cal-dia-evento-desc">${String(desc || '').replace(/</g,'&lt;')}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function fecharCalDiaModal() {
+  const el = document.getElementById('cal-dia-modal-overlay');
+  if (el) el.remove();
 }
 
 function renderizarCruzamento() {
@@ -8048,6 +8257,13 @@ function exportarRelatorioCSV() {
   a.click();
   toast('CSV exportado! ✓');
 }
+
+// ─── Fecha o modal de eventos do dia (Calendário) com a tecla ESC ───────────
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && document.getElementById('cal-dia-modal-overlay')) {
+    fecharCalDiaModal();
+  }
+});
 
 // ─── TAB NAVIGATION NOS CAMPOS DE NOTA ──────────────────────────────────────
 document.addEventListener('keydown', function(e) {
