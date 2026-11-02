@@ -2557,7 +2557,7 @@ async function vistosSyncTurma(turmaReal, tr){
       await saveVistos();
     }
 
-    const valorMaximo = cols.length * 1 * (parseFloat(tabela.coeficiente)||0);
+    const valorMaximo = Math.round(cols.length * 1 * (parseFloat(tabela.coeficiente)||0) * 10) / 10; // uma casa decimal
     const nomeAtiv = 'Vistos T' + tr;
 
     const ativRes = await fetch(SB_URL + '/rest/v1/atividades', {
@@ -2576,7 +2576,7 @@ async function vistosSyncTurma(turmaReal, tr){
     const rowsMap = new Map();
     nomes.forEach(nome=>{
       const soma = vistosSomaAluno(tabela, cols, nome);
-      const nota = soma * (parseFloat(tabela.coeficiente)||0);
+      const nota = Math.round(soma * (parseFloat(tabela.coeficiente)||0) * 10) / 10; // uma casa decimal
       const id = vistosNotaId(turmaReal, nome, tr, posicao);
       rowsMap.set(id, {
         id, prof_id: pid,
@@ -2596,6 +2596,7 @@ async function vistosSyncTurma(turmaReal, tr){
     if(!notasRes.ok) throw new Error('falha ao gravar notas (HTTP ' + notasRes.status + ')');
 
     // só atualiza o indicador visual se o professor ainda estiver olhando essa mesma tabela
+    try{ if(window.parent && window.parent !== window) window.parent.postMessage({ tipo:'vistos-sincronizado', turma:turmaReal, trimestre:Number(tr) }, location.origin); }catch(_){}
     if(vistosTurmaReal() === turmaReal && String(vistosTrimestre) === String(tr)){
       const aviso = rowsMap.size < nomes.length ? ' — ⚠️ nomes duplicados/colidentes no cadastro, confira a lista de alunos' : '';
       vistosSetSyncStatus('ok', '● atualizado no Diário de Notas — Atividade ' + posicao + ' (' + nomeAtiv + ')' + aviso);
