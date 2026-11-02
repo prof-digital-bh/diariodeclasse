@@ -778,6 +778,24 @@
       margin:22px 0 14px;
     }
   }
+
+  /* ── melhorias de uso ── */
+  .card-actions{opacity:.55;}
+  .card:hover .card-actions,.card:focus-within .card-actions{opacity:1;}
+  @media (hover:none){.card-actions{opacity:1;}}
+  .turma-pill[data-letra]{cursor:pointer;transition:transform .08s ease,background .15s ease;}
+  .turma-pill[data-letra]:hover{border-color:var(--moss);color:var(--moss-text);background:var(--moss-bg);}
+  .turma-pill[data-letra]:active{transform:scale(.94);}
+  .legend{padding:10px 16px;margin:10px 0 12px;gap:18px;}
+  .legend .stat{flex-direction:row;align-items:baseline;gap:6px;min-width:0;}
+  .legend .stat .n{font-size:18px;}
+  .filters{margin-bottom:12px;}
+  .date-with-btn{display:flex;gap:6px;align-items:center;}
+  .date-with-btn input{flex:1;min-width:0;}
+  .hoje-btn{padding:7px 12px;font-size:12.5px;}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+    padding:10px 18px;border-radius:999px;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:100;max-width:90vw;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
 <body>
@@ -871,6 +889,9 @@
         <div class="swatch"><span class="dot" style="background:var(--teal)"></span>G · registro de sala</div>
         <div class="swatch"><span class="dot" style="background:var(--ochre)"></span>A · atividade</div>
         <div class="swatch"><span class="dot" style="background:var(--clay)"></span>P · pesquisa</div>
+        <div class="swatch"><span class="dot" style="background:var(--violet)"></span>S · suplementar</div>
+        <div class="swatch"><span class="dot" style="background:var(--rose)"></span>PC · para casa</div>
+        <div class="swatch"><span class="dot" style="background:var(--stone)"></span>OT · outros</div>
       </div>
     </div>
 
@@ -885,12 +906,12 @@
       </select>
       <div class="chip-toggle" id="f-tipo">
         <button class="chip active" data-tipo="all">Todos</button>
-        <button class="chip" data-tipo="G">G</button>
-        <button class="chip" data-tipo="A">A</button>
-        <button class="chip" data-tipo="P">P</button>
-        <button class="chip" data-tipo="S">S</button>
-        <button class="chip" data-tipo="PC">PC</button>
-        <button class="chip" data-tipo="OT">OT</button>
+        <button class="chip" data-tipo="G" title="Registro de sala">G</button>
+        <button class="chip" data-tipo="A" title="Atividade">A</button>
+        <button class="chip" data-tipo="P" title="Pesquisa">P</button>
+        <button class="chip" data-tipo="S" title="Suplementar">S</button>
+        <button class="chip" data-tipo="PC" title="Para casa">PC</button>
+        <button class="chip" data-tipo="OT" title="Outros">OT</button>
       </div>
       <div class="chip-toggle" id="f-status">
         <button class="chip active" data-status="all">Status: todos</button>
@@ -992,7 +1013,7 @@
         </div>
         <div class="field">
           <label>Data</label>
-          <input type="date" id="f-data" />
+          <div class="date-with-btn"><input type="date" id="f-data" /><button type="button" class="btn ghost hoje-btn" onclick="document.getElementById('f-data').value=hojeISO()">Hoje</button></div>
         </div>
       </div>
 
@@ -1238,21 +1259,23 @@ function defaultTurmasDetalhe(){
   TURMA_LETRAS.forEach(l=>{ o[l] = { feito:false, data:'' }; });
   return o;
 }
+function fmtDataBR(iso){ const p=(iso||'').split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : (iso||''); }
 function formatDateShort(iso){
   if(!iso) return '';
   const parts = iso.split('-');
   if(parts.length !== 3) return iso;
   return `${parts[2]}/${parts[1]}`;
 }
-function turmasPillsHtml(e){
+function turmasPillsHtml(e, interactive){
   const td = e.turmasDetalhe || {};
   return TURMA_LETRAS.map(l=>{
     const info = td[l] || {feito:false,data:''};
+    const at = interactive ? ` data-id="${e.id}" data-letra="${l}" role="button" tabindex="0" title="${info.feito ? 'Clique para desmarcar a turma '+l : 'Clique para marcar a turma '+l+' como feita hoje'}"` : '';
     if(info.feito){
       const d = formatDateShort(info.data);
-      return `<span class="turma-pill done">${l}${d ? ' · '+d : ''}</span>`;
+      return `<span class="turma-pill done"${at}>${l}${d ? ' · '+d : ''}</span>`;
     }
-    return `<span class="turma-pill">${l}</span>`;
+    return `<span class="turma-pill"${at}>${l}</span>`;
   }).join('');
 }
 
@@ -1464,7 +1487,7 @@ function renderCard(e){
   ).join('');
   const metaBits = [];
   if(e.paginas) metaBits.push(`<span>${iconBook()}${escapeHtml(e.paginas)}</span>`);
-  if(e.data) metaBits.push(`<span>${iconCalendar()}${escapeHtml(e.data)}</span>`);
+  if(e.data) metaBits.push(`<span>${iconCalendar()}${escapeHtml(fmtDataBR(e.data))}</span>`);
   return `
   <div class="card" data-id="${e.id}">
     <div class="spine tipo-${e.tipo}"></div>
@@ -1479,7 +1502,7 @@ function renderCard(e){
         </div>
       </div>
       ${e.topico ? `<div class="topico">${escapeHtml(e.topico)}</div>` : ''}
-      <div class="turmas-row">${turmasPillsHtml(e)}</div>
+      <div class="turmas-row">${turmasPillsHtml(e,true)}</div>
       ${metaBits.length ? `<div class="meta-row">${metaBits.join('')}</div>` : ''}
       ${linksHtml ? `<div class="links-row">${linksHtml}</div>` : ''}
       ${e.observacoes ? `<div class="obs">${escapeHtml(e.observacoes)}</div>` : ''}
@@ -1544,7 +1567,7 @@ function renderBook(){
     ).join('');
     const metaBits = [];
     if(e.paginas) metaBits.push(`<span>${iconBook()}${escapeHtml(e.paginas)}</span>`);
-    if(e.data) metaBits.push(`<span>${iconCalendar()}${escapeHtml(e.data)}</span>`);
+    if(e.data) metaBits.push(`<span>${iconCalendar()}${escapeHtml(fmtDataBR(e.data))}</span>`);
     return `
     <div class="book-entry">
       <div class="book-entry-row1">
@@ -2757,6 +2780,7 @@ function openModal(id){
   links.forEach(l=> editor.insertAdjacentHTML('beforeend', linkRowHtml(l.label, l.url)));
 
   overlay.classList.add('open');
+  if(!e) setTimeout(()=>document.getElementById('f-tema').focus(), 50);
 }
 function closeModal(){
   overlay.classList.remove('open');
@@ -2779,6 +2803,7 @@ function deleteEntry(id){
   entries = entries.filter(e=>e.id!==id);
   saveEntries();
   renderAll();
+  toast('Registro excluído');
 }
 
 /* pede confirmação antes de excluir um registro pelo botão do cartão (Lista) */
@@ -2858,6 +2883,7 @@ form.addEventListener('submit', (ev)=>{
   renderProvas();
   closeModal();
   renderAll();
+  toast('Registro salvo ✓');
 });
 
 /* ---------- filters & tabs ---------- */
@@ -2870,6 +2896,7 @@ document.getElementById('turma-tabs').addEventListener('click', (ev)=>{
   const tab = ev.target.closest('.turma-tab');
   if(!tab) return;
   activeTurma = tab.dataset.turma;
+  savePrefs();
   bookIndex = 0;
   syncTurmaTabs();
   renderProvas();
@@ -2881,6 +2908,7 @@ document.getElementById('f-search').addEventListener('input', (ev)=>{
 });
 document.getElementById('f-trimestre').addEventListener('change', (ev)=>{
   filters.trimestre = ev.target.value;
+  savePrefs();
   renderAll();
 });
 document.getElementById('f-tipo').addEventListener('click', (ev)=>{
@@ -2944,6 +2972,64 @@ document.getElementById('dc-back-btn').addEventListener('click', ()=>{
   }catch(e){}
   window.location.href = 'index.html';
 });
+/* ---------- melhorias de uso ---------- */
+const _toastEl = document.createElement('div'); _toastEl.className = 'toast'; document.body.appendChild(_toastEl);
+let _toastT;
+function toast(msg){ _toastEl.textContent = msg; _toastEl.classList.add('show'); clearTimeout(_toastT); _toastT = setTimeout(()=>_toastEl.classList.remove('show'), 2400); }
+function hojeISO(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+/* clicar na turma (A/B/C) do cartão marca como feita hoje e já conta como ministrado */
+function toggleTurmaRapido(id, letra){
+  const e = entries.find(x=>x.id===id); if(!e) return;
+  e.turmasDetalhe = e.turmasDetalhe || defaultTurmasDetalhe();
+  const info = e.turmasDetalhe[letra] || {feito:false,data:''};
+  if(info.feito){
+    e.turmasDetalhe[letra] = {feito:false,data:''};
+    toast('Turma '+letra+' desmarcada');
+  }else{
+    e.turmasDetalhe[letra] = {feito:true,data:info.data || hojeISO()};
+    if(!statusArray(e.status).includes('ministrado')) e.status = ['planejado','ministrado'];
+    toast('Turma '+letra+' marcada como feita em '+fmtDataBR(e.turmasDetalhe[letra].data));
+  }
+  saveEntries(); renderAll();
+}
+document.getElementById('content').addEventListener('click', (ev)=>{
+  const pill = ev.target.closest('.turma-pill[data-letra]'); if(!pill) return;
+  toggleTurmaRapido(pill.dataset.id, pill.dataset.letra);
+});
+document.getElementById('content').addEventListener('keydown', (ev)=>{
+  if(ev.key !== 'Enter' && ev.key !== ' ') return;
+  const pill = ev.target.closest('.turma-pill[data-letra]'); if(!pill) return;
+  ev.preventDefault(); toggleTurmaRapido(pill.dataset.id, pill.dataset.letra);
+});
+
+/* no modal: marcar uma turma como feita já preenche a data de hoje e marca Ministrado */
+document.getElementById('turmas-editor').addEventListener('click', (ev)=>{
+  const btn = ev.target.closest('.turma-toggle');
+  if(!btn || !btn.classList.contains('selected')) return;
+  const di = document.querySelector(`.turma-date-input[data-letra="${btn.dataset.letra}"]`);
+  if(di && !di.value) di.value = hojeISO();
+  setStatusGroup('r-status', ['planejado','ministrado']);
+});
+
+/* Esc fecha o modal; Ctrl+Enter salva */
+document.addEventListener('keydown', (ev)=>{
+  if(!overlay.classList.contains('open')) return;
+  if(ev.key === 'Escape') closeModal();
+  else if((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter'){ ev.preventDefault(); form.requestSubmit(); }
+});
+
+/* lembra a última turma e o último trimestre escolhidos */
+const PREFS_KEY = 'diario-campo-prefs';
+function savePrefs(){ try{ localStorage.setItem(PREFS_KEY, JSON.stringify({turma:activeTurma, trimestre:filters.trimestre})); }catch(e){} }
+(function restorePrefs(){
+  try{
+    const p = JSON.parse(localStorage.getItem(PREFS_KEY) || 'null'); if(!p) return;
+    if(p.turma === '8' || p.turma === '9'){ activeTurma = p.turma; syncTurmaTabs(); }
+    if(['all','1','2','3','4'].includes(p.trimestre)){ filters.trimestre = p.trimestre; document.getElementById('f-trimestre').value = p.trimestre; }
+  }catch(e){}
+})();
+
 setSyncStatus('saving','● conectando…');
 
 (async function(){
