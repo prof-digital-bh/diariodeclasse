@@ -153,6 +153,18 @@ body.dark-mode .rel-card { background:#1e293b; border-color:#334155; }
 body.dark-mode .rel-aluno-row { border-bottom-color:#334155; }
 body.dark-mode .rel-summary-strip { background:#162032; border-bottom-color:#334155; }
 
+/* ─── NAVEGAÇÃO AGRUPADA (menu lateral enxuto + sub-abas) ─────────────────── */
+.nav-tab .tab-txt { display:flex; flex-direction:column; align-items:flex-start; line-height:1.25; min-width:0; }
+.nav-tab .tab-sub { font-size:10.5px; font-weight:400; color:var(--ink-3); white-space:normal; margin-top:1px; }
+.subnav { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border); }
+.subnav-btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border:1px solid var(--border-2); border-radius:999px; background:var(--white); color:var(--ink-2); font-family:inherit; font-size:13px; font-weight:500; cursor:pointer; transition:all .15s; }
+.subnav-btn:hover { background:var(--sky-pale); border-color:var(--ocean-mid); }
+.subnav-btn.active { background:var(--ocean-mid); border-color:var(--ocean-mid); color:#fff; font-weight:600; }
+@media (max-width:600px) { .nav-tab .tab-sub { display:none; } .subnav { flex-wrap:nowrap; overflow-x:auto; } .subnav-btn { flex-shrink:0; white-space:nowrap; } }
+body.dark-mode .subnav { border-bottom-color:#334155; }
+body.dark-mode .subnav-btn { background:#1e293b; border-color:#475569; color:#cbd5e1; }
+body.dark-mode .subnav-btn.active { background:#2563a8; border-color:#60a5fa; color:#fff; }
+
 /* ─── RELATÓRIOS PARA IMPRESSÃO (aba Relatórios) ─────────────────────────── */
 .imp-wrap { display:grid; grid-template-columns:minmax(270px,330px) 1fr; gap:18px; align-items:start; }
 .imp-painel { background:var(--sky-pale); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px 18px; display:flex; flex-direction:column; gap:18px; }
@@ -3658,11 +3670,32 @@ function construirNav() {
     tabs.push({ id: 'dashboard',   icon: '📈', label: 'Dashboard.Geo' });
   }
 
-  nav.innerHTML = tabs.map((t, i) =>
-    `<button class="nav-tab${i===0?' active':''}" id="tab-${t.id}" onclick="goTab('${t.id}')">
-      <span class="tab-ico">${t.icon}</span> ${t.label}
-    </button>`
-  ).join('');
+  // 12 abas viram poucos grupos no menu; as abas de cada grupo aparecem como sub-abas no topo da página
+  window._navTabs = tabs;
+  const porId = {}; tabs.forEach(t => { porId[t.id] = t; });
+  const defs = [
+    { key: 'turmas', icon: '🏫', label: isEverton ? 'Turmas' : 'Minhas Turmas', ids: ['turmas', 'professores'] },
+    { key: 'notas',  icon: '📊', label: 'Notas e Campo', ids: ['notas', 'diario', 'anotacoes'] },
+    { key: 'plan',   icon: '🗓️', label: 'Planejamento', ids: ['horarios', 'calendario', 'cronograma', 'mapeamento'] },
+    { key: 'acomp',  icon: '📈', label: 'Acompanhamento', ids: ['dashboard', 'relatorios', 'impressos'] }
+  ];
+  const curtos = { turmas: 'Turmas', professores: 'Professores', notas: 'Notas', diario: 'Campo', anotacoes: 'Anotações',
+    horarios: 'Horários', calendario: 'Calendário', cronograma: 'Cronograma', mapeamento: 'Mapeamento',
+    dashboard: 'Dashboard', relatorios: 'Pendências', impressos: 'Relatórios' };
+  window._navGrupos = defs.map(g => ({ key: g.key, icon: g.icon, label: g.label, tabs: g.ids.filter(id => porId[id]).map(id => porId[id]) })).filter(g => g.tabs.length);
+  window._navGrupoUltima = window._navGrupoUltima || {};
+  window._navCurto = curtos;
+  nav.innerHTML = window._navGrupos.map((g, k) => {
+    const sub = g.tabs.length > 1 ? g.tabs.map(t => curtos[t.id] || t.label).join(' · ') : '';
+    return `<button class="nav-tab${k===0?' active':''}" id="grp-${g.key}" onclick="goGrupo('${g.key}')" title="${sub || g.label}">
+      <span class="tab-ico">${g.icon}</span><span class="tab-txt"><span>${g.label}</span>${sub ? `<span class="tab-sub">${sub}</span>` : ''}</span>
+    </button>`;
+  }).join('');
+  // barra de sub-abas (criada uma vez, no topo do conteúdo)
+  if (!document.getElementById('subnav')) {
+    const main = document.querySelector('main.app-main');
+    if (main) { const sn = document.createElement('div'); sn.id = 'subnav'; sn.className = 'subnav no-print'; main.insertBefore(sn, main.firstChild); }
+  }
 
   // Mostra/oculta conteúdo de turmas
   const evertonContent = document.getElementById('turmas-everton-content');
@@ -3676,6 +3709,28 @@ function construirNav() {
   }
 }
 
+function goGrupo(key) {
+  const g = (window._navGrupos || []).find(x => x.key === key);
+  if (!g) return;
+  const ultima = window._navGrupoUltima[key];
+  goTab(g.tabs.some(t => t.id === ultima) ? ultima : g.tabs[0].id);
+}
+
+function _atualizarNavAgrupada(tab) {
+  const grupos = window._navGrupos || [];
+  const g = grupos.find(x => x.tabs.some(t => t.id === tab));
+  if (!g) return;
+  window._navGrupoUltima[g.key] = tab;
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.toggle('active', b.id === 'grp-' + g.key));
+  const sn = document.getElementById('subnav');
+  if (!sn) return;
+  if (g.tabs.length < 2) { sn.style.display = 'none'; sn.innerHTML = ''; return; }
+  sn.style.display = '';
+  sn.innerHTML = g.tabs.map(t => {
+    return `<button class="subnav-btn${t.id === tab ? ' active' : ''}" onclick="goTab('${t.id}')"><span>${t.icon}</span> ${t.label}</button>`;
+  }).join('');
+}
+
 function goTab(tab) {
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -3683,6 +3738,7 @@ function goTab(tab) {
   const pageEl = document.getElementById('page-' + tab);
   if (tabEl) tabEl.classList.add('active');
   if (pageEl) pageEl.classList.add('active');
+  _atualizarNavAgrupada(tab);
   // Persiste aba ativa para sobreviver ao F5
   sessionStorage.setItem(SESSION_KEY + '_tab', tab);
   if (tab !== 'notas') document.getElementById('print-turma-txt').textContent = '';
@@ -8044,7 +8100,7 @@ async function iniciar() {
 
   // Restaura aba salva antes do F5 (se existir e for válida)
   const tabSalva = sessionStorage.getItem(SESSION_KEY + '_tab');
-  if (tabSalva && document.getElementById('tab-' + tabSalva)) {
+  if (tabSalva && (window._navTabs || []).some(t => t.id === tabSalva)) {
     goTab(tabSalva);
     // Se era aba de notas, restaura também o trimestre salvo
     if (tabSalva === 'notas') {
@@ -8263,7 +8319,7 @@ function impQuadroTurma(t, tris, o) {
     }
     anual += soma;
     const linhas = rows.length ? rows : Array.from({ length: 6 }, () => ({ nome: '', val: 0 }));
-    return '<div class="qd-card"><div class="qd-tit" style="background:' + c.header + '">' + c.label + '</div>' +
+    return '<div class="qd-card"><div class="qd-tit" style="color:' + c.header + ';border-bottom:2px solid ' + c.header + '">' + c.label + '</div>' +
       '<table><thead><tr><th class="n">#</th><th class="l">Atividade</th><th class="pt">Pontos</th></tr></thead><tbody>' +
       linhas.map((r, k) => '<tr><td class="n">' + (k + 1) + '</td><td class="l">' + impEsc(r.nome) + '</td><td class="pt">' + (r.val > 0 ? impFmt(r.val) : '') + '</td></tr>').join('') +
       '</tbody><tfoot><tr><td colspan="2" class="tl">Total do trimestre</td><td class="pt">' + (soma > 0 ? impFmt(soma) : '') + '</td></tr></tfoot></table></div>';
@@ -8296,7 +8352,7 @@ function impRegistroTabela(t, tr, o, exclVistos, rotulo) {
 
   let ths = '<th class="n">#</th><th class="l">Estudante</th>';
   cols.forEach(cl => {
-    ths += '<th class="at" style="background:' + c.header + '">' + (cl.nome ? impEsc(cl.nome) : '&nbsp;') +
+    ths += '<th class="at" style="color:' + c.header + ';border-bottom:2px solid ' + c.header + '">' + (cl.nome ? impEsc(cl.nome) : '&nbsp;') +
       (cl.val > 0 ? '<br><small>(' + impFmt(cl.val) + ' pts)</small>' : '') + '</th>';
   });
   ths += '<th class="tot">Total' + (maxPts > 0 ? '<br><small>(' + impFmt(maxPts) + ' pts)</small>' : '') + '</th>';
@@ -8347,7 +8403,7 @@ function impCadernoTabelaBranca(t, tr, o) {
   const alunos = db.turmas[t] || [];
   const NMARC = 8;
   const key = 't' + tr + '_a' + VISTOS_POSICAO_RESERVADA;
-  let ths1 = '<th class="n" rowspan="2">#</th><th class="l" rowspan="2">Estudante</th><th colspan="' + NMARC + '" style="background:' + c.header + '">Marcações de vistos no caderno</th>' +
+  let ths1 = '<th class="n" rowspan="2">#</th><th class="l" rowspan="2">Estudante</th><th colspan="' + NMARC + '" style="color:' + c.header + ';border-bottom:2px solid ' + c.header + '">Marcações de vistos no caderno</th>' +
     '<th class="tot" rowspan="2">' + impEsc(nome) + (val > 0 ? '<br><small>(' + impFmt(val) + ' pts)</small>' : '') + '</th>' + (o.obs ? '<th class="obs" rowspan="2">Observações</th>' : '');
   let ths2 = '';
   for (let k = 0; k < NMARC; k++) ths2 += '<th class="mc">&nbsp;</th>';
@@ -8426,8 +8482,8 @@ function impCadernoTabela(t, tr, o) {
   const alunos = db.turmas[t] || [];
   const larg = o.larg || 700;
   const fonte = Math.min(Math.max(Math.floor(((larg - 150) / (cols.length + 1)) * 0.34), 5), 10);
-  let ths = '<th class="l" style="background:' + c.header + '">Estudante</th>' +
-    cols.map(e => '<th style="background:' + c.header + '">' + impEsc(e.codigo || '—') + '</th>').join('') +
+  let ths = '<th class="l" style="color:' + c.header + ';border-bottom:2px solid ' + c.header + '">Estudante</th>' +
+    cols.map(e => '<th style="color:' + c.header + ';border-bottom:2px solid ' + c.header + '">' + impEsc(e.codigo || '—') + '</th>').join('') +
     '<th class="tot">Total' + (coef !== 1 ? '<br><small>× ' + impFmt(coef) + '</small>' : '') + '</th>' + (o.obs ? '<th class="obs">Observações</th>' : '');
   let corpo = '';
   alunos.forEach(a => {
@@ -8464,24 +8520,24 @@ function impDocumento(corpo, orient, papel) {
     'body{font-family:Arial,Helvetica,sans-serif;color:#111827;font-size:11px;background:#fff}' +
     '@media screen{body{padding:10mm}}' +
     '.cab{margin-bottom:8px}.cab-esc{font-size:15px;font-weight:800;color:#1a3a5c}.cab-sub{font-size:10px;color:#475569}' +
-    '.barra{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#1a3a5c;color:#fff;padding:6px 12px;border-radius:5px;margin-bottom:8px;font-size:12px}' +
-    '.barra span:first-child{font-weight:700;font-size:13px}.barra span:last-child{font-size:10px;opacity:.9}' +
+    '.barra{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;color:#111827;border:1.5px solid #374151;padding:5px 12px;border-radius:5px;margin-bottom:8px;font-size:12px}' +
+    '.barra span:first-child{font-weight:700;font-size:13px}.barra span:last-child{font-size:10px;color:#374151}' +
     'html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
     'table{width:100%;border-collapse:collapse;table-layout:fixed;border:1px solid #374151}th,td{border:1px solid #374151;overflow-wrap:anywhere;word-break:break-word}' +
     '.pg,.sec{width:100%;max-width:100%}.sec{margin-bottom:12px}' +
     'thead{display:table-header-group}tr{page-break-inside:avoid}' +
-    'th{color:#fff;background:#334155;font-size:10px;padding:5px 4px;text-align:center;font-weight:700}' +
+    'th{color:#111827;background:#f1f5f9;font-size:10px;padding:5px 4px;text-align:center;font-weight:700}' +
     'th small{font-weight:400;font-size:9px;opacity:.9}' +
     'td{padding:5px 6px;font-size:11px}' +
-    'th.n,td.n{width:28px;text-align:center;color:#475569;font-size:9px}th.n{color:#fff}th.l,td.l{text-align:left}' +
+    'th.n,td.n{width:28px;text-align:center;color:#475569;font-size:9px}th.n{color:#111827}th.l,td.l{text-align:left}' +
     '.pg{page-break-after:always}.pg:last-child{page-break-after:auto}' +
     /* registro */
     'table.reg td{height:23px}table.reg td.g{text-align:center;padding:2px}table.reg td.tt{font-weight:700}' +
-    'table.reg th.at{height:38px;vertical-align:middle;font-size:9px}table.reg th.tot{background:#1e3a1e;width:54px}' +
+    'table.reg th.at{height:38px;vertical-align:middle;font-size:9px}table.reg th.tot{background:#e5e7eb;color:#111827;width:54px}' +
     'table.reg th.obs{width:18%}table.reg th.l{width:30%}table.reg td.l{font-size:10px}' +
-    'table.cad th.mc{height:16px;background:#e2e8f0}table.cad td.g{padding:2px}' +
+    'table.cad th.mc{height:16px;background:#fff}table.cad td.g{padding:2px}' +
     'table.vt th{padding:3px 1px;font-size:inherit}table.vt th.l{width:150px}table.vt td{font-size:inherit;padding:1px}table.vt td.l{font-size:inherit}table.vt td.vc{text-align:center}' +
-    'td.vc.ok{background:#d7f3de}td.vc.pm{background:#fde8c2}td.vc.nf{background:#fbd7d7}td.vc.fp{background:#dbe7fb}' +
+    'td.vc.ok{background:#eef9f1}td.vc.pm{background:#fef6e4}td.vc.nf{background:#fdeeee}td.vc.fp{background:#eef3fc}td.vc{font-weight:700}' +
     '.leg{margin-top:4px;font-size:9px;color:#333;text-align:center}' +
     'table.reg tr.dt td{height:20px;background:#f8fafc;font-size:9px}table.reg td.dtl{text-align:right;color:#475569;font-weight:700}' +
     'td.vazio{text-align:center;color:#6b7280;padding:14px}' +
@@ -8489,9 +8545,9 @@ function impDocumento(corpo, orient, papel) {
     '.qd-turma{margin-bottom:16px;page-break-inside:avoid}' +
     '.qd-grid{display:grid;gap:10px}' +
     '.qd-card{border:1px solid #374151;border-radius:4px;overflow:hidden}' +
-    '.qd-tit{color:#fff;font-weight:700;font-size:12px;text-align:center;padding:5px}' +
+    '.qd-tit{background:#fff;font-weight:700;font-size:12px;text-align:center;padding:5px}' +
     '.qd-card table{border:0}.qd-card th,.qd-card td{border-left:0;border-right:0}' +
-    '.qd-card th{background:#e2e8f0;color:#1f2937}.qd-card td{height:22px}' +
+    '.qd-card th{background:#f1f5f9;color:#1f2937}.qd-card td{height:22px}' +
     '.qd-card th.pt,.qd-card td.pt{width:62px;text-align:center}' +
     '.qd-card tfoot td{font-weight:700;background:#f1f5f9}.qd-card td.tl{text-align:right}' +
     '.qd-anual{margin-top:8px;text-align:right;font-size:12px;font-weight:700;color:#1a3a5c}' +
