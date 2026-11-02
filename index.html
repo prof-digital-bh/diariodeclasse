@@ -1824,6 +1824,7 @@ create table if not exists calendario_ferias (
           </div>
           <div id="imp-opts-bloco" style="display:none">
             <div class="imp-sec-title" style="margin:4px 0 6px">Seções do bloco</div>
+            <label class="imp-opt"><input type="checkbox" id="imp-b-paginas" checked onchange="impAtualizar()"> Cada seção em uma página</label>
             <label class="imp-opt"><input type="checkbox" id="imp-b-quadro" checked onchange="impAtualizar()"> Quadro de distribuição dos pontos</label>
             <label class="imp-opt"><input type="checkbox" id="imp-b-gerais" checked onchange="impAtualizar()"> Atividades gerais (1 a 6)</label>
             <label class="imp-opt"><input type="checkbox" id="imp-b-caderno" checked onchange="impAtualizar()"> Caderno / Vistos</label>
@@ -8447,11 +8448,12 @@ function impCadernoTabela(t, tr, o) {
 
 // ── (4) Bloco da turma: seções escolhidas numa mesma folha ──
 function impBlocoPagina(t, tr, o) {
-  let h = '<div class="pg">' + impCabecalho(o);
-  if (o.bQuadro) h += '<div class="sec">' + impQuadroTurma(t, [tr], { pagina: false }) + '</div>';
-  if (o.bGerais) h += impRegistroTabela(t, tr, o, true, 'Atividades gerais');
-  if (o.bCaderno) h += impCadernoTabela(t, tr, o);
-  return h + '</div>';
+  const secoes = [];
+  if (o.bQuadro) secoes.push('<div class="sec">' + impQuadroTurma(t, [tr], { pagina: false }) + '</div>');
+  if (o.bGerais) secoes.push(impRegistroTabela(t, tr, o, true, 'Atividades gerais'));
+  if (o.bCaderno) secoes.push(impCadernoTabela(t, tr, o));
+  if (o.bPaginas) return secoes.map(h => '<div class="pg">' + impCabecalho(o) + h + '</div>').join('');
+  return '<div class="pg">' + impCabecalho(o) + secoes.join('') + '</div>';
 }
 
 // ── Montagem do documento + pré-visualização ───────────────────────────────
@@ -8524,6 +8526,7 @@ function impAtualizar() {
     dataLinha: document.getElementById('imp-r-data').checked,
     obs: document.getElementById('imp-r-obs').checked,
     larg: (orient === 'landscape' ? 1010 : 700),
+    bPaginas: document.getElementById('imp-b-paginas').checked,
     bQuadro: document.getElementById('imp-b-quadro').checked,
     bGerais: document.getElementById('imp-b-gerais').checked,
     bCaderno: document.getElementById('imp-b-caderno').checked
