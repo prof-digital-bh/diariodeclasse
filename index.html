@@ -165,6 +165,38 @@ body.dark-mode .subnav { border-bottom-color:#334155; }
 body.dark-mode .subnav-btn { background:#1e293b; border-color:#475569; color:#cbd5e1; }
 body.dark-mode .subnav-btn.active { background:#2563a8; border-color:#60a5fa; color:#fff; }
 
+/* ─── DIÁRIO DE CAMPO: subitens retráteis no menu lateral ─────────────────── */
+.dc-menu { display:none; flex-direction:column; margin:0 0 6px; }
+.dc-menu.on { display:flex; }
+.dc-head { display:flex; align-items:center; gap:8px; width:100%; padding:8px 18px 8px 24px; border:none; background:transparent; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:12.5px; font-weight:700; color:var(--ocean-mid); text-align:left; }
+.dc-head:hover { background:var(--sky-pale); }
+.dc-caret { display:inline-block; font-size:10px; transition:transform .15s; margin-left:auto; }
+.dc-open > .dc-head .dc-caret, .dc-sec.dc-open > .dc-sec-h .dc-caret { transform:rotate(90deg); }
+.dc-body { display:none; margin:2px 0 4px 26px; padding-left:8px; border-left:2px solid var(--border); }
+.dc-menu.dc-open > .dc-body { display:block; }
+.dc-sec-h { display:flex; align-items:center; gap:6px; width:100%; padding:6px 6px; border:none; background:transparent; cursor:pointer; font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3); text-align:left; }
+.dc-sec-h:hover { color:var(--ink); }
+.dc-sec-c { display:none; padding:0 0 6px; }
+.dc-sec.dc-open > .dc-sec-c { display:block; }
+.dc-item { display:flex; align-items:center; gap:6px; width:100%; padding:6px 10px; margin:1px 0; border:none; border-radius:6px; background:transparent; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:12.5px; color:var(--ink-2); text-align:left; }
+.dc-item:hover { background:var(--sky-pale); }
+.dc-item.active { background:var(--ocean-mid); color:#fff; font-weight:600; }
+.dc-item .dc-meta { margin-left:auto; font-size:10px; opacity:.7; white-space:nowrap; }
+.dc-item.dc-primary { background:var(--ocean-mid); color:#fff; font-weight:600; justify-content:center; }
+.dc-item.dc-dim { opacity:.55; }
+.dc-chips { display:flex; gap:6px; }
+.dc-chips .dc-item { justify-content:center; border:1px solid var(--border-2); margin:0; }
+.dc-chips .dc-item.active { border-color:var(--ocean-mid); }
+.dc-empty { font-size:11px; color:var(--ink-3); padding:4px 10px; }
+.dc-sync { font-family:'DM Mono',monospace; font-size:10.5px; color:var(--ink-3); padding:6px 10px 2px; }
+.dc-sync.ok::before, .dc-sync.saving::before, .dc-sync.error::before { content:''; display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:5px; }
+.dc-sync.ok::before { background:#16a34a; } .dc-sync.saving::before { background:#d97706; } .dc-sync.error::before { background:#991b1b; }
+@media (max-width:600px) { .dc-menu, .dc-menu.on { display:none; } }
+body.dark-mode .dc-head { color:#60a5fa; } body.dark-mode .dc-head:hover, body.dark-mode .dc-item:hover { background:#162032; }
+body.dark-mode .dc-body { border-left-color:#334155; } body.dark-mode .dc-item { color:#cbd5e1; }
+body.dark-mode .dc-item.active, body.dark-mode .dc-item.dc-primary { background:#2563a8; color:#fff; }
+body.dark-mode .dc-chips .dc-item { border-color:#475569; }
+
 /* ─── RELATÓRIOS PARA IMPRESSÃO (aba Relatórios) ─────────────────────────── */
 .imp-wrap { display:grid; grid-template-columns:minmax(270px,330px) 1fr; gap:18px; align-items:start; }
 .imp-painel { background:var(--sky-pale); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px 18px; display:flex; flex-direction:column; gap:18px; }
@@ -3731,6 +3763,132 @@ function _atualizarNavAgrupada(tab) {
   }).join('');
 }
 
+
+// ─── DIÁRIO DE CAMPO: opções da barra lateral viram subitens retráteis do menu ──
+// O Diário de Campo roda num iframe do mesmo domínio. O menu abaixo espelha os controles
+// da barra lateral dele (turma, visualização, livro, provas, ações) e repassa os cliques.
+// Se o iframe não puder ser acessado, a barra lateral original continua visível.
+const _dcEstado = { aberto: true, secs: { turma: true, modo: true, livro: false, provas: false, acoes: true } };
+let _dcObs = null, _dcDocLigado = null, _dcRaf = 0;
+const _dcMQ = window.matchMedia('(min-width:601px)');
+
+function _dcEsc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function _dcDoc() {
+  try {
+    const f = document.getElementById('diario-iframe');
+    const d = f && f.contentDocument;
+    return d && d.querySelector('.sidebar') ? d : null;
+  } catch (e) { return null; }
+}
+function _dcGarantirMenu() {
+  let m = document.getElementById('dc-menu');
+  if (m) return m;
+  const nav = document.getElementById('app-nav');
+  if (!nav) return null;
+  const g = (window._navGrupos || []).find(x => x.tabs.some(t => t.id === 'diario'));
+  const ref = g && document.getElementById('grp-' + g.key);
+  m = document.createElement('div');
+  m.id = 'dc-menu'; m.className = 'dc-menu no-print';
+  if (ref) ref.insertAdjacentElement('afterend', m); else nav.appendChild(m);
+  m.addEventListener('click', _dcClique);
+  return m;
+}
+function _dcAplicarModo() {
+  const d = _dcDoc(); if (!d) return;
+  let st = d.getElementById('dc-ext-style');
+  if (!st) {
+    st = d.createElement('style'); st.id = 'dc-ext-style';
+    st.textContent = '@media screen{html.dc-ext .sidebar{display:none !important}html.dc-ext .app-shell{display:block}}';
+    d.head.appendChild(st);
+  }
+  d.documentElement.classList.toggle('dc-ext', _dcMQ.matches);
+}
+function dcMenuLigar() {
+  const d = _dcDoc();
+  if (_dcObs) { _dcObs.disconnect(); _dcObs = null; }
+  _dcDocLigado = d;
+  if (d) {
+    _dcAplicarModo();
+    _dcObs = new MutationObserver(dcMenuAgendar);
+    _dcObs.observe(d.querySelector('.sidebar'), { attributes: true, childList: true, subtree: true, characterData: true });
+  }
+  dcMenuRender();
+}
+function dcMenuAgendar() { cancelAnimationFrame(_dcRaf); _dcRaf = requestAnimationFrame(dcMenuRender); }
+_dcMQ.addEventListener('change', () => { _dcAplicarModo(); dcMenuRender(); });
+
+function dcMenuAtualizar() {
+  const ativa = document.querySelector('.page.active');
+  const noDiario = !!(ativa && ativa.id === 'page-diario');
+  const m = document.getElementById('dc-menu');
+  if (!noDiario) { if (m) m.classList.remove('on'); return; }
+  _dcGarantirMenu();
+  const f = document.getElementById('diario-iframe');
+  if (f && !f.dataset.dcLigado) { f.dataset.dcLigado = '1'; f.addEventListener('load', dcMenuLigar); }
+  if (_dcDoc() !== _dcDocLigado || !_dcObs) dcMenuLigar(); else dcMenuRender();
+}
+
+function dcMenuRender() {
+  const m = document.getElementById('dc-menu'); if (!m) return;
+  const ativa = document.querySelector('.page.active');
+  m.classList.toggle('on', !!(ativa && ativa.id === 'page-diario'));
+  m.classList.toggle('dc-open', _dcEstado.aberto);
+  const d = _dcDoc();
+  const cab = '<button class="dc-head" data-dc="toggle" aria-expanded="' + _dcEstado.aberto + '"><span>🧭</span><span>Diário de Campo</span><span class="dc-caret">▶</span></button>';
+  if (!d) { m.innerHTML = cab + '<div class="dc-body"><div class="dc-empty">Carregando…</div></div>'; return; }
+
+  const $ = s => d.querySelector(s), $$ = s => Array.from(d.querySelectorAll(s));
+  const sec = (k, titulo, conteudo) => '<div class="dc-sec' + (_dcEstado.secs[k] ? ' dc-open' : '') + '"><button class="dc-sec-h" data-dc="sec" data-v="' + k + '"><span class="dc-caret">▶</span>' + titulo + '</button><div class="dc-sec-c">' + conteudo + '</div></div>';
+
+  const turmas = $$('.turma-tab').map(b => '<button class="dc-item' + (b.classList.contains('active') ? ' active' : '') + '" data-dc="turma" data-v="' + _dcEsc(b.dataset.turma) + '">' + _dcEsc(b.textContent.trim()) + '</button>').join('');
+  const modos = $$('.mode-btn').map(b => '<button class="dc-item' + (b.classList.contains('active') ? ' active' : '') + '" data-dc="modo" data-v="' + _dcEsc(b.dataset.mode) + '">' + _dcEsc(b.textContent.trim()) + '</button>').join('');
+  const livros = ['8', '9'].map(a => {
+    const el = $('#book-link-' + a); const lig = el && el.classList.contains('linked');
+    return '<div style="display:flex;gap:2px"><button class="dc-item' + (lig ? '' : ' dc-dim') + '" data-dc="livro" data-v="' + a + '" title="' + (lig ? 'Abrir livro' : 'Sem link — clique para cadastrar') + '">📖 ' + a + 'º ano</button><button class="dc-item" style="width:auto" data-dc="livro-edit" data-v="' + a + '" title="Editar link">✏️</button></div>';
+  }).join('');
+  const linhas = $$('.prova-row');
+  const provas = (linhas.length ? linhas.map(r => {
+    const nome = r.querySelector('.prova-nome'), meta = r.querySelector('.prova-meta');
+    return '<button class="dc-item" data-dc="prova" data-v="' + _dcEsc(r.dataset.id) + '" title="Ver / editar prova"><span>📝 ' + _dcEsc(nome ? nome.textContent.trim() : 'Prova') + '</span>' + (meta ? '<span class="dc-meta">' + _dcEsc(meta.textContent.trim()) + '</span>' : '') + '</button>';
+  }).join('') : '<div class="dc-empty">' + _dcEsc(($('.provas-empty') || { textContent: 'Nenhuma prova registrada.' }).textContent.trim()) + '</div>') +
+    '<button class="dc-item" data-dc="prova-nova">＋ Nova prova</button>';
+  const bi = $('#btn-print-list'); const imprimirOk = bi && bi.style.display !== 'none';
+  const acoes = (imprimirOk ? '<button class="dc-item" data-dc="acao" data-v="btn-print-list">🖨️ Imprimir</button>' : '') +
+    '<button class="dc-item" data-dc="acao" data-v="btn-export">📤 Exportar</button>' +
+    '<button class="dc-item dc-primary" data-dc="acao" data-v="btn-new">＋ Novo registro</button>';
+  const sy = $('#dc-sync');
+  const sync = sy ? '<div class="dc-sync ' + (['ok', 'saving', 'error'].find(c => sy.classList.contains(c)) || '') + '">' + _dcEsc(sy.textContent.replace(/^●\s*/, '')) + '</div>' : '';
+
+  m.innerHTML = cab + '<div class="dc-body">' +
+    sec('turma', 'Turma', '<div class="dc-chips">' + turmas + '</div>') +
+    sec('modo', 'Visualização', modos) +
+    sec('livro', 'Livro didático', livros) +
+    sec('provas', 'Provas aplicadas', provas) +
+    sec('acoes', 'Ações', acoes) + sync + '</div>';
+}
+
+function _dcClique(ev) {
+  const b = ev.target.closest('[data-dc]'); if (!b) return;
+  const a = b.dataset.dc, v = b.dataset.v;
+  if (a === 'toggle') { _dcEstado.aberto = !_dcEstado.aberto; return dcMenuRender(); }
+  if (a === 'sec') { _dcEstado.secs[v] = !_dcEstado.secs[v]; return dcMenuRender(); }
+  const d = _dcDoc(); if (!d) return;
+  const q = s => d.querySelector(s);
+  let alvo = null;
+  if (a === 'turma') alvo = q('.turma-tab[data-turma="' + v + '"]');
+  else if (a === 'modo') alvo = q('.mode-btn[data-mode="' + v + '"]');
+  else if (a === 'livro-edit') alvo = q('.book-link-edit[data-turma="' + v + '"]');
+  else if (a === 'livro') {
+    const l = q('#book-link-' + v);
+    if (l && l.classList.contains('linked') && l.href) { window.open(l.href, '_blank', 'noopener'); return; }
+    alvo = q('.book-link-edit[data-turma="' + v + '"]');
+  }
+  else if (a === 'prova') alvo = Array.from(d.querySelectorAll('.prova-info')).find(e => e.dataset.id === v);
+  else if (a === 'prova-nova') alvo = q('#btn-add-prova');
+  else if (a === 'acao') alvo = q('#' + v);
+  if (alvo) alvo.click();
+}
+
 function goTab(tab) {
   document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -3759,6 +3917,7 @@ function goTab(tab) {
     const f = document.getElementById('diario-iframe');
     if (f && !f.src) f.src = f.dataset.src;
   }
+  dcMenuAtualizar();
   if (tab === 'horarios') { renderizarHorarios(); }
   if (tab === 'calendario') { renderizarCalendario(); renderizarCruzamento(); renderizarAlertas(); renderizarCalEditor(); }
   if (tab === 'cronograma') { renderizarCronograma(); }
@@ -8319,7 +8478,7 @@ function impQuadroTurma(t, tris, o) {
     }
     anual += soma;
     const linhas = rows.length ? rows : Array.from({ length: 6 }, () => ({ nome: '', val: 0 }));
-    return '<div class="qd-card"><div class="qd-tit" style="color:' + c.header + ';border-bottom:2px solid ' + c.header + '">' + c.label + '</div>' +
+    return '<div class="qd-card"><div class="qd-tit" style="background:' + c.header + '">' + c.label + '</div>' +
       '<table><thead><tr><th class="n">#</th><th class="l">Atividade</th><th class="pt">Pontos</th></tr></thead><tbody>' +
       linhas.map((r, k) => '<tr><td class="n">' + (k + 1) + '</td><td class="l">' + impEsc(r.nome) + '</td><td class="pt">' + (r.val > 0 ? impFmt(r.val) : '') + '</td></tr>').join('') +
       '</tbody><tfoot><tr><td colspan="2" class="tl">Total do trimestre</td><td class="pt">' + (soma > 0 ? impFmt(soma) : '') + '</td></tr></tfoot></table></div>';
@@ -8352,7 +8511,7 @@ function impRegistroTabela(t, tr, o, exclVistos, rotulo) {
 
   let ths = '<th class="n">#</th><th class="l">Estudante</th>';
   cols.forEach(cl => {
-    ths += '<th class="at" style="color:' + c.header + ';border-bottom:2px solid ' + c.header + '">' + (cl.nome ? impEsc(cl.nome) : '&nbsp;') +
+    ths += '<th class="at" style="background:' + c.header + '">' + (cl.nome ? impEsc(cl.nome) : '&nbsp;') +
       (cl.val > 0 ? '<br><small>(' + impFmt(cl.val) + ' pts)</small>' : '') + '</th>';
   });
   ths += '<th class="tot">Total' + (maxPts > 0 ? '<br><small>(' + impFmt(maxPts) + ' pts)</small>' : '') + '</th>';
@@ -8403,7 +8562,7 @@ function impCadernoTabelaBranca(t, tr, o) {
   const alunos = db.turmas[t] || [];
   const NMARC = 8;
   const key = 't' + tr + '_a' + VISTOS_POSICAO_RESERVADA;
-  let ths1 = '<th class="n" rowspan="2">#</th><th class="l" rowspan="2">Estudante</th><th colspan="' + NMARC + '" style="color:' + c.header + ';border-bottom:2px solid ' + c.header + '">Marcações de vistos no caderno</th>' +
+  let ths1 = '<th class="n" rowspan="2">#</th><th class="l" rowspan="2">Estudante</th><th colspan="' + NMARC + '" style="background:' + c.header + '">Marcações de vistos no caderno</th>' +
     '<th class="tot" rowspan="2">' + impEsc(nome) + (val > 0 ? '<br><small>(' + impFmt(val) + ' pts)</small>' : '') + '</th>' + (o.obs ? '<th class="obs" rowspan="2">Observações</th>' : '');
   let ths2 = '';
   for (let k = 0; k < NMARC; k++) ths2 += '<th class="mc">&nbsp;</th>';
@@ -8482,8 +8641,8 @@ function impCadernoTabela(t, tr, o) {
   const alunos = db.turmas[t] || [];
   const larg = o.larg || 700;
   const fonte = Math.min(Math.max(Math.floor(((larg - 150) / (cols.length + 1)) * 0.34), 5), 10);
-  let ths = '<th class="l" style="color:' + c.header + ';border-bottom:2px solid ' + c.header + '">Estudante</th>' +
-    cols.map(e => '<th style="color:' + c.header + ';border-bottom:2px solid ' + c.header + '">' + impEsc(e.codigo || '—') + '</th>').join('') +
+  let ths = '<th class="l" style="background:' + c.header + '">Estudante</th>' +
+    cols.map(e => '<th style="background:' + c.header + '">' + impEsc(e.codigo || '—') + '</th>').join('') +
     '<th class="tot">Total' + (coef !== 1 ? '<br><small>× ' + impFmt(coef) + '</small>' : '') + '</th>' + (o.obs ? '<th class="obs">Observações</th>' : '');
   let corpo = '';
   alunos.forEach(a => {
@@ -8520,24 +8679,24 @@ function impDocumento(corpo, orient, papel) {
     'body{font-family:Arial,Helvetica,sans-serif;color:#111827;font-size:11px;background:#fff}' +
     '@media screen{body{padding:10mm}}' +
     '.cab{margin-bottom:8px}.cab-esc{font-size:15px;font-weight:800;color:#1a3a5c}.cab-sub{font-size:10px;color:#475569}' +
-    '.barra{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;color:#111827;border:1.5px solid #374151;padding:5px 12px;border-radius:5px;margin-bottom:8px;font-size:12px}' +
-    '.barra span:first-child{font-weight:700;font-size:13px}.barra span:last-child{font-size:10px;color:#374151}' +
+    '.barra{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#1a3a5c;color:#fff;padding:6px 12px;border-radius:5px;margin-bottom:8px;font-size:12px}' +
+    '.barra span:first-child{font-weight:700;font-size:13px}.barra span:last-child{font-size:10px;opacity:.9}' +
     'html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
     'table{width:100%;border-collapse:collapse;table-layout:fixed;border:1px solid #374151}th,td{border:1px solid #374151;overflow-wrap:anywhere;word-break:break-word}' +
     '.pg,.sec{width:100%;max-width:100%}.sec{margin-bottom:12px}' +
     'thead{display:table-header-group}tr{page-break-inside:avoid}' +
-    'th{color:#111827;background:#f1f5f9;font-size:10px;padding:5px 4px;text-align:center;font-weight:700}' +
+    'th{color:#fff;background:#334155;font-size:10px;padding:5px 4px;text-align:center;font-weight:700}' +
     'th small{font-weight:400;font-size:9px;opacity:.9}' +
     'td{padding:5px 6px;font-size:11px}' +
-    'th.n,td.n{width:28px;text-align:center;color:#475569;font-size:9px}th.n{color:#111827}th.l,td.l{text-align:left}' +
+    'th.n,td.n{width:28px;text-align:center;color:#475569;font-size:9px}th.n{color:#fff}th.l,td.l{text-align:left}' +
     '.pg{page-break-after:always}.pg:last-child{page-break-after:auto}' +
     /* registro */
     'table.reg td{height:23px}table.reg td.g{text-align:center;padding:2px}table.reg td.tt{font-weight:700}' +
-    'table.reg th.at{height:38px;vertical-align:middle;font-size:9px}table.reg th.tot{background:#e5e7eb;color:#111827;width:54px}' +
+    'table.reg th.at{height:38px;vertical-align:middle;font-size:9px}table.reg th.tot{background:#1e3a1e;width:54px}' +
     'table.reg th.obs{width:18%}table.reg th.l{width:30%}table.reg td.l{font-size:10px}' +
-    'table.cad th.mc{height:16px;background:#fff}table.cad td.g{padding:2px}' +
+    'table.cad th.mc{height:16px;background:#e2e8f0}table.cad td.g{padding:2px}' +
     'table.vt th{padding:3px 1px;font-size:inherit}table.vt th.l{width:150px}table.vt td{font-size:inherit;padding:1px}table.vt td.l{font-size:inherit}table.vt td.vc{text-align:center}' +
-    'td.vc.ok{background:#eef9f1}td.vc.pm{background:#fef6e4}td.vc.nf{background:#fdeeee}td.vc.fp{background:#eef3fc}td.vc{font-weight:700}' +
+    'td.vc.ok{background:#d7f3de}td.vc.pm{background:#fde8c2}td.vc.nf{background:#fbd7d7}td.vc.fp{background:#dbe7fb}' +
     '.leg{margin-top:4px;font-size:9px;color:#333;text-align:center}' +
     'table.reg tr.dt td{height:20px;background:#f8fafc;font-size:9px}table.reg td.dtl{text-align:right;color:#475569;font-weight:700}' +
     'td.vazio{text-align:center;color:#6b7280;padding:14px}' +
@@ -8545,9 +8704,9 @@ function impDocumento(corpo, orient, papel) {
     '.qd-turma{margin-bottom:16px;page-break-inside:avoid}' +
     '.qd-grid{display:grid;gap:10px}' +
     '.qd-card{border:1px solid #374151;border-radius:4px;overflow:hidden}' +
-    '.qd-tit{background:#fff;font-weight:700;font-size:12px;text-align:center;padding:5px}' +
+    '.qd-tit{color:#fff;font-weight:700;font-size:12px;text-align:center;padding:5px}' +
     '.qd-card table{border:0}.qd-card th,.qd-card td{border-left:0;border-right:0}' +
-    '.qd-card th{background:#f1f5f9;color:#1f2937}.qd-card td{height:22px}' +
+    '.qd-card th{background:#e2e8f0;color:#1f2937}.qd-card td{height:22px}' +
     '.qd-card th.pt,.qd-card td.pt{width:62px;text-align:center}' +
     '.qd-card tfoot td{font-weight:700;background:#f1f5f9}.qd-card td.tl{text-align:right}' +
     '.qd-anual{margin-top:8px;text-align:right;font-size:12px;font-weight:700;color:#1a3a5c}' +
