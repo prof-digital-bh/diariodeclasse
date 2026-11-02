@@ -1783,6 +1783,9 @@ create table if not exists calendario_ferias (
             <button class="imp-tipo" id="imp-tipo-registro" onclick="impSetTipo('registro')">
               <span>📓</span><span>Registro de atividades de caderno<small>Lista da turma com as atividades do trimestre, para lançar as notas à mão.</small></span>
             </button>
+            <button class="imp-tipo" id="imp-tipo-bloco" onclick="impSetTipo('bloco')">
+              <span>🗂️</span><span>Bloco da turma<small>Numa só folha: quadro de pontos, atividades gerais e caderno/Vistos, com os nomes dos estudantes. Dá para imprimir só o caderno.</small></span>
+            </button>
           </div>
         </div>
 
@@ -1818,6 +1821,16 @@ create table if not exists calendario_ferias (
 
           <div id="imp-opts-quadro">
             <label class="imp-opt"><input type="checkbox" id="imp-q-pagina" onchange="impAtualizar()"> Cada turma em uma página</label>
+          </div>
+          <div id="imp-opts-bloco" style="display:none">
+            <div class="imp-sec-title" style="margin:4px 0 6px">Seções do bloco</div>
+            <label class="imp-opt"><input type="checkbox" id="imp-b-quadro" checked onchange="impAtualizar()"> Quadro de distribuição dos pontos</label>
+            <label class="imp-opt"><input type="checkbox" id="imp-b-gerais" checked onchange="impAtualizar()"> Atividades gerais (1 a 6)</label>
+            <label class="imp-opt"><input type="checkbox" id="imp-b-caderno" checked onchange="impAtualizar()"> Caderno / Vistos</label>
+            <div class="imp-dica" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <span id="imp-vistos-status">Vistos do Diário de Campo: ainda não carregados.</span>
+              <button class="btn btn-sm" style="padding:2px 8px;font-size:11px;white-space:nowrap" onclick="impRecarregarVistos()">🔄 Recarregar</button>
+            </div>
           </div>
           <div id="imp-opts-registro" style="display:none">
             <label class="imp-opt"><input type="checkbox" id="imp-r-notas" checked onchange="impAtualizar()"> Mostrar notas já lançadas</label>
@@ -8203,8 +8216,10 @@ function impSetTipo(tipo) {
   impTipo = tipo;
   document.getElementById('imp-tipo-quadro').classList.toggle('ativo', tipo === 'quadro');
   document.getElementById('imp-tipo-registro').classList.toggle('ativo', tipo === 'registro');
+  document.getElementById('imp-tipo-bloco').classList.toggle('ativo', tipo === 'bloco');
   document.getElementById('imp-opts-quadro').style.display = tipo === 'quadro' ? '' : 'none';
-  document.getElementById('imp-opts-registro').style.display = tipo === 'registro' ? '' : 'none';
+  document.getElementById('imp-opts-registro').style.display = (tipo === 'registro' || tipo === 'bloco') ? '' : 'none';
+  document.getElementById('imp-opts-bloco').style.display = tipo === 'bloco' ? '' : 'none';
   impAplicarPadroesDoTipo();
   impAtualizar();
 }
@@ -8258,13 +8273,15 @@ function impQuadroTurma(t, tris, o) {
 }
 
 // ── (2) Registro de atividades de caderno ───────────────────────────────────
-function impRegistroPagina(t, tr, o) {
+// Tabela de atividades (exclVistos = deixa de fora a 7ª coluna, que é a do caderno/Vistos)
+function impRegistroTabela(t, tr, o, exclVistos, rotulo) {
   garantirAtividades(t);
   const c = T_COLOR[tr];
   const ativ = db.atividades[t]['t' + tr];
   const alunos = db.turmas[t] || [];
   const cols = [];
   for (let i = 1; i <= N_ATIV; i++) {
+    if (exclVistos && i === VISTOS_POSICAO_RESERVADA) continue;
     const nome = ((ativ[i-1] && ativ[i-1].nome) || '').trim();
     const val = parseFloat(ativ[i-1] && ativ[i-1].valor) || 0;
     if (nome) cols.push({ i: i, nome: nome, val: val });
@@ -8307,9 +8324,131 @@ function impRegistroPagina(t, tr, o) {
   });
   if (!corpo) corpo = '<tr><td colspan="' + (cols.length + 3) + '" class="vazio">Nenhum estudante cadastrado</td></tr>';
 
-  return '<div class="pg">' + impCabecalho(o) +
-    '<div class="barra"><span>Turma ' + impEsc(t) + ' · ' + c.label + '</span><span>Registro de atividades de caderno · ' + alunos.length + ' estudante(s)</span></div>' +
+  return '<div class="sec"><div class="barra"><span>Turma ' + impEsc(t) + ' · ' + c.label + '</span><span>' + rotulo + ' · ' + alunos.length + ' estudante(s)</span></div>' +
     '<table class="reg"><thead><tr>' + ths + '</tr>' + linhaData + '</thead><tbody>' + corpo + '</tbody></table></div>';
+}
+
+function impRegistroPagina(t, tr, o) {
+  return '<div class="pg">' + impCabecalho(o) + impRegistroTabela(t, tr, o, false, 'Registro de atividades de caderno') + '</div>';
+}
+
+// ── (3) Caderno / Vistos: lista com nome dos estudantes + marcações em branco ──
+// A nota do caderno é a da 7ª coluna do Diário de Notas (preenchida pelo Vistos do Diário de Campo).
+function impCadernoTabelaBranca(t, tr, o) {
+  garantirAtividades(t);
+  const c = T_COLOR[tr];
+  const at = db.atividades[t]['t' + tr][VISTOS_POSICAO_RESERVADA - 1] || {};
+  const nome = (at.nome || '').trim() || 'Vistos';
+  const val = parseFloat(at.valor) || 0;
+  const alunos = db.turmas[t] || [];
+  const NMARC = 8;
+  const key = 't' + tr + '_a' + VISTOS_POSICAO_RESERVADA;
+  let ths1 = '<th class="n" rowspan="2">#</th><th class="l" rowspan="2">Estudante</th><th colspan="' + NMARC + '" style="background:' + c.header + '">Marcações de vistos no caderno</th>' +
+    '<th class="tot" rowspan="2">' + impEsc(nome) + (val > 0 ? '<br><small>(' + impFmt(val) + ' pts)</small>' : '') + '</th>' + (o.obs ? '<th class="obs" rowspan="2">Observações</th>' : '');
+  let ths2 = '';
+  for (let k = 0; k < NMARC; k++) ths2 += '<th class="mc">&nbsp;</th>';
+  let corpo = '';
+  alunos.forEach((a, idx) => {
+    const nota = (db.notas[t] && db.notas[t][a]) || {};
+    const raw = nota[key];
+    let txt = '';
+    if (o.notas && raw !== '' && raw !== undefined && raw !== null && !isNaN(parseFloat(raw))) txt = impFmt(raw);
+    let m = '';
+    for (let k = 0; k < NMARC; k++) m += '<td class="g"></td>';
+    corpo += '<tr><td class="n">' + String(idx + 1).padStart(2, '0') + '</td><td class="l">' + impEsc(a) + '</td>' + m +
+      '<td class="g tt">' + txt + '</td>' + (o.obs ? '<td class="g"></td>' : '') + '</tr>';
+  });
+  if (!corpo) corpo = '<tr><td colspan="' + (NMARC + 3) + '" class="vazio">Nenhum estudante cadastrado</td></tr>';
+  return '<div class="sec"><div class="barra"><span>Turma ' + impEsc(t) + ' · ' + c.label + '</span><span>Caderno / Vistos · ' + alunos.length + ' estudante(s)</span></div>' +
+    '<table class="reg cad"><thead><tr>' + ths1 + '</tr><tr>' + ths2 + '</tr></thead><tbody>' + corpo + '</tbody></table></div>';
+}
+
+// ── Vistos do Diário de Campo (mesma base Supabase, tabela diario_campo_kv) ──
+let impVistosEstado = null;   // null | 'carregando' | 'ok' | 'erro'
+let impVistosDados = { entries: [], vistos: {} };
+const IMP_VISTOS_LABEL = { ok: 'OK', pm: '+/-', nf: 'NF', fp: 'FP' };
+const IMP_VISTOS_VALOR = { ok: 1, pm: 0.5, nf: 0, fp: 0.5 };
+
+async function impCarregarVistos() {
+  impVistosEstado = 'carregando';
+  impVistosStatus();
+  const prof = String((sessao && sessao.profId) || '').replace(/[^\w\-]/g, '') || '__geo__';
+  const ler = async base => {
+    const r = await fetch(SB_URL + '/rest/v1/diario_campo_kv?chave=eq.' + encodeURIComponent(base + '__' + prof) + '&select=valor', { headers: SB_HEADERS });
+    if (!r.ok) throw new Error('http ' + r.status);
+    const rows = await r.json();
+    if (!rows || !rows.length) return null;
+    const v = rows[0].valor;
+    return typeof v === 'string' ? JSON.parse(v) : v;
+  };
+  try {
+    const res = await Promise.all([ler('diario-campo-geografia-entries'), ler('diario-campo-geografia-vistos')]);
+    impVistosDados = { entries: Array.isArray(res[0]) ? res[0] : [], vistos: res[1] || {} };
+    impVistosEstado = 'ok';
+  } catch (e) {
+    console.error('[relatórios] falha ao ler Vistos do Diário de Campo', e);
+    impVistosEstado = 'erro';
+  }
+  impAtualizar();
+}
+function impRecarregarVistos() { impVistosEstado = null; impAtualizar(); }
+function impVistosStatus() {
+  const el = document.getElementById('imp-vistos-status');
+  if (!el) return;
+  el.textContent = impVistosEstado === 'carregando' ? 'Carregando Vistos do Diário de Campo…'
+    : impVistosEstado === 'ok' ? 'Vistos do Diário de Campo carregados.'
+    : impVistosEstado === 'erro' ? '⚠️ Não foi possível ler os Vistos; usando tabela em branco.'
+    : 'Vistos do Diário de Campo: ainda não carregados.';
+}
+
+// Listagem de Vistos (mesmo conteúdo da impressão do Diário de Campo): registros em colunas, marcações OK / +/- / NF / FP e total × coeficiente
+function impCadernoTabela(t, tr, o) {
+  if (impVistosEstado !== 'ok') return impCadernoTabelaBranca(t, tr, o);
+  const ano = String(t).charAt(0), sub = String(t).slice(-1);
+  const tabela = impVistosDados.vistos[ano + sub] || {};
+  const marks = tabela.marks || {};
+  const coefRaw = parseFloat(tabela.coeficiente);
+  const coef = isNaN(coefRaw) ? 1 : coefRaw;
+  const dataDe = e => (e.turmasDetalhe[sub] || {}).data || e.data;
+  const cols = impVistosDados.entries.filter(e =>
+    String(e.turma) === ano && String(e.trimestre) === String(tr) && e.turmasDetalhe && e.turmasDetalhe[sub] && e.turmasDetalhe[sub].feito
+  ).sort((a, b) => {
+    const da = dataDe(a), db_ = dataDe(b);
+    return (da ? Date.parse(da + 'T00:00:00') : (a.criadoEm || 0)) - (db_ ? Date.parse(db_ + 'T00:00:00') : (b.criadoEm || 0));
+  });
+  if (!cols.length) return impCadernoTabelaBranca(t, tr, o);
+
+  const c = T_COLOR[tr];
+  const alunos = db.turmas[t] || [];
+  const larg = o.larg || 700;
+  const fonte = Math.min(Math.max(Math.floor(((larg - 150) / (cols.length + 1)) * 0.34), 5), 10);
+  let ths = '<th class="l" style="background:' + c.header + '">Estudante</th>' +
+    cols.map(e => '<th style="background:' + c.header + '">' + impEsc(e.codigo || '—') + '</th>').join('') +
+    '<th class="tot">Total' + (coef !== 1 ? '<br><small>× ' + impFmt(coef) + '</small>' : '') + '</th>' + (o.obs ? '<th class="obs">Observações</th>' : '');
+  let corpo = '';
+  alunos.forEach(a => {
+    let soma = 0;
+    const cells = cols.map(e => {
+      const m = o.notas && marks[e.id] && marks[e.id][a];
+      if (m && IMP_VISTOS_VALOR[m] !== undefined) soma += IMP_VISTOS_VALOR[m];
+      return '<td class="vc' + (m ? ' ' + m : '') + '">' + (m ? (IMP_VISTOS_LABEL[m] || '') : '') + '</td>';
+    }).join('');
+    const total = o.notas ? (soma * coef).toFixed(1).replace('.', ',') : '';
+    corpo += '<tr><td class="l">' + impEsc(a) + '</td>' + cells + '<td class="g tt">' + total + '</td>' + (o.obs ? '<td class="g"></td>' : '') + '</tr>';
+  });
+  if (!corpo) corpo = '<tr><td colspan="' + (cols.length + 2) + '" class="vazio">Nenhum estudante cadastrado</td></tr>';
+  return '<div class="sec"><div class="barra"><span>Turma ' + impEsc(t) + ' · ' + c.label + '</span><span>Caderno / Vistos · ' + cols.length + ' registro(s) · ' + alunos.length + ' estudante(s)</span></div>' +
+    '<table class="reg vt" style="font-size:' + fonte + 'px"><thead><tr>' + ths + '</tr></thead><tbody>' + corpo + '</tbody></table>' +
+    '<div class="leg">OK = Completo (1,0) · +/- = Parcial (0,5) · NF = Não feito (0,0) · FP = Feito fora do prazo (0,5) · Coeficiente ' + impFmt(coef) + '</div></div>';
+}
+
+// ── (4) Bloco da turma: seções escolhidas numa mesma folha ──
+function impBlocoPagina(t, tr, o) {
+  let h = '<div class="pg">' + impCabecalho(o);
+  if (o.bQuadro) h += '<div class="sec">' + impQuadroTurma(t, [tr], { pagina: false }) + '</div>';
+  if (o.bGerais) h += impRegistroTabela(t, tr, o, true, 'Atividades gerais');
+  if (o.bCaderno) h += impCadernoTabela(t, tr, o);
+  return h + '</div>';
 }
 
 // ── Montagem do documento + pré-visualização ───────────────────────────────
@@ -8322,23 +8461,29 @@ function impDocumento(corpo, orient, papel) {
     '.cab{margin-bottom:8px}.cab-esc{font-size:15px;font-weight:800;color:#1a3a5c}.cab-sub{font-size:10px;color:#475569}' +
     '.barra{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#1a3a5c;color:#fff;padding:6px 12px;border-radius:5px;margin-bottom:8px;font-size:12px}' +
     '.barra span:first-child{font-weight:700;font-size:13px}.barra span:last-child{font-size:10px;opacity:.9}' +
-    'table{width:100%;border-collapse:collapse}th,td{border:1px solid #6b7280}' +
+    'html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    'table{width:100%;border-collapse:collapse;table-layout:fixed;border:1px solid #374151}th,td{border:1px solid #374151;overflow-wrap:anywhere;word-break:break-word}' +
+    '.pg,.sec{width:100%;max-width:100%}.sec{margin-bottom:12px}' +
     'thead{display:table-header-group}tr{page-break-inside:avoid}' +
     'th{color:#fff;background:#334155;font-size:10px;padding:5px 4px;text-align:center;font-weight:700}' +
     'th small{font-weight:400;font-size:9px;opacity:.9}' +
     'td{padding:5px 6px;font-size:11px}' +
-    '.n{width:26px;text-align:center;color:#475569;font-size:9px}th.l,td.l{text-align:left}' +
+    'th.n,td.n{width:28px;text-align:center;color:#475569;font-size:9px}th.n{color:#fff}th.l,td.l{text-align:left}' +
     '.pg{page-break-after:always}.pg:last-child{page-break-after:auto}' +
     /* registro */
     'table.reg td{height:23px}table.reg td.g{text-align:center;padding:2px}table.reg td.tt{font-weight:700}' +
-    'table.reg th.at{min-width:58px;height:38px;vertical-align:middle;font-size:9px}table.reg th.tot{background:#1e3a1e;min-width:54px}' +
-    'table.reg th.obs{min-width:110px}table.reg td.l{white-space:nowrap}' +
+    'table.reg th.at{height:38px;vertical-align:middle;font-size:9px}table.reg th.tot{background:#1e3a1e;width:54px}' +
+    'table.reg th.obs{width:18%}table.reg th.l{width:30%}table.reg td.l{font-size:10px}' +
+    'table.cad th.mc{height:16px;background:#e2e8f0}table.cad td.g{padding:2px}' +
+    'table.vt th{padding:3px 1px;font-size:inherit}table.vt th.l{width:150px}table.vt td{font-size:inherit;padding:1px}table.vt td.l{font-size:inherit}table.vt td.vc{text-align:center}' +
+    'td.vc.ok{background:#d7f3de}td.vc.pm{background:#fde8c2}td.vc.nf{background:#fbd7d7}td.vc.fp{background:#dbe7fb}' +
+    '.leg{margin-top:4px;font-size:9px;color:#333;text-align:center}' +
     'table.reg tr.dt td{height:20px;background:#f8fafc;font-size:9px}table.reg td.dtl{text-align:right;color:#475569;font-weight:700}' +
     'td.vazio{text-align:center;color:#6b7280;padding:14px}' +
     /* quadro */
     '.qd-turma{margin-bottom:16px;page-break-inside:avoid}' +
     '.qd-grid{display:grid;gap:10px}' +
-    '.qd-card{border:1px solid #6b7280;border-radius:4px;overflow:hidden}' +
+    '.qd-card{border:1px solid #374151;border-radius:4px;overflow:hidden}' +
     '.qd-tit{color:#fff;font-weight:700;font-size:12px;text-align:center;padding:5px}' +
     '.qd-card table{border:0}.qd-card th,.qd-card td{border-left:0;border-right:0}' +
     '.qd-card th{background:#e2e8f0;color:#1f2937}.qd-card td{height:22px}' +
@@ -8374,13 +8519,27 @@ function impAtualizar() {
     notas: document.getElementById('imp-r-notas').checked,
     vazias: document.getElementById('imp-r-vazias').checked,
     dataLinha: document.getElementById('imp-r-data').checked,
-    obs: document.getElementById('imp-r-obs').checked
+    obs: document.getElementById('imp-r-obs').checked,
+    larg: (orient === 'landscape' ? 1010 : 700),
+    bQuadro: document.getElementById('imp-b-quadro').checked,
+    bGerais: document.getElementById('imp-b-gerais').checked,
+    bCaderno: document.getElementById('imp-b-caderno').checked
   };
+  if (impTipo === 'bloco' && !o.bQuadro && !o.bGerais && !o.bCaderno) {
+    impHtmlAtual = ''; frame.style.display = 'none'; vazio.style.display = '';
+    vazio.innerHTML = '<span class="empty-icon">🗂️</span>Marque ao menos uma seção do bloco.';
+    return;
+  }
+  vazio.innerHTML = '<span class="empty-icon">🖨️</span>Selecione ao menos uma turma e um trimestre.';
 
+  if (impTipo === 'bloco' && o.bCaderno && impVistosEstado === null) impCarregarVistos();
+  impVistosStatus();
   let corpo = '';
   if (impTipo === 'quadro') {
     if (!o.pagina) corpo += impCabecalho(o);
     turmas.forEach(t => { corpo += impQuadroTurma(t, tris, o); });
+  } else if (impTipo === 'bloco') {
+    turmas.forEach(t => { tris.forEach(tr => { corpo += impBlocoPagina(t, tr, o); }); });
   } else {
     turmas.forEach(t => { tris.forEach(tr => { corpo += impRegistroPagina(t, tr, o); }); });
   }
