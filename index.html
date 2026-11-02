@@ -8623,14 +8623,14 @@ function impVistosStatus() {
     : 'Vistos do Diário de Campo: ainda não carregados.';
 }
 
-// Listagem de Vistos (mesmo conteúdo da impressão do Diário de Campo): registros em colunas, marcações OK / +/- / NF / FP e total × coeficiente
+// Listagem de Vistos (mesmo conteúdo da impressão do Diário de Campo): registros em colunas, marcações OK / +/- / NF / FP e total (nota geral ÷ nº de atividades)
 function impCadernoTabela(t, tr, o) {
   if (impVistosEstado !== 'ok') return impCadernoTabelaBranca(t, tr, o);
   const ano = String(t).charAt(0), sub = String(t).slice(-1);
   const tabela = impVistosDados.vistos[ano + sub] || {};
   const marks = tabela.marks || {};
-  const coefRaw = parseFloat(tabela.coeficiente);
-  const coef = isNaN(coefRaw) ? 1 : coefRaw;
+  const ngRaw = parseFloat(String(tabela.notaGeral == null ? '' : tabela.notaGeral).replace(',', '.'));
+  const notaGeral = (isNaN(ngRaw) || ngRaw < 0) ? 10 : ngRaw;   // nota geral do caderno (padrão 10)
   const dataDe = e => (e.turmasDetalhe[sub] || {}).data || e.data;
   const cols = impVistosDados.entries.filter(e =>
     String(e.turma) === ano && String(e.trimestre) === String(tr) && e.turmasDetalhe && e.turmasDetalhe[sub] && e.turmasDetalhe[sub].feito
@@ -8639,6 +8639,7 @@ function impCadernoTabela(t, tr, o) {
     return (da ? Date.parse(da + 'T00:00:00') : (a.criadoEm || 0)) - (db_ ? Date.parse(db_ + 'T00:00:00') : (b.criadoEm || 0));
   });
   if (!cols.length) return impCadernoTabelaBranca(t, tr, o);
+  const valorAtiv = Math.round(notaGeral / cols.length * 10) / 10; // cada atividade = nota geral ÷ nº de atividades (1 casa)
 
   const c = T_COLOR[tr];
   const alunos = db.turmas[t] || [];
@@ -8646,7 +8647,7 @@ function impCadernoTabela(t, tr, o) {
   const fonte = Math.min(Math.max(Math.floor(((larg - 150) / (cols.length + 1)) * 0.34), 5), 10);
   let ths = '<th class="l" style="color:' + c.header + ';border-bottom:2px solid ' + c.header + '">Estudante</th>' +
     cols.map(e => '<th style="color:' + c.header + ';border-bottom:2px solid ' + c.header + '">' + impEsc(e.codigo || '—') + '</th>').join('') +
-    '<th class="tot">Total' + (coef !== 1 ? '<br><small>× ' + impFmt(coef) + '</small>' : '') + '</th>' + (o.obs ? '<th class="obs">Observações</th>' : '');
+    '<th class="tot">Total<br><small>' + impFmt(notaGeral) + '</small></th>' + (o.obs ? '<th class="obs">Observações</th>' : '');
   let corpo = '';
   alunos.forEach(a => {
     let soma = 0;
@@ -8655,13 +8656,13 @@ function impCadernoTabela(t, tr, o) {
       if (m && IMP_VISTOS_VALOR[m] !== undefined) soma += IMP_VISTOS_VALOR[m];
       return '<td class="vc' + (m ? ' ' + m : '') + '">' + (m ? (IMP_VISTOS_LABEL[m] || '') : '') + '</td>';
     }).join('');
-    const total = o.notas ? (soma * coef).toFixed(1).replace('.', ',') : '';
+    const total = o.notas ? Math.min(notaGeral, Math.round(soma * valorAtiv * 10) / 10).toFixed(1).replace('.', ',') : '';
     corpo += '<tr><td class="l">' + impEsc(a) + '</td>' + cells + '<td class="g tt">' + total + '</td>' + (o.obs ? '<td class="g"></td>' : '') + '</tr>';
   });
   if (!corpo) corpo = '<tr><td colspan="' + (cols.length + 2) + '" class="vazio">Nenhum estudante cadastrado</td></tr>';
   return '<div class="sec"><div class="barra"><span>Turma ' + impEsc(t) + ' · ' + c.label + '</span><span>Caderno / Vistos · ' + cols.length + ' registro(s) · ' + alunos.length + ' estudante(s)</span></div>' +
     '<table class="reg vt" style="font-size:' + fonte + 'px"><thead><tr>' + ths + '</tr></thead><tbody>' + corpo + '</tbody></table>' +
-    '<div class="leg">OK = Completo (1,0) · +/- = Parcial (0,5) · NF = Não feito (0,0) · FP = Feito fora do prazo (0,5) · Coeficiente ' + impFmt(coef) + '</div></div>';
+    '<div class="leg">OK = Completo (1,0) · +/- = Parcial (0,5) · NF = Não feito (0,0) · FP = Feito fora do prazo (0,5) · Nota geral ' + impFmt(notaGeral) + ' · cada atividade vale ' + impFmt(valorAtiv) + '</div></div>';
 }
 
 // ── (4) Bloco da turma: seções escolhidas numa mesma folha ──
