@@ -3153,6 +3153,7 @@ async function _pushAtividades() {
     TRIMESTRES.forEach(tr => {
       const list = (db.atividades[turma] && db.atividades[turma]['t'+tr]) || [];
       list.forEach((a, i) => {
+        if (i + 1 === VISTOS_POSICAO_RESERVADA) return; // vaga do Vistos: quem grava é o Diário de Campo
         rows.push({ id: ativId(turma, tr, i+1), prof_id, turma, trimestre: tr, posicao: i+1, nome: a.nome || '',
           valor: a.valor !== '' && a.valor !== undefined ? parseFloat(a.valor) || null : null,
           atualizado_em: new Date().toISOString() });
@@ -3184,6 +3185,7 @@ async function _pushNotas() {
       const aid = alunoId(turma, nome);
       TRIMESTRES.forEach(tr => {
         for (let i = 1; i <= N_ATIV; i++) {
+          if (i === VISTOS_POSICAO_RESERVADA) continue; // nota do Vistos: quem grava é o Diário de Campo
           const key = 't'+tr+'_a'+i;
           const val = n[key];
           const notaNum = (val !== '' && val !== undefined && val !== null) ? parseFloat(val) : null;
@@ -3349,7 +3351,7 @@ async function carregarDoSupabase() {
           novoDb.atividades[row.turma]['t'+row.trimestre] = Array.from({length: N_ATIV}, () => ({nome:'', valor:''}));
         const idx = row.posicao - 1;
         if (idx >= 0 && idx < N_ATIV)
-          novoDb.atividades[row.turma]['t'+row.trimestre][idx] = { nome: row.nome || '', valor: row.valor !== null ? String(row.valor) : '' };
+          novoDb.atividades[row.turma]['t'+row.trimestre][idx] = { nome: row.nome || '', valor: row.valor !== null ? String(row.posicao === VISTOS_POSICAO_RESERVADA ? arred1(row.valor) : row.valor) : '' };
       });
     }
     // Mapa alunoId -> nome para lookup rápido e correto
@@ -3371,7 +3373,7 @@ async function carregarDoSupabase() {
         if (!nome) return; // ignora notas sem aluno correspondente
         if (!novoDb.notas[row.turma][nome]) novoDb.notas[row.turma][nome] = { obs: '' };
         const key = 't'+row.trimestre+'_a'+row.atividade;
-        novoDb.notas[row.turma][nome][key] = row.nota !== null ? String(row.nota) : '';
+        novoDb.notas[row.turma][nome][key] = row.nota !== null ? String(row.atividade === VISTOS_POSICAO_RESERVADA ? arred1(row.nota) : row.nota) : '';
         if (row.obs) novoDb.notas[row.turma][nome].obs = row.obs;
       });
     }
@@ -3703,6 +3705,7 @@ function goTab(tab) {
   if (tab === 'horarios') { renderizarHorarios(); }
   if (tab === 'calendario') { renderizarCalendario(); renderizarCruzamento(); renderizarAlertas(); renderizarCalEditor(); }
   if (tab === 'cronograma') { renderizarCronograma(); }
+  if (['notas','impressos','relatorios','dashboard','anotacoes'].includes(tab)) _vistosRefreshAba(tab);
 }
 
 // ─── HELPERS SEXO / ETNIA ────────────────────────────────────────────────────
@@ -8178,7 +8181,7 @@ function impEsc(s) {
   return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function impFmt(n) {
-  const x = Math.round((parseFloat(n) || 0) * 100) / 100;
+  const x = Math.round((parseFloat(n) || 0) * 10) / 10;
   return String(x).replace('.', ',');
 }
 function impTurmasDisponiveis() {
@@ -8562,6 +8565,69 @@ function impImprimir() {
   frame.contentWindow.focus();
   frame.contentWindow.print();
 }
+
+// ─── VISTOS: traz do banco o valor e as notas mais recentes (gravados pelo Diário de Campo) ──
+function arred1(n) { const x = parseFloat(n); return isNaN(x) ? 0 : Math.round(x * 10) / 10; }
+
+async function atualizarVistosDoSupabase() {
+  if (!sessao) return false;
+  try {
+    const profFilter = '&prof_id=eq.' + encodeURIComponent(sessao.profId);
+    const rAtiv = await sbFetch('/rest/v1/atividades?select=*&posicao=eq.' + VISTOS_POSICAO_RESERVADA + profFilter).then(r => r.ok ? r.json() : null);
+    if (!Array.isArray(rAtiv)) return false;
+    rAtiv.forEach(row => {
+      if (!db.turmas[row.turma]) return;
+      garantirAtividades(row.turma);
+      db.atividades[row.turma]['t' + row.trimestre][VISTOS_POSICAO_RESERVADA - 1] =
+        { nome: row.nome || '', valor: row.valor !== null && row.valor !== undefined ? String(arred1(row.valor)) : '' };
+    });
+    const turmas = Object.keys(db.turmas);
+    const lotes = await Promise.all(turmas.map(t =>
+      sbFetch('/rest/v1/notas?select=*&turma=eq.' + encodeURIComponent(t) + '&atividade=eq.' + VISTOS_POSICAO_RESERVADA + profFilter)
+        .then(r => r.ok ? r.json() : []).catch(() => [])
+    ));
+    lotes.forEach((rows, k) => {
+      const t = turmas[k];
+      const idParaNome = {};
+      db.turmas[t].forEach(nome => { idParaNome[alunoId(t, nome)] = nome; });
+      if (!db.notas[t]) db.notas[t] = {};
+      rows.forEach(row => {
+        const nome = idParaNome[row.aluno_id];
+        if (!nome) return;
+        if (!db.notas[t][nome]) db.notas[t][nome] = { obs: '' };
+        db.notas[t][nome]['t' + row.trimestre + '_a' + VISTOS_POSICAO_RESERVADA] =
+          row.nota !== null && row.nota !== undefined ? String(arred1(row.nota)) : '';
+      });
+    });
+    return true;
+  } catch (e) {
+    console.warn('[vistos] não foi possível atualizar do banco', e);
+    return false;
+  }
+}
+
+function _vistosRefreshAba(tab) {
+  atualizarVistosDoSupabase().then(ok => {
+    if (!ok) return;
+    const ativa = document.querySelector('.page.active');
+    if (!ativa || ativa.id !== 'page-' + tab) return;
+    if (tab === 'notas') renderizarNotas();
+    else if (tab === 'impressos') impAtualizar();
+    else if (tab === 'relatorios') renderizarRelatorios();
+    else if (tab === 'dashboard') renderizarDashboard();
+    else if (tab === 'anotacoes') renderizarAnotacoes();
+  });
+}
+
+// o Diário de Campo (aba embutida) avisa quando termina de gravar os Vistos
+window.addEventListener('message', ev => {
+  if (ev.origin !== location.origin || !ev.data || ev.data.tipo !== 'vistos-sincronizado') return;
+  atualizarVistosDoSupabase().then(ok => {
+    if (!ok) return;
+    const ativa = document.querySelector('.page.active');
+    if (ativa && ativa.id === 'page-notas') renderizarNotas();
+  });
+});
 
 // ─── RELATÓRIOS DE PENDÊNCIAS ─────────────────────────────────────────────────
 function popularSelectRelatorios() {
