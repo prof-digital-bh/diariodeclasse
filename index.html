@@ -153,6 +153,36 @@ body.dark-mode .rel-card { background:#1e293b; border-color:#334155; }
 body.dark-mode .rel-aluno-row { border-bottom-color:#334155; }
 body.dark-mode .rel-summary-strip { background:#162032; border-bottom-color:#334155; }
 
+/* ─── RELATÓRIOS PARA IMPRESSÃO (aba Relatórios) ─────────────────────────── */
+.imp-wrap { display:grid; grid-template-columns:minmax(270px,330px) 1fr; gap:18px; align-items:start; }
+.imp-painel { background:var(--sky-pale); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px 18px; display:flex; flex-direction:column; gap:18px; }
+.imp-sec-title { font-size:11px; font-weight:600; color:var(--ink-3); text-transform:uppercase; letter-spacing:.4px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.imp-tipos { display:flex; flex-direction:column; gap:6px; }
+.imp-tipo { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border:1px solid var(--border-2); border-radius:var(--radius); background:var(--white); cursor:pointer; font-size:13px; color:var(--ink-2); text-align:left; font-family:inherit; }
+.imp-tipo small { display:block; font-size:11px; color:var(--ink-3); margin-top:2px; font-weight:400; line-height:1.35; }
+.imp-tipo.ativo { border-color:var(--ocean-mid); background:var(--sky); color:var(--ocean); font-weight:600; }
+.imp-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.imp-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border:1px solid var(--border-2); border-radius:999px; font-size:12px; cursor:pointer; background:var(--white); color:var(--ink-2); user-select:none; }
+.imp-chip input { width:13px; height:13px; cursor:pointer; }
+.imp-chip.on { border-color:var(--ocean-mid); background:var(--sky); color:var(--ocean); font-weight:600; }
+.imp-opt { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--ink-2); cursor:pointer; margin-bottom:7px; }
+.imp-opt input { width:14px; height:14px; flex-shrink:0; }
+.imp-sel-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+.imp-sel-row label { display:block; font-size:11px; font-weight:600; color:var(--ink-3); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
+.imp-sel-row select { width:100%; padding:7px 8px; border:1px solid var(--border-2); border-radius:8px; font-size:12px; }
+.imp-dica { font-size:11px; color:var(--ink-3); line-height:1.45; background:var(--white); border:1px dashed var(--border-2); border-radius:8px; padding:8px 10px; }
+.imp-preview-wrap { border:1px solid var(--border-2); border-radius:var(--radius-lg); background:#e2e8f0; padding:12px; overflow:auto; max-height:80vh; }
+.imp-preview-wrap iframe { display:block; background:#fff; border:0; box-shadow:var(--shadow); margin:0 auto; }
+@media (max-width:900px) { .imp-wrap { grid-template-columns:1fr; } }
+body.dark-mode .imp-painel { background:#162032; border-color:#334155; }
+body.dark-mode .imp-tipo { background:#1e293b; border-color:#475569; color:#cbd5e1; }
+body.dark-mode .imp-tipo.ativo { background:#1a3a5c; border-color:#60a5fa; color:#93c5fd; }
+body.dark-mode .imp-chip { background:#1e293b; border-color:#475569; color:#cbd5e1; }
+body.dark-mode .imp-chip.on { background:#1a3a5c; border-color:#60a5fa; color:#93c5fd; }
+body.dark-mode .imp-sel-row select { background:#0f172a; color:#e2e8f0; border-color:#475569; }
+body.dark-mode .imp-dica { background:#1e293b; border-color:#475569; }
+body.dark-mode .imp-preview-wrap { background:#0f172a; border-color:#334155; }
+
 /* ─── FICHA DO ALUNO ────────────────────────────────────────────────────── */
 .ficha-wrap { padding: 4px 0; }
 .ficha-search-bar { display:flex; gap:10px; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
@@ -1730,6 +1760,82 @@ create table if not exists calendario_ferias (
 
     <div id="rel-content">
       <div class="empty"><span class="empty-icon">📋</span>Selecione os filtros para gerar o relatório.</div>
+    </div>
+  </section>
+
+  <!-- ABA RELATÓRIOS (impressão: quadro de distribuição dos pontos + registro de atividades de caderno) -->
+  <section id="page-impressos" class="page">
+    <div class="toolbar no-print">
+      <div class="toolbar-title">🖨️ Relatórios</div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="impImprimir()">🖨️ Imprimir</button>
+      </div>
+    </div>
+
+    <div class="imp-wrap">
+      <div class="imp-painel no-print">
+        <div>
+          <div class="imp-sec-title">Relatório</div>
+          <div class="imp-tipos">
+            <button class="imp-tipo ativo" id="imp-tipo-quadro" onclick="impSetTipo('quadro')">
+              <span>📊</span><span>Quadro de distribuição dos pontos<small>Atividades e valores de cada trimestre, por turma.</small></span>
+            </button>
+            <button class="imp-tipo" id="imp-tipo-registro" onclick="impSetTipo('registro')">
+              <span>📓</span><span>Registro de atividades de caderno<small>Lista da turma com as atividades do trimestre, para lançar as notas à mão.</small></span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <div class="imp-sec-title">Turmas
+            <span style="display:flex;gap:4px">
+              <button class="btn btn-sm" style="padding:2px 8px;font-size:11px" onclick="impMarcarTurmas(true)">Todas</button>
+              <button class="btn btn-sm" style="padding:2px 8px;font-size:11px" onclick="impMarcarTurmas(false)">Nenhuma</button>
+            </span>
+          </div>
+          <div class="imp-chips" id="imp-turmas"></div>
+        </div>
+
+        <div>
+          <div class="imp-sec-title">Trimestres</div>
+          <div class="imp-chips" id="imp-tris">
+            <label class="imp-chip"><input type="checkbox" id="imp-tri-1" onchange="impAtualizar()"> 1º Tri</label>
+            <label class="imp-chip"><input type="checkbox" id="imp-tri-2" onchange="impAtualizar()"> 2º Tri</label>
+            <label class="imp-chip"><input type="checkbox" id="imp-tri-3" onchange="impAtualizar()"> 3º Tri</label>
+          </div>
+        </div>
+
+        <div>
+          <div class="imp-sec-title">Opções</div>
+          <div class="imp-sel-row">
+            <div><label for="imp-orientacao">Orientação</label>
+              <select id="imp-orientacao" onchange="impAtualizar()"><option value="landscape">Paisagem</option><option value="portrait">Retrato</option></select></div>
+            <div><label for="imp-papel">Papel</label>
+              <select id="imp-papel" onchange="impAtualizar()"><option value="A4">A4</option><option value="A3">A3</option><option value="letter">Carta</option></select></div>
+          </div>
+          <label class="imp-opt"><input type="checkbox" id="imp-cab" checked onchange="impAtualizar()"> Nome da escola e professor</label>
+          <label class="imp-opt"><input type="checkbox" id="imp-data" checked onchange="impAtualizar()"> Data de geração</label>
+
+          <div id="imp-opts-quadro">
+            <label class="imp-opt"><input type="checkbox" id="imp-q-pagina" onchange="impAtualizar()"> Cada turma em uma página</label>
+          </div>
+          <div id="imp-opts-registro" style="display:none">
+            <label class="imp-opt"><input type="checkbox" id="imp-r-notas" checked onchange="impAtualizar()"> Mostrar notas já lançadas</label>
+            <label class="imp-opt"><input type="checkbox" id="imp-r-vazias" checked onchange="impAtualizar()"> Colunas em branco p/ atividades ainda sem nome</label>
+            <label class="imp-opt"><input type="checkbox" id="imp-r-data" checked onchange="impAtualizar()"> Linha de data sob o cabeçalho</label>
+            <label class="imp-opt"><input type="checkbox" id="imp-r-obs" onchange="impAtualizar()"> Coluna de observações</label>
+          </div>
+        </div>
+
+        <div class="imp-dica">Nas tabelas impressas, onde não há valor lançado a célula sai <strong>em branco</strong> (sem traço), pronta para receber a nota à caneta.</div>
+      </div>
+
+      <div>
+        <div class="imp-preview-wrap">
+          <div id="imp-vazio" class="empty" style="display:none"><span class="empty-icon">🖨️</span>Selecione ao menos uma turma e um trimestre.</div>
+          <iframe id="imp-frame" title="Pré-visualização do relatório" style="display:none"></iframe>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -3517,6 +3623,7 @@ function construirNav() {
     tabs.push({ id: 'cronograma',  icon: '🗂️', label: 'Cronograma' });
     tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
     tabs.push({ id: 'relatorios',  icon: '📋', label: 'Pendências' });
+    tabs.push({ id: 'impressos',   icon: '🖨️', label: 'Relatórios' });
     tabs.push({ id: 'anotacoes',   icon: '📝', label: 'Anotações · ' + (sessao.turmaReferencia || '—') });
     tabs.push({ id: 'dashboard',   icon: '📈', label: 'Dashboard.Geo' });
     tabs.push({ id: 'professores', icon: '👩‍🏫', label: 'Professores' });
@@ -3529,6 +3636,7 @@ function construirNav() {
     tabs.push({ id: 'cronograma',  icon: '🗂️', label: 'Cronograma' });
     tabs.push({ id: 'mapeamento',  icon: '🗺️', label: 'Mapeamento' });
     tabs.push({ id: 'relatorios',  icon: '📋', label: 'Pendências' });
+    tabs.push({ id: 'impressos',   icon: '🖨️', label: 'Relatórios' });
     if (sessao && sessao.turmaReferencia)
       tabs.push({ id: 'anotacoes', icon: '📝', label: 'Anotações · ' + sessao.turmaReferencia });
     tabs.push({ id: 'dashboard',   icon: '📈', label: 'Dashboard.Geo' });
@@ -3574,6 +3682,7 @@ function goTab(tab) {
   if (tab === 'professores') { popularCheckboxesTurmas(); renderizarListaProfessores(); }
   if (tab === 'dashboard') { renderizarDashboard(); }
   if (tab === 'relatorios') { popularSelectRelatorios(); renderizarRelatorios(); }
+  if (tab === 'impressos') { impInicializar(); }
   if (tab === 'diario') {
     const f = document.getElementById('diario-iframe');
     if (f && !f.src) f.src = f.dataset.src;
@@ -8044,6 +8153,256 @@ function toggleDarkMode() {
 document.addEventListener('DOMContentLoaded', () => {
   _restaurarSnapshotImportacaoLocal();
 });
+
+// ─── RELATÓRIOS PARA IMPRESSÃO ────────────────────────────────────────────────
+// Dois relatórios: (1) Quadro de distribuição dos pontos; (2) Registro de atividades de caderno.
+// Regra de impressão: onde a tela mostraria um traço "—" (sem nota / sem atividade), a célula sai EM BRANCO.
+let impTipo = 'quadro';
+let impIniciado = false;
+let impHtmlAtual = '';
+
+function impEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function impFmt(n) {
+  const x = Math.round((parseFloat(n) || 0) * 100) / 100;
+  return String(x).replace('.', ',');
+}
+function impTurmasDisponiveis() {
+  if (!sessao) return [];
+  const lista = sessao.isEverton ? Object.keys(db.turmas) : (sessao.turmas || []);
+  return lista.filter(t => db.turmas[t]).slice().sort();
+}
+
+function impInicializar() {
+  sincronizarNotas();
+  const cont = document.getElementById('imp-turmas');
+  if (!cont) return;
+  const turmas = impTurmasDisponiveis();
+  const marcadas = new Set([...cont.querySelectorAll('input:checked')].map(i => i.value));
+  const primeira = !impIniciado;
+  cont.innerHTML = turmas.map(t =>
+    '<label class="imp-chip"><input type="checkbox" value="' + impEsc(t) + '"' +
+    ((primeira || marcadas.has(t)) ? ' checked' : '') + ' onchange="impAtualizar()"> ' + impEsc(t) + '</label>'
+  ).join('') || '<span style="font-size:12px;color:var(--ink-3)">Nenhuma turma disponível.</span>';
+  if (primeira) {
+    impIniciado = true;
+    impAplicarPadroesDoTipo();
+  }
+  impAtualizar();
+}
+
+function impAplicarPadroesDoTipo() {
+  const quadro = impTipo === 'quadro';
+  [1,2,3].forEach(n => { document.getElementById('imp-tri-' + n).checked = quadro ? true : (n === trimestreFiltro); });
+  document.getElementById('imp-orientacao').value = quadro ? 'landscape' : 'portrait';
+}
+
+function impSetTipo(tipo) {
+  if (tipo === impTipo) return;
+  impTipo = tipo;
+  document.getElementById('imp-tipo-quadro').classList.toggle('ativo', tipo === 'quadro');
+  document.getElementById('imp-tipo-registro').classList.toggle('ativo', tipo === 'registro');
+  document.getElementById('imp-opts-quadro').style.display = tipo === 'quadro' ? '' : 'none';
+  document.getElementById('imp-opts-registro').style.display = tipo === 'registro' ? '' : 'none';
+  impAplicarPadroesDoTipo();
+  impAtualizar();
+}
+
+function impMarcarTurmas(v) {
+  document.querySelectorAll('#imp-turmas input').forEach(i => { i.checked = v; });
+  impAtualizar();
+}
+
+function impCabecalho(o) {
+  if (!o.cab && !o.data) return '';
+  const prof = sessao ? sessao.nome : 'Prof. Everton Correa';
+  let h = '<div class="cab">';
+  if (o.cab) {
+    h += '<div class="cab-esc">E.M. Albertina Alves do Nascimento</div>' +
+         '<div class="cab-sub">Geografia 2026 · ' + impEsc(prof) + '</div>';
+  }
+  if (o.data) h += '<div class="cab-sub">Gerado em: ' + new Date().toLocaleString('pt-BR') + '</div>';
+  return h + '</div>';
+}
+
+// ── (1) Quadro de distribuição dos pontos ───────────────────────────────────
+function impQuadroTurma(t, tris, o) {
+  garantirAtividades(t);
+  let anual = 0;
+  const cards = tris.map(tr => {
+    const c = T_COLOR[tr];
+    const ativ = db.atividades[t]['t' + tr];
+    const rows = [];
+    let soma = 0;
+    for (let i = 1; i <= N_ATIV; i++) {
+      const nome = ((ativ[i-1] && ativ[i-1].nome) || '').trim();
+      if (!nome) continue;
+      const val = parseFloat(ativ[i-1].valor) || 0;
+      rows.push({ nome: nome, val: val });
+      if (val > 0) soma += val;
+    }
+    anual += soma;
+    const linhas = rows.length ? rows : Array.from({ length: 6 }, () => ({ nome: '', val: 0 }));
+    return '<div class="qd-card"><div class="qd-tit" style="background:' + c.header + '">' + c.label + '</div>' +
+      '<table><thead><tr><th class="n">#</th><th class="l">Atividade</th><th class="pt">Pontos</th></tr></thead><tbody>' +
+      linhas.map((r, k) => '<tr><td class="n">' + (k + 1) + '</td><td class="l">' + impEsc(r.nome) + '</td><td class="pt">' + (r.val > 0 ? impFmt(r.val) : '') + '</td></tr>').join('') +
+      '</tbody><tfoot><tr><td colspan="2" class="tl">Total do trimestre</td><td class="pt">' + (soma > 0 ? impFmt(soma) : '') + '</td></tr></tfoot></table></div>';
+  }).join('');
+  const rodape = tris.length === 3
+    ? '<div class="qd-anual">Total do ano: <span class="caixa">' + (anual > 0 ? impFmt(anual) : '') + '</span> pontos</div>' : '';
+  const nAlunos = (db.turmas[t] || []).length;
+  return '<div class="qd-turma' + (o.pagina ? ' pg' : '') + '">' + (o.pagina ? impCabecalho(o) : '') +
+    '<div class="barra"><span>Turma ' + impEsc(t) + '</span><span>Quadro de distribuição dos pontos · ' + nAlunos + ' estudante(s)</span></div>' +
+    '<div class="qd-grid" style="grid-template-columns:repeat(' + tris.length + ',1fr)">' + cards + '</div>' + rodape + '</div>';
+}
+
+// ── (2) Registro de atividades de caderno ───────────────────────────────────
+function impRegistroPagina(t, tr, o) {
+  garantirAtividades(t);
+  const c = T_COLOR[tr];
+  const ativ = db.atividades[t]['t' + tr];
+  const alunos = db.turmas[t] || [];
+  const cols = [];
+  for (let i = 1; i <= N_ATIV; i++) {
+    const nome = ((ativ[i-1] && ativ[i-1].nome) || '').trim();
+    const val = parseFloat(ativ[i-1] && ativ[i-1].valor) || 0;
+    if (nome) cols.push({ i: i, nome: nome, val: val });
+    else if (o.vazias && i !== VISTOS_POSICAO_RESERVADA) cols.push({ i: i, nome: '', val: 0 });
+  }
+  let maxPts = 0;
+  cols.forEach(cl => { if (cl.nome && cl.val > 0) maxPts += cl.val; });
+
+  let ths = '<th class="n">#</th><th class="l">Estudante</th>';
+  cols.forEach(cl => {
+    ths += '<th class="at" style="background:' + c.header + '">' + (cl.nome ? impEsc(cl.nome) : '&nbsp;') +
+      (cl.val > 0 ? '<br><small>(' + impFmt(cl.val) + ' pts)</small>' : '') + '</th>';
+  });
+  ths += '<th class="tot">Total' + (maxPts > 0 ? '<br><small>(' + impFmt(maxPts) + ' pts)</small>' : '') + '</th>';
+  if (o.obs) ths += '<th class="obs">Observações</th>';
+
+  let linhaData = '';
+  if (o.dataLinha) {
+    linhaData = '<tr class="dt"><td colspan="2" class="dtl">Data</td>' + cols.map(() => '<td></td>').join('') + '<td></td>' + (o.obs ? '<td></td>' : '') + '</tr>';
+  }
+
+  let corpo = '';
+  alunos.forEach((a, idx) => {
+    const nota = (db.notas[t] && db.notas[t][a]) || {};
+    let tot = 0, algum = false;
+    let cells = '';
+    cols.forEach(cl => {
+      let txt = '';
+      if (o.notas && cl.nome) {
+        const raw = nota['t' + tr + '_a' + cl.i];
+        if (raw !== '' && raw !== undefined && raw !== null) {
+          const n = parseFloat(raw);
+          if (!isNaN(n)) { txt = impFmt(n); tot += n; algum = true; }
+        }
+      }
+      cells += '<td class="g">' + txt + '</td>';
+    });
+    corpo += '<tr><td class="n">' + String(idx + 1).padStart(2, '0') + '</td><td class="l">' + impEsc(a) + '</td>' + cells +
+      '<td class="g tt">' + (algum ? Math.round(tot) : '') + '</td>' + (o.obs ? '<td class="g"></td>' : '') + '</tr>';
+  });
+  if (!corpo) corpo = '<tr><td colspan="' + (cols.length + 3) + '" class="vazio">Nenhum estudante cadastrado</td></tr>';
+
+  return '<div class="pg">' + impCabecalho(o) +
+    '<div class="barra"><span>Turma ' + impEsc(t) + ' · ' + c.label + '</span><span>Registro de atividades de caderno · ' + alunos.length + ' estudante(s)</span></div>' +
+    '<table class="reg"><thead><tr>' + ths + '</tr>' + linhaData + '</thead><tbody>' + corpo + '</tbody></table></div>';
+}
+
+// ── Montagem do documento + pré-visualização ───────────────────────────────
+function impDocumento(corpo, orient, papel) {
+  return '<!DOCTYPE html><html lang="pt-br"><head><meta charset="UTF-8"><title>Relatório · Diário de Notas</title><style>' +
+    '@page{size:' + papel + ' ' + orient + ';margin:10mm}' +
+    '*{box-sizing:border-box;margin:0;padding:0}' +
+    'body{font-family:Arial,Helvetica,sans-serif;color:#111827;font-size:11px;background:#fff}' +
+    '@media screen{body{padding:10mm}}' +
+    '.cab{margin-bottom:8px}.cab-esc{font-size:15px;font-weight:800;color:#1a3a5c}.cab-sub{font-size:10px;color:#475569}' +
+    '.barra{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#1a3a5c;color:#fff;padding:6px 12px;border-radius:5px;margin-bottom:8px;font-size:12px}' +
+    '.barra span:first-child{font-weight:700;font-size:13px}.barra span:last-child{font-size:10px;opacity:.9}' +
+    'table{width:100%;border-collapse:collapse}th,td{border:1px solid #6b7280}' +
+    'thead{display:table-header-group}tr{page-break-inside:avoid}' +
+    'th{color:#fff;background:#334155;font-size:10px;padding:5px 4px;text-align:center;font-weight:700}' +
+    'th small{font-weight:400;font-size:9px;opacity:.9}' +
+    'td{padding:5px 6px;font-size:11px}' +
+    '.n{width:26px;text-align:center;color:#475569;font-size:9px}th.l,td.l{text-align:left}' +
+    '.pg{page-break-after:always}.pg:last-child{page-break-after:auto}' +
+    /* registro */
+    'table.reg td{height:23px}table.reg td.g{text-align:center;padding:2px}table.reg td.tt{font-weight:700}' +
+    'table.reg th.at{min-width:58px;height:38px;vertical-align:middle;font-size:9px}table.reg th.tot{background:#1e3a1e;min-width:54px}' +
+    'table.reg th.obs{min-width:110px}table.reg td.l{white-space:nowrap}' +
+    'table.reg tr.dt td{height:20px;background:#f8fafc;font-size:9px}table.reg td.dtl{text-align:right;color:#475569;font-weight:700}' +
+    'td.vazio{text-align:center;color:#6b7280;padding:14px}' +
+    /* quadro */
+    '.qd-turma{margin-bottom:16px;page-break-inside:avoid}' +
+    '.qd-grid{display:grid;gap:10px}' +
+    '.qd-card{border:1px solid #6b7280;border-radius:4px;overflow:hidden}' +
+    '.qd-tit{color:#fff;font-weight:700;font-size:12px;text-align:center;padding:5px}' +
+    '.qd-card table{border:0}.qd-card th,.qd-card td{border-left:0;border-right:0}' +
+    '.qd-card th{background:#e2e8f0;color:#1f2937}.qd-card td{height:22px}' +
+    '.qd-card th.pt,.qd-card td.pt{width:62px;text-align:center}' +
+    '.qd-card tfoot td{font-weight:700;background:#f1f5f9}.qd-card td.tl{text-align:right}' +
+    '.qd-anual{margin-top:8px;text-align:right;font-size:12px;font-weight:700;color:#1a3a5c}' +
+    '.qd-anual .caixa{display:inline-block;min-width:60px;height:22px;border:1px solid #6b7280;vertical-align:middle;text-align:center;line-height:20px;margin:0 4px}' +
+    '</style></head><body>' + corpo + '</body></html>';
+}
+
+function impAtualizar() {
+  const frame = document.getElementById('imp-frame');
+  const vazio = document.getElementById('imp-vazio');
+  if (!frame || !vazio) return;
+  document.querySelectorAll('#imp-turmas .imp-chip, #imp-tris .imp-chip').forEach(l => {
+    const inp = l.querySelector('input');
+    l.classList.toggle('on', !!(inp && inp.checked));
+  });
+  const turmas = [...document.querySelectorAll('#imp-turmas input:checked')].map(i => i.value);
+  const tris = [1,2,3].filter(n => document.getElementById('imp-tri-' + n).checked);
+  if (!turmas.length || !tris.length) {
+    impHtmlAtual = '';
+    frame.style.display = 'none';
+    vazio.style.display = '';
+    return;
+  }
+  const orient = document.getElementById('imp-orientacao').value;
+  const papel = document.getElementById('imp-papel').value;
+  const o = {
+    cab: document.getElementById('imp-cab').checked,
+    data: document.getElementById('imp-data').checked,
+    pagina: document.getElementById('imp-q-pagina').checked,
+    notas: document.getElementById('imp-r-notas').checked,
+    vazias: document.getElementById('imp-r-vazias').checked,
+    dataLinha: document.getElementById('imp-r-data').checked,
+    obs: document.getElementById('imp-r-obs').checked
+  };
+
+  let corpo = '';
+  if (impTipo === 'quadro') {
+    if (!o.pagina) corpo += impCabecalho(o);
+    turmas.forEach(t => { corpo += impQuadroTurma(t, tris, o); });
+  } else {
+    turmas.forEach(t => { tris.forEach(tr => { corpo += impRegistroPagina(t, tr, o); }); });
+  }
+
+  impHtmlAtual = impDocumento(corpo, orient, papel);
+  const larguras = { A4: [1123, 794], A3: [1587, 1123], letter: [1056, 816] };
+  const w = (larguras[papel] || larguras.A4)[orient === 'landscape' ? 0 : 1];
+  vazio.style.display = 'none';
+  frame.style.display = 'block';
+  frame.style.width = w + 'px';
+  frame.onload = () => {
+    try { frame.style.height = (frame.contentDocument.documentElement.scrollHeight + 4) + 'px'; } catch (e) {}
+  };
+  frame.srcdoc = impHtmlAtual;
+}
+
+function impImprimir() {
+  const frame = document.getElementById('imp-frame');
+  if (!impHtmlAtual || !frame || !frame.contentWindow) { toast('⚠️ Selecione ao menos uma turma e um trimestre.'); return; }
+  frame.contentWindow.focus();
+  frame.contentWindow.print();
+}
 
 // ─── RELATÓRIOS DE PENDÊNCIAS ─────────────────────────────────────────────────
 function popularSelectRelatorios() {
