@@ -2046,8 +2046,10 @@ document.getElementById('mode-toggle').addEventListener('click', (ev)=>{
    Cada registro do Diário de Campo (dado como "feito" para aquela
    turma real) vira uma coluna. Cada aluno recebe um visto por
    coluna: OK=Completo(1,0) · +/-=Parcial(0,5) · NF=Não feito(0,0) ·
-   FP=Feito fora do prazo(0,5). A soma dos vistos de um aluno,
-   multiplicada por um coeficiente editável, é enviada AUTOMATICAMENTE
+   FP=Feito fora do prazo(0,5). O professor define uma NOTA GERAL do
+   caderno; cada atividade vale (nota geral ÷ nº de atividades), com uma
+   casa decimal. A soma dos vistos de um aluno, multiplicada pelo valor
+   de cada atividade, é enviada AUTOMATICAMENTE
    (sem botão) como uma Atividade/nota do Diário de Notas (mesmo
    Supabase). Sempre a MESMA coluna/atividade é usada e apenas
    atualizada — nunca cria uma atividade nova a cada edição.
@@ -2070,7 +2072,16 @@ const VISTOS_MARK_TITLES = {
 function vistosTurmaReal(){ return activeTurma + 'º' + vistosSub; } // ex.: "8ºA"
 function vistosChaveTabela(){ return activeTurma + vistosSub; }     // ex.: "8A"
 
-function vistosDefaultTabela(){ return { coeficiente:1, marks:{}, ativPosicao:{} }; }
+function vistosDefaultTabela(){ return { notaGeral:10, coeficiente:1, marks:{}, ativPosicao:{} }; }
+/* nota geral do caderno (padrão 10) e valor de cada atividade = nota geral ÷ nº de atividades, 1 casa decimal */
+function vistosNotaGeralDe(t){
+  const v = parseFloat(String((t && t.notaGeral) ?? '').replace(',','.'));
+  return (isNaN(v) || v < 0) ? 10 : v;
+}
+function vistosValorAtividade(t, n){
+  return n > 0 ? Math.round(vistosNotaGeralDe(t) / n * 10) / 10 : 0;
+}
+function vistosFmt(n){ return Number(n).toFixed(1).replace('.', ','); }
 function getVistosTabela(){
   const k = vistosChaveTabela();
   if(!vistos[k]) vistos[k] = vistosDefaultTabela();
@@ -2158,6 +2169,12 @@ function vistosSomaAluno(tabela, entriesCols, nome){
   return soma;
 }
 
+/* nota do aluno = soma dos vistos × valor de cada atividade (1 casa decimal), nunca acima da nota geral */
+function vistosNotaAluno(tabela, cols, nome){
+  const bruta = Math.round(vistosSomaAluno(tabela, cols, nome) * vistosValorAtividade(tabela, cols.length) * 10) / 10;
+  return Math.min(vistosNotaGeralDe(tabela), bruta);
+}
+
 async function renderVistos(){
   const host = document.getElementById('vistos-viewer');
   if(!host) return;
@@ -2185,8 +2202,8 @@ async function renderVistos(){
           <select id="vistos-trim" style="border-color:${tc.header};color:${tc.header};font-weight:600">${trimOptionsHtml}</select>
         </div>
         <div class="vistos-coef">
-          <span>Coeficiente</span>
-          <input type="number" id="vistos-coef-input" step="0.1" min="0" value="${tabela.coeficiente}" />
+          <span>Nota geral</span>
+          <input type="number" id="vistos-coef-input" step="0.1" min="0" value="${vistosNotaGeralDe(tabela)}" title="Nota total do caderno no trimestre; é dividida igualmente entre as atividades" />
         </div>
         <button type="button" class="btn ghost" id="btn-print-vistos"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v7H6z"/></svg>Imprimir ${turmaReal}</button>
       </div>
@@ -2213,8 +2230,8 @@ async function renderVistos(){
   });
   document.getElementById('vistos-coef-input').addEventListener('change', (ev)=>{
     const v = parseFloat(ev.target.value.replace(',','.'));
-    tabela.coeficiente = isNaN(v) ? 1 : v;
-    ev.target.value = tabela.coeficiente;
+    tabela.notaGeral = (isNaN(v) || v < 0) ? 10 : v;
+    ev.target.value = tabela.notaGeral;
     saveVistos();
     vistosRenderTotais();
     scheduleVistosSync();
@@ -2333,12 +2350,12 @@ function vistosRenderTabela(nomes, cols, tabela, turmaReal){
     const totalEls = paper.querySelectorAll('[data-total-aluno]');
     totalEls.forEach(el=>{
       const nome = el.dataset.totalAluno;
-      const soma = vistosSomaAluno(tabela, cols, nome);
-      const total = soma * (parseFloat(tabela.coeficiente)||0);
-      el.textContent = total.toFixed(1).replace('.', ',');
+      el.textContent = vistosFmt(vistosNotaAluno(tabela, cols, nome));
     });
     const hint = document.getElementById('vistos-hint');
-    if(hint) hint.textContent = `${cols.length} registro(s) computado(s) · soma máxima possível: ${(cols.length*1).toFixed(1).replace('.',',')} × coeficiente`;
+    if(hint) hint.textContent = cols.length
+      ? `${cols.length} atividade(s) · nota geral ${vistosFmt(vistosNotaGeralDe(tabela))} ÷ ${cols.length} = ${vistosFmt(vistosValorAtividade(tabela, cols.length))} por atividade`
+      : 'Nenhuma atividade computada ainda';
   }
   // guarda referência para o handler de coeficiente/trimestre reaproveitar
   vistosTotaisRenderer = vistosRenderTotaisLocal;
@@ -2370,8 +2387,7 @@ async function imprimirVistos(){
       const mark = tabela.marks[e.id] && tabela.marks[e.id][nome];
       return `<td class="pv-cell${mark?' '+mark:''}">${mark?VISTOS_MARK_LABELS[mark]:''}</td>`;
     }).join('');
-    const soma = vistosSomaAluno(tabela, cols, nome);
-    const total = (soma * (parseFloat(tabela.coeficiente)||0)).toFixed(1).replace('.', ',');
+    const total = vistosFmt(vistosNotaAluno(tabela, cols, nome));
     return `<tr><td class="pv-aluno">${escapeHtml(nome)}</td>${cells}<td class="pv-total">${total}</td></tr>`;
   }).join('');
 
@@ -2379,7 +2395,7 @@ async function imprimirVistos(){
   area.innerHTML = `
     <div class="pv-header">
       <h1>Vistos — ${escapeHtml(turmaReal)}</h1>
-      <div class="pv-sub">${TRIM_LABELS[vistosTrimestre]} · Coeficiente ${tabela.coeficiente} · Geografia · ${cols.length} registro(s)</div>
+      <div class="pv-sub">${TRIM_LABELS[vistosTrimestre]} · Nota geral ${vistosFmt(vistosNotaGeralDe(tabela))} · cada atividade vale ${vistosFmt(vistosValorAtividade(tabela, cols.length))} · Geografia · ${cols.length} registro(s)</div>
     </div>
     <div class="pv-table-wrap">
       <table class="pv-table">
@@ -2580,7 +2596,7 @@ async function vistosSyncTurma(turmaReal, tr){
       await saveVistos();
     }
 
-    const valorMaximo = Math.round(cols.length * 1 * (parseFloat(tabela.coeficiente)||0) * 10) / 10; // uma casa decimal
+    const valorMaximo = Math.round(vistosNotaGeralDe(tabela) * 10) / 10; // nota geral do caderno (uma casa decimal)
     const nomeAtiv = 'Vistos T' + tr;
 
     const ativRes = await fetch(SB_URL + '/rest/v1/atividades', {
@@ -2598,8 +2614,7 @@ async function vistosSyncTurma(turmaReal, tr){
     // na turma, ou nomes que colidem depois de normalizados)
     const rowsMap = new Map();
     nomes.forEach(nome=>{
-      const soma = vistosSomaAluno(tabela, cols, nome);
-      const nota = Math.round(soma * (parseFloat(tabela.coeficiente)||0) * 10) / 10; // uma casa decimal
+      const nota = vistosNotaAluno(tabela, cols, nome); // soma × (nota geral ÷ nº de atividades), uma casa decimal
       const id = vistosNotaId(turmaReal, nome, tr, posicao);
       rowsMap.set(id, {
         id, prof_id: pid,
