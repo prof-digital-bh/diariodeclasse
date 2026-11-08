@@ -610,6 +610,7 @@
      cada botão de impressão mostre só a sua própria área. */
   #vistos-print-area{display:none;}
   #list-print-area{display:none;}
+  #codes-print-area{display:none;}
   @media print{
     body *{ visibility:hidden; }
   }
@@ -628,6 +629,40 @@
       position:absolute; top:0; left:0; width:100%;
       margin:0; padding:0; background:#fff;
     }
+  }
+  @media print{
+    body.printing-plan #plan-viewer, body.printing-plan #plan-viewer *{ visibility:visible; }
+    body.printing-plan #plan-viewer{
+      display:block !important;
+      position:absolute; top:0; left:0; width:100%;
+      margin:0; padding:0; background:#fff;
+    }
+    body.printing-plan .plan-toolbar{ display:none !important; }
+  }
+  @media print{
+    body.printing-codes #codes-print-area, body.printing-codes #codes-print-area *{ visibility:visible; }
+    body.printing-codes #codes-print-area{
+      display:block;
+      position:absolute; top:0; left:0; width:100%;
+      margin:0; padding:0; background:#fff;
+    }
+  }
+  /* listagem dos códigos com descrições (botão "Códigos" na aba Vistos) — retrato,
+     quantas folhas forem necessárias, sem cortar nenhuma descrição. */
+  .cp-header{text-align:center;padding-bottom:10px;}
+  .cp-header h1{font-family:var(--font-display);font-size:19px;font-weight:700;margin:0 0 3px;color:#000;}
+  .cp-header .cp-sub{font-family:var(--font-body);font-size:11px;color:#444;}
+  table.cp-table{width:100%;border-collapse:collapse;font-family:var(--font-body);font-size:11px;margin-top:8px;}
+  table.cp-table th, table.cp-table td{border:1px solid #999;padding:5px 7px;text-align:left;color:#000;vertical-align:top;}
+  table.cp-table thead th{font-weight:700;font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;background:#f0f0f0;}
+  table.cp-table td.cp-codigo{font-family:var(--font-mono);font-weight:700;white-space:nowrap;}
+  table.cp-table td.cp-data, table.cp-table td.cp-paginas{white-space:nowrap;}
+  table.cp-table .cp-topico{display:block;color:#444;font-size:10px;margin-top:2px;}
+  table.cp-table tbody tr:nth-child(even){background:#fafafa;}
+  @media print{
+    table.cp-table{break-inside:auto;}
+    table.cp-table tr{break-inside:avoid;}
+    table.cp-table thead{display:table-header-group;}
   }
   .pv-header{text-align:center;padding-bottom:6px;flex:none;}
   .pv-header h1{font-family:var(--font-display);font-size:18px;font-weight:700;margin:0 0 2px;color:#000;}
@@ -928,6 +963,7 @@
     <div id="vistos-viewer" class="vistos-viewer" style="display:none;"></div>
     <div id="vistos-print-area"></div>
     <div id="list-print-area"></div>
+    <div id="codes-print-area"></div>
     <div id="plan-viewer" class="plan-viewer" style="display:none;">
       <div class="plan-toolbar">
         <div class="plan-trim-select">
@@ -1982,7 +2018,15 @@ document.getElementById('plan-trim').addEventListener('change', (ev)=>{
 });
 
 document.getElementById('btn-plan-print').addEventListener('click', ()=>{
+  document.body.classList.remove('printing-vistos','printing-list','printing-codes');
+  document.body.classList.add('printing-plan');
   window.print();
+});
+
+/* terminada (ou cancelada) qualquer impressão, limpa as classes de controle
+   para que uma impressão não herde a área da anterior */
+window.addEventListener('afterprint', ()=>{
+  document.body.classList.remove('printing-plan','printing-vistos','printing-list','printing-codes');
 });
 
 document.getElementById('btn-plan-copy').addEventListener('click', async ()=>{
@@ -2206,6 +2250,7 @@ async function renderVistos(){
           <input type="number" id="vistos-coef-input" step="0.1" min="0" value="${vistosNotaGeralDe(tabela)}" title="Nota total do caderno no trimestre; é dividida igualmente entre as atividades" />
         </div>
         <button type="button" class="btn ghost" id="btn-print-vistos"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v7H6z"/></svg>Imprimir ${turmaReal}</button>
+        <button type="button" class="btn ghost" id="btn-print-codigos" title="Imprime a lista dos códigos com a descrição de cada atividade"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v7H6z"/></svg>Imprimir códigos e descrições</button>
       </div>
     </div>
     <div class="vistos-legend">
@@ -2243,6 +2288,7 @@ async function renderVistos(){
     });
   });
   document.getElementById('btn-print-vistos').addEventListener('click', imprimirVistos);
+  document.getElementById('btn-print-codigos').addEventListener('click', imprimirCodigos);
 
   const nomes = await vistosFetchAlunos(turmaReal);
   // evita renderizar resultado obsoleto se a turma/subturma mudou durante o fetch
@@ -2408,8 +2454,52 @@ async function imprimirVistos(){
     </div>
   `;
   ajustarImpressaoVistos(nomes.length, cols.length);
-  document.body.classList.remove('printing-list');
+  document.body.classList.remove('printing-list','printing-codes');
   document.body.classList.add('printing-vistos');
+  window.print();
+}
+
+/* imprime a listagem dos códigos (mesmas colunas da folha de vistos, na mesma
+   ordem) com a descrição de cada um: tema, tópico, páginas e data da subturma.
+   Serve de legenda para a folha de vistos impressa. */
+function imprimirCodigos(){
+  const cols = vistosEntriesDaSubturma();
+  const turmaReal = vistosTurmaReal();
+  if(!cols.length){ alert('Não há registros marcados como dados para ' + turmaReal + ' neste trimestre.'); return; }
+
+  const rows = cols.map(e=>{
+    const info = (e.turmasDetalhe && e.turmasDetalhe[vistosSub]) || {};
+    const d = formatDateShort(info.data || e.data);
+    return `
+          <tr>
+            <td class="cp-codigo">${escapeHtml(e.codigo || '—')}</td>
+            <td>${escapeHtml(e.tema || '')}${e.topico ? `<span class="cp-topico">${escapeHtml(e.topico)}</span>` : ''}</td>
+            <td class="cp-paginas">${escapeHtml(e.paginas || '')}</td>
+            <td class="cp-data">${escapeHtml(d || '')}</td>
+          </tr>`;
+  }).join('');
+
+  const area = document.getElementById('codes-print-area');
+  area.innerHTML = `
+    <div class="cp-header">
+      <h1>Códigos dos registros — ${escapeHtml(turmaReal)}</h1>
+      <div class="cp-sub">${escapeHtml(TRIM_LABELS[vistosTrimestre] || ('Trimestre ' + vistosTrimestre))} · Geografia · ${cols.length} registro${cols.length===1?'':'s'}</div>
+    </div>
+    <table class="cp-table">
+      <thead>
+        <tr>
+          <th style="width:60px;">Código</th>
+          <th>Descrição</th>
+          <th style="width:70px;">Páginas</th>
+          <th style="width:70px;">Data</th>
+        </tr>
+      </thead>
+      <tbody>${rows}
+      </tbody>
+    </table>
+  `;
+  document.body.classList.remove('printing-vistos','printing-list');
+  document.body.classList.add('printing-codes');
   window.print();
 }
 
@@ -2515,7 +2605,7 @@ function imprimirLista(){
     </div>
     ${bodyHtml}
   `;
-  document.body.classList.remove('printing-vistos');
+  document.body.classList.remove('printing-vistos','printing-codes');
   document.body.classList.add('printing-list');
   window.print();
 }
