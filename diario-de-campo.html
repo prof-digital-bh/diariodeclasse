@@ -611,6 +611,7 @@
   #vistos-print-area{display:none;}
   #list-print-area{display:none;}
   #codes-print-area{display:none;}
+  #book-print-area{display:none;}
   @media print{
     body *{ visibility:hidden; }
   }
@@ -639,6 +640,41 @@
     }
     body.printing-plan .plan-toolbar{ display:none !important; }
   }
+  @media print{
+    body.printing-book #book-print-area, body.printing-book #book-print-area *{ visibility:visible; }
+    body.printing-book #book-print-area{
+      display:block;
+      position:absolute; top:0; left:0; width:100%;
+      margin:0; padding:0; background:#fff;
+    }
+  }
+  /* impressão do caderno: mesmo desenho da tela — página com margem verde à
+     esquerda, pauta de caderno, selo de código e dados de cada registro.
+     Cada trimestre começa numa folha nova e continua nas seguintes se precisar. */
+  .bp-section{break-before:page;}
+  .bp-section:first-child{break-before:auto;}
+  .bp-page{
+    border-left:5px solid var(--teal);
+    padding:6px 4px 4px 22px;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .bp-header{display:flex;align-items:baseline;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--teal);}
+  .bp-title{font-family:var(--font-display);font-weight:700;font-size:22px;color:#000;}
+  .bp-meta{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.05em;}
+  .bp-entries{
+    background-image:linear-gradient(#d9d9d2 1px, transparent 1px);
+    background-size:100% 28px;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .bp-entries .book-entry{padding:10px 0;break-inside:avoid;}
+  .bp-entries .stamp, .bp-entries .turma-pill, .bp-entries .meta-row, .bp-entries .link-chip{
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .bp-entries .book-entry-tema{font-size:14.5px;}
+  .bp-entries .book-entry-topico{font-size:12.5px;}
+  .bp-entries .meta-row{font-size:11px;}
+  .bp-entries .book-entry-obs{font-size:11px;}
+  .bp-foot{margin-top:10px;padding-top:6px;border-top:1px dashed #999;font-family:var(--font-mono);font-size:10px;color:#555;text-align:right;}
   @media print{
     body.printing-codes #codes-print-area, body.printing-codes #codes-print-area *{ visibility:visible; }
     body.printing-codes #codes-print-area{
@@ -693,7 +729,7 @@
   /* impressão da listagem de registros (aba Lista) — folha retrato, uma
      linha por registro, agrupada por trimestre. Sem limite de altura numa
      única página: usa quantas folhas forem necessárias. */
-  .lp-header{text-align:center;padding-bottom:10px;}
+  .lp-header{text-align:center;padding-bottom:10px;border-bottom:2px solid #000;margin-bottom:6px;}
   .lp-header h1{font-family:var(--font-display);font-size:19px;font-weight:700;margin:0 0 3px;color:#000;}
   .lp-header .lp-sub{font-family:var(--font-body);font-size:11px;color:#444;}
   .lp-trim-title{
@@ -978,6 +1014,7 @@
     <div id="vistos-print-area"></div>
     <div id="list-print-area"></div>
     <div id="codes-print-area"></div>
+    <div id="book-print-area"></div>
     <div id="plan-viewer" class="plan-viewer" style="display:none;">
       <div class="plan-toolbar">
         <div class="plan-trim-select">
@@ -1593,25 +1630,9 @@ function trimPages(){
   }));
 }
 
-function renderBook(){
-  const viewer = document.getElementById('book-viewer');
-  const pages = trimPages();
-  if(pages.length === 0){
-    viewer.innerHTML = `<div class="empty book-empty">
-      <h3>Nenhum registro ministrado encontrado</h3>
-      <p>Ajuste os filtros ou marque registros como "Ministrado" para vê-los aqui.</p>
-    </div>`;
-    return;
-  }
-  if(bookIndex > pages.length - 1) bookIndex = pages.length - 1;
-  if(bookIndex < 0) bookIndex = 0;
-  const page = pages[bookIndex];
-
-  const trimNav = pages.map((p,i)=>
-    `<button class="trim-jump ${i===bookIndex?'active':''}" onclick="jumpToTrimPage(${i})">${TRIM_LABELS[p.trimestre]||'Trimestre '+p.trimestre}</button>`
-  ).join('');
-
-  const entriesHtml = page.items.map(e=>{
+/* HTML de cada registro ministrado no caderno (usado na tela e na impressão) */
+function bookEntriesHtml(items){
+  return items.map(e=>{
     const linksHtml = (e.links||[]).filter(l=>l.url).map((l,i)=>
       `<a class="link-chip" href="${escapeHtml(l.url)}" target="_blank" rel="noopener" title="${escapeHtml(l.url)}">${iconLink()}<span class="link-chip-label">${escapeHtml(linkDisplayLabel(l,i))}</span></a>`
     ).join('');
@@ -1631,6 +1652,27 @@ function renderBook(){
       ${e.observacoes ? `<div class="book-entry-obs">${escapeHtml(e.observacoes)}</div>` : ''}
     </div>`;
   }).join('');
+}
+
+function renderBook(){
+  const viewer = document.getElementById('book-viewer');
+  const pages = trimPages();
+  if(pages.length === 0){
+    viewer.innerHTML = `<div class="empty book-empty">
+      <h3>Nenhum registro ministrado encontrado</h3>
+      <p>Ajuste os filtros ou marque registros como "Ministrado" para vê-los aqui.</p>
+    </div>`;
+    return;
+  }
+  if(bookIndex > pages.length - 1) bookIndex = pages.length - 1;
+  if(bookIndex < 0) bookIndex = 0;
+  const page = pages[bookIndex];
+
+  const trimNav = pages.map((p,i)=>
+    `<button class="trim-jump ${i===bookIndex?'active':''}" onclick="jumpToTrimPage(${i})">${TRIM_LABELS[p.trimestre]||'Trimestre '+p.trimestre}</button>`
+  ).join('');
+
+  const entriesHtml = bookEntriesHtml(page.items);
 
   viewer.innerHTML = `
     <div class="book-trimnav">${trimNav}</div>
@@ -2051,7 +2093,7 @@ document.getElementById('plan-trim').addEventListener('change', (ev)=>{
 });
 
 document.getElementById('btn-plan-print').addEventListener('click', ()=>{
-  document.body.classList.remove('printing-vistos','printing-list','printing-codes');
+  document.body.classList.remove('printing-vistos','printing-list','printing-codes','printing-book');
   document.body.classList.add('printing-plan');
   window.print();
 });
@@ -2059,7 +2101,7 @@ document.getElementById('btn-plan-print').addEventListener('click', ()=>{
 /* terminada (ou cancelada) qualquer impressão, limpa as classes de controle
    para que uma impressão não herde a área da anterior */
 window.addEventListener('afterprint', ()=>{
-  document.body.classList.remove('printing-plan','printing-vistos','printing-list','printing-codes');
+  document.body.classList.remove('printing-plan','printing-vistos','printing-list','printing-codes','printing-book');
 });
 
 document.getElementById('btn-plan-copy').addEventListener('click', async ()=>{
@@ -2111,7 +2153,7 @@ document.getElementById('mode-toggle').addEventListener('click', (ev)=>{
   // códigos das atividades), então escondemos a barra inteira.
   document.querySelector('.toolbar-sticky').style.display = viewMode==='vistos' ? 'none' : '';
   document.getElementById('f-status').style.display = viewMode==='list' ? '' : 'none';
-  document.getElementById('btn-print-list').style.display = viewMode==='list' ? '' : 'none';
+  document.getElementById('btn-print-list').style.display = (viewMode==='list' || viewMode==='book') ? '' : 'none';
   document.getElementById('book-mode-note').style.display = viewMode==='book' ? '' : 'none';
   if(viewMode==='book'){ bookIndex = 0; renderBook(); }
   if(viewMode==='plan'){ renderPlan(); }
@@ -2498,7 +2540,7 @@ async function imprimirVistos(){
     </div>
   `;
   ajustarImpressaoVistos(nomes.length, cols.length);
-  document.body.classList.remove('printing-list','printing-codes');
+  document.body.classList.remove('printing-list','printing-codes','printing-book','printing-plan');
   document.body.classList.add('printing-vistos');
   window.print();
 }
@@ -2543,7 +2585,7 @@ function imprimirCodigos(){
     </table>
   `;
   area.innerHTML = comRodapeEmTodasAsFolhas(area.innerHTML);
-  document.body.classList.remove('printing-vistos','printing-list');
+  document.body.classList.remove('printing-vistos','printing-list','printing-book','printing-plan');
   document.body.classList.add('printing-codes');
   window.print();
 }
@@ -2651,8 +2693,31 @@ function imprimirLista(){
     ${bodyHtml}
   `;
   area.innerHTML = comRodapeEmTodasAsFolhas(area.innerHTML);
-  document.body.classList.remove('printing-vistos','printing-codes');
+  document.body.classList.remove('printing-vistos','printing-codes','printing-book','printing-plan');
   document.body.classList.add('printing-list');
+  window.print();
+}
+
+/* imprime o caderno (registros ministrados, já com os filtros da tela) no mesmo
+   desenho da apresentação: uma folha por trimestre, com pauta e margem. */
+function imprimirCaderno(){
+  const pages = trimPages();
+  if(!pages.length){ alert('Não há registros ministrados para imprimir com os filtros atuais.'); return; }
+  const area = document.getElementById('book-print-area');
+  area.innerHTML = pages.map((pg,i)=>`
+    <section class="bp-section">
+      <div class="bp-page">
+        <div class="bp-header">
+          <span class="bp-title">${escapeHtml(TRIM_LABELS[pg.trimestre]||('Trimestre '+pg.trimestre))}</span>
+          <span class="bp-meta">Geografia · ${activeTurma}º ano · ${pg.items.length} registro${pg.items.length===1?'':'s'}</span>
+        </div>
+        <div class="bp-entries">${bookEntriesHtml(pg.items)}</div>
+        <div class="bp-foot">Página ${i+1} de ${pages.length}</div>
+      </div>
+    </section>`).join('');
+  area.innerHTML = comRodapeEmTodasAsFolhas(area.innerHTML);
+  document.body.classList.remove('printing-vistos','printing-list','printing-codes','printing-plan');
+  document.body.classList.add('printing-book');
   window.print();
 }
 
@@ -3080,7 +3145,7 @@ document.getElementById('f-status').addEventListener('click', (ev)=>{
 });
 
 /* ---------- impressão (aba Lista) ---------- */
-document.getElementById('btn-print-list').addEventListener('click', imprimirLista);
+document.getElementById('btn-print-list').addEventListener('click', ()=>{ if(viewMode==='book') imprimirCaderno(); else imprimirLista(); });
 
 /* ---------- export ---------- */
 document.getElementById('btn-export').addEventListener('click', ()=>{
