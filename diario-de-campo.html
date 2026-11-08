@@ -669,7 +669,8 @@
     -webkit-print-color-adjust:exact; print-color-adjust:exact;
   }
   /* cada linha de texto ocupa exatamente uma linha da pauta (28px) */
-  .bp-entries .book-entry{padding:0;border-bottom:none;break-inside:avoid;}
+  .bp-entries .book-entry{padding:0;border-bottom:none;break-inside:avoid;margin-bottom:28px;} /* uma linha em branco da pauta entre registros */
+  .bp-entries .book-entry:last-child{margin-bottom:0;}
   .bp-entries .book-entry-row1{min-height:28px;margin:0;gap:10px;}
   .bp-entries .book-entry-tema{font-size:14.5px;line-height:28px;}
   .bp-entries .book-entry-topico{font-size:12.5px;line-height:28px;margin:0;}
