@@ -664,6 +664,12 @@
     table.cp-table tr{break-inside:avoid;}
     table.cp-table thead{display:table-header-group;}
   }
+  /* rodapé de autoria — presente em todos os documentos impressos */
+  .print-footer{text-align:center;font-family:var(--font-body);font-size:10px;color:#333;border-top:1px solid #bbb;padding-top:4px;margin-top:8px;line-height:1.35;}
+  .print-footer .pf-email{font-size:8.5px;color:#555;}
+  table.pf-wrap{width:100%;border-collapse:collapse;}
+  table.pf-wrap > tbody > tr > td, table.pf-wrap > tfoot > tr > td{border:0;padding:0;vertical-align:top;}
+  table.pf-wrap > tfoot{display:table-footer-group;}
   .pv-header{text-align:center;padding-bottom:6px;flex:none;}
   .pv-header h1{font-family:var(--font-display);font-size:18px;font-weight:700;margin:0 0 2px;color:#000;}
   .pv-header .pv-sub{font-family:var(--font-body);font-size:10.5px;color:#444;}
@@ -730,6 +736,11 @@
     border:1px solid var(--line-strong);border-radius:var(--radius-sm);background:var(--paper);color:var(--ink);
     resize:vertical;
   }
+  /* cópia em texto puro de cada campo — só aparece na impressão (o textarea tem
+     altura fixa e rolagem, o que cortaria o texto no papel) */
+  .plan-print-text{display:none;font-family:var(--font-body);font-size:13.5px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;color:#000;}
+  .plan-full{margin-top:18px;}
+  .plan-full .plan-obs-label:first-child{margin-top:0;}
   .plan-list{margin:0 0 16px;padding-left:20px;font-size:13.5px;line-height:1.7;color:var(--ink);}
   .plan-list li{margin-bottom:2px;}
   .plan-empty-line{color:var(--ink-faint);font-style:italic;list-style:none;margin-left:-20px;}
@@ -751,7 +762,10 @@
     body{background:#fff;}
     .sidebar, .legend, .filters, .toolbar-sticky, .plan-toolbar{display:none !important;}
     .plan-paper{box-shadow:none;border:none;padding:0;}
-    .plan-textarea{border:none;padding:0;resize:none;background:transparent;overflow:visible;}
+    .plan-textarea{display:none !important;}
+    .plan-print-text{display:block !important;width:100%;font-size:11.5px;line-height:1.5;}
+    .plan-full{break-inside:auto;}
+    .plan-list{font-size:12px;}
   }
 
   @media (max-width:900px){
@@ -1982,17 +1996,22 @@ function renderPlan(){
         <div class="plan-col">
           <h3>Conteúdo planejado</h3>
           <textarea class="plan-textarea" id="plan-f-planejado" rows="15">${escapeHtml(pe.planejado)}</textarea>
+          <div class="plan-print-text" id="plan-p-planejado"></div>
         </div>
         <div class="plan-col">
           <h3>Conteúdo ministrado e estratégias utilizadas</h3>
           <ul class="plan-list">
             ${lines.length ? lines.map(l=>`<li>${escapeHtml(l)}</li>`).join('') : '<li class="plan-empty-line">Nenhum registro ministrado neste trimestre ainda — vá em "Novo registro" e marque como Ministrado para que apareça aqui automaticamente.</li>'}
           </ul>
-          <div class="plan-obs-label">Observação</div>
-          <textarea class="plan-textarea" id="plan-f-observacao" rows="6">${escapeHtml(pe.observacao)}</textarea>
-          <div class="plan-obs-label">Estratégias utilizadas</div>
-          <textarea class="plan-textarea" id="plan-f-estrategias" rows="4">${escapeHtml(pe.estrategias)}</textarea>
         </div>
+      </div>
+      <div class="plan-full">
+        <div class="plan-obs-label">Observação</div>
+        <textarea class="plan-textarea" id="plan-f-observacao" rows="6">${escapeHtml(pe.observacao)}</textarea>
+        <div class="plan-print-text" id="plan-p-observacao"></div>
+        <div class="plan-obs-label">Estratégias utilizadas</div>
+        <textarea class="plan-textarea" id="plan-f-estrategias" rows="4">${escapeHtml(pe.estrategias)}</textarea>
+        <div class="plan-print-text" id="plan-p-estrategias"></div>
       </div>
       <div class="plan-legend">
         As letras G, A, P, S, PC e OT representam tipos de abordagens para os conteúdos. Sendo G: registros dos assuntos e/ou correções; A: atividades em folha e/ou do livro didático; P: pesquisas solicitadas e entregues em folhas separadas e/ou registradas no caderno; S: atividades suplementares; PC: atividades para casa; OT: outros tipos de registro.
@@ -2001,6 +2020,7 @@ function renderPlan(){
         <div class="sig-block"><span>Assinatura</span><span>Data</span></div>
         <div class="sig-block"><span>Assinatura</span><span>Data</span></div>
       </div>
+      ${printFooterHtml()}
     </div>
   `;
   ['planejado','observacao','estrategias'].forEach(field=>{
@@ -2008,9 +2028,22 @@ function renderPlan(){
       const target = getPlanEntry(turma, trimestre);
       target[field] = ev.target.value;
       savePlanning();
+      syncPlanPrintText();
     });
   });
+  syncPlanPrintText();
 }
+
+/* copia o conteúdo dos campos de texto para as áreas de impressão (que crescem
+   conforme o texto, sem barra de rolagem e sem cortar nada) */
+function syncPlanPrintText(){
+  ['planejado','observacao','estrategias'].forEach(field=>{
+    const f = document.getElementById('plan-f-'+field);
+    const d = document.getElementById('plan-p-'+field);
+    if(f && d) d.textContent = f.value;
+  });
+}
+window.addEventListener('beforeprint', syncPlanPrintText);
 
 document.getElementById('plan-trim').addEventListener('change', (ev)=>{
   planTrimestre = ev.target.value;
@@ -2413,6 +2446,16 @@ function vistosRenderTotais(){
   if(typeof vistosTotaisRenderer === 'function') vistosTotaisRenderer();
 }
 
+/* rodapé de autoria usado em todas as impressões */
+function printFooterHtml(){
+  return `<div class="print-footer">Produzido por: Prof. Everton Correa Alves / GEOGRAFIA - <span class="pf-email">(everton.alves@edu.contagem.mg.gov.br)</span></div>`;
+}
+/* envolve o conteúdo numa tabela cujo <tfoot> se repete no pé de cada folha
+   (documentos de várias páginas: listagem de registros e de códigos) */
+function comRodapeEmTodasAsFolhas(conteudoHtml){
+  return `<table class="pf-wrap"><tbody><tr><td>${conteudoHtml}</td></tr></tbody><tfoot><tr><td>${printFooterHtml()}</td></tr></tfoot></table>`;
+}
+
 /* monta uma listagem enxuta (aluno × código do registro) da turma/subturma/
    trimestre atualmente abertos e manda para a impressão do navegador —
    de lá o professor escolhe "Salvar como PDF". Pensada para caber numa
@@ -2451,6 +2494,7 @@ async function imprimirVistos(){
     </div>
     <div class="pv-footer">
       <div class="pv-legend">OK = Completo (1,0) &nbsp;·&nbsp; +/- = Parcial (0,5) &nbsp;·&nbsp; NF = Não feito (0,0) &nbsp;·&nbsp; FP = Feito fora do prazo (0,5)</div>
+      ${printFooterHtml()}
     </div>
   `;
   ajustarImpressaoVistos(nomes.length, cols.length);
@@ -2498,6 +2542,7 @@ function imprimirCodigos(){
       </tbody>
     </table>
   `;
+  area.innerHTML = comRodapeEmTodasAsFolhas(area.innerHTML);
   document.body.classList.remove('printing-vistos','printing-list');
   document.body.classList.add('printing-codes');
   window.print();
@@ -2526,7 +2571,7 @@ function ajustarImpressaoVistos(numAlunos, numAtividades){
   // O rodapé agora só tem a legenda das marcações (OK/+-/NF/FP), então
   // reserva um espaço fixo e pequeno para ele.
   const alturaCabecalho = 40;
-  const alturaRodape = 22;
+  const alturaRodape = 40;
   const alturaTabela = Math.max(ALTURA_UTIL_PX - alturaCabecalho - alturaRodape, 100);
   // reserva ~1,25 linha por aluno em média (nomes compridos costumam quebrar
   // em 2 linhas na coluna estreita) + 1 linha para o cabeçalho da tabela
@@ -2605,6 +2650,7 @@ function imprimirLista(){
     </div>
     ${bodyHtml}
   `;
+  area.innerHTML = comRodapeEmTodasAsFolhas(area.innerHTML);
   document.body.classList.remove('printing-vistos','printing-codes');
   document.body.classList.add('printing-list');
   window.print();
