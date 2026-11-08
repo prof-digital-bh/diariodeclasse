@@ -612,6 +612,7 @@
   #list-print-area{display:none;}
   #codes-print-area{display:none;}
   #book-print-area{display:none;}
+  .btn-print-top{margin-left:auto;}
   @media print{
     body *{ visibility:hidden; }
   }
@@ -662,18 +663,23 @@
   .bp-title{font-family:var(--font-display);font-weight:700;font-size:22px;color:#000;}
   .bp-meta{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.05em;}
   .bp-entries{
-    background-image:linear-gradient(#d9d9d2 1px, transparent 1px);
+    background-image:linear-gradient(#cfd3cc 1px, transparent 1px);
     background-size:100% 28px;
+    background-position:0 27px;
     -webkit-print-color-adjust:exact; print-color-adjust:exact;
   }
-  .bp-entries .book-entry{padding:10px 0;break-inside:avoid;}
+  /* cada linha de texto ocupa exatamente uma linha da pauta (28px) */
+  .bp-entries .book-entry{padding:0;border-bottom:none;break-inside:avoid;}
+  .bp-entries .book-entry-row1{min-height:28px;margin:0;gap:10px;}
+  .bp-entries .book-entry-tema{font-size:14.5px;line-height:28px;}
+  .bp-entries .book-entry-topico{font-size:12.5px;line-height:28px;margin:0;}
+  .bp-entries .turmas-row{min-height:28px;margin:0;align-items:center;}
+  .bp-entries .meta-row{min-height:28px;margin:0;align-items:center;font-size:11px;}
+  .bp-entries .links-row{min-height:28px;align-items:center;}
+  .bp-entries .book-entry-obs{font-size:11px;line-height:28px;margin:0;}
   .bp-entries .stamp, .bp-entries .turma-pill, .bp-entries .meta-row, .bp-entries .link-chip{
     -webkit-print-color-adjust:exact; print-color-adjust:exact;
   }
-  .bp-entries .book-entry-tema{font-size:14.5px;}
-  .bp-entries .book-entry-topico{font-size:12.5px;}
-  .bp-entries .meta-row{font-size:11px;}
-  .bp-entries .book-entry-obs{font-size:11px;}
   .bp-foot{margin-top:10px;padding-top:6px;border-top:1px dashed #999;font-family:var(--font-mono);font-size:10px;color:#555;text-align:right;}
   @media print{
     body.printing-codes #codes-print-area, body.printing-codes #codes-print-area *{ visibility:visible; }
@@ -1004,6 +1010,7 @@
         <button class="chip" data-status="planejado">Planejado</button>
       </div>
       <span class="book-mode-note" id="book-mode-note" style="display:none;">📖 O caderno mostra apenas os registros ministrados</span>
+      <button type="button" class="btn primary btn-print-top" id="btn-print-top" title="Imprimir / gerar PDF da visualização atual (lista ou caderno)"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v7H6z"/></svg>Imprimir / gerar PDF</button>
     </div>
     </div>
 
@@ -3145,7 +3152,9 @@ document.getElementById('f-status').addEventListener('click', (ev)=>{
 });
 
 /* ---------- impressão (aba Lista) ---------- */
-document.getElementById('btn-print-list').addEventListener('click', ()=>{ if(viewMode==='book') imprimirCaderno(); else imprimirLista(); });
+function imprimirModoAtual(){ if(viewMode==='book') imprimirCaderno(); else imprimirLista(); }
+document.getElementById('btn-print-list').addEventListener('click', imprimirModoAtual);
+document.getElementById('btn-print-top').addEventListener('click', imprimirModoAtual);
 
 /* ---------- export ---------- */
 document.getElementById('btn-export').addEventListener('click', ()=>{
