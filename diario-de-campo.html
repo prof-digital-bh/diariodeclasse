@@ -564,6 +564,13 @@
   table.vistos-table tbody tr:nth-child(even) td.vistos-td-aluno{background:#fafaf8;}
   table.vistos-table tbody tr:nth-child(even) td.vistos-cell-wrap{background:#fafaf8;}
   .vistos-cell-wrap{padding:4px;}
+  .vistos-td-aluno .vistos-nome-wrap{display:flex;align-items:center;gap:6px;justify-content:space-between;}
+  .vistos-transf-btn{flex:none;border:1px solid var(--line-strong);background:var(--paper);color:var(--ink-faint);border-radius:6px;font-size:11px;line-height:1;padding:3px 6px;cursor:pointer;opacity:.55;}
+  .vistos-transf-btn:hover{opacity:1;border-color:var(--ink-faint);}
+  .vistos-badge-transf{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:999px;font-size:9.5px;font-weight:700;letter-spacing:.04em;background:#e2e8f0;color:#475569;vertical-align:middle;}
+  tr.vistos-row-transf .vistos-nome{text-decoration:line-through;color:var(--ink-faint);}
+  tr.vistos-row-transf .vistos-cell{opacity:.5;}
+  tr.vistos-row-transf .vistos-transf-btn{opacity:1;background:#e2e8f0;color:#334155;}
   .vistos-cell{
     width:38px;height:32px;margin:0 auto;border-radius:7px;border:1px solid var(--line-strong);
     background:var(--paper);cursor:pointer;display:flex;align-items:center;justify-content:center;
@@ -720,6 +727,7 @@
   table.pv-table{width:100%;height:100%;border-collapse:collapse;table-layout:fixed;font-family:var(--font-body);font-size:10.5px;}
   table.pv-table th, table.pv-table td{border:1px solid #888;padding:2px 3px;text-align:center;color:#000;overflow:hidden;}
   table.pv-table thead th{font-weight:700;font-family:var(--font-mono);background:#fff;}
+  table.pv-table td.pv-aluno.transf{color:#666;font-style:italic;}
   table.pv-table th.pv-aluno-th, table.pv-table td.pv-aluno{text-align:left;padding-left:6px;width:150px;white-space:normal;word-break:break-word;line-height:1.15;}
   table.pv-table td.pv-total{font-weight:700;}
   .pv-cell.ok{background:#d7f3de;}
@@ -2185,7 +2193,11 @@ const VISTOS_KEY = 'diario-campo-geografia-vistos';
 let vistos = {};              // { "8A": {coeficiente:1, marks:{...}, ativPosicao:{"1":3,"2":null,"3":null}}, ... }
 let vistosSub = 'A';          // subturma ativa (A/B/C) dentro do modo Vistos
 let vistosTrimestre = '1';    // '1' | '2' | '3' (só trimestres válidos no Diário de Notas)
-let vistosAlunosCache = {};   // { "8ºA": ['Nome 1','Nome 2', ...] }
+let vistosAlunosCache = {};   // (legado — a lista agora é sempre buscada do banco, sem cache)
+const VISTOS_TRANSF_KEY = 'diario-campo-geografia-transferidos'; // mesma chave lida/gravada pelo Diário de Notas
+let vistosTransf = {};        // { "8ºC": ["ANDRE MARCOS FELICIO", ...] } — nomes normalizados (vistosChaveNome)
+const vistosAliases = new Map(); // nome exibido -> todas as grafias iguais que vieram do banco
+let vistosAssinatura = '';    // assinatura da lista exibida (para detectar mudança no Diário de Notas)
 let vistosLoadingAlunos = false;
 let vistosSyncTimer = null;
 
@@ -2249,20 +2261,79 @@ function vistosNotaId(turma, nome, tr, ativ){
 const VISTOS_N_ATIV = 6;
 const VISTOS_POSICAO_RESERVADA = 7; // vaga fixa e exclusiva para "Vistos" no Diário de Notas (deve bater com N_ATIV/VISTOS_POSICAO_RESERVADA de lá)
 
-async function vistosFetchAlunos(turmaReal){
-  if(vistosAlunosCache[turmaReal]) return vistosAlunosCache[turmaReal];
+/* chave de comparação de nomes: ignora acento, caixa e espaços repetidos.
+   "André  Marcos Felício" e "ANDRE MARCOS FELICIO" são o MESMO aluno. */
+function vistosChaveNome(n){
+  return String(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase();
+}
+function vistosEhTransf(turmaReal, nome){
+  const lista = vistosTransf[turmaReal];
+  return Array.isArray(lista) && lista.includes(vistosChaveNome(nome));
+}
+async function vistosLerTransf(){
   try{
-    const url = SB_URL + '/rest/v1/alunos?select=nome,posicao&turma=eq.' + encodeURIComponent(turmaReal) + '&order=posicao';
-    const res = await fetch(url, { headers: SB_HEADERS });
+    const res = await storageAdapter.get(VISTOS_TRANSF_KEY);
+    const v = res && res.value;
+    const obj = typeof v === 'string' ? JSON.parse(v) : v;
+    vistosTransf = (obj && typeof obj === 'object' && !Array.isArray(obj)) ? obj : {};
+  }catch(e){
+    if(!e || e.message !== 'not found') console.warn('[vistos] falha ao ler transferidos', e);
+    if(e && e.message === 'not found') vistosTransf = {};
+  }
+}
+async function vistosMarcarTransf(turmaReal, nome, marcar){
+  await vistosLerTransf(); // lê o estado mais recente antes de alterar (o Diário de Notas também grava aqui)
+  const k = vistosChaveNome(nome);
+  const lista = new Set(Array.isArray(vistosTransf[turmaReal]) ? vistosTransf[turmaReal] : []);
+  if(marcar) lista.add(k); else lista.delete(k);
+  if(lista.size) vistosTransf[turmaReal] = Array.from(lista); else delete vistosTransf[turmaReal];
+  await storageAdapter.set(VISTOS_TRANSF_KEY, JSON.stringify(vistosTransf));
+  try{ if(window.parent && window.parent !== window) window.parent.postMessage({ tipo:'transferidos-atualizados' }, location.origin); }catch(_){}
+}
+
+/* Lista de alunos da turma, SEMPRE lida do banco (sem cache), sem repetidos
+   e com os transferidos no fim. Retorna null em caso de erro. */
+async function vistosFetchAlunos(turmaReal){
+  try{
+    const url = SB_URL + '/rest/v1/alunos?select=nome,posicao&turma=eq.' + encodeURIComponent(turmaReal) + '&order=posicao,nome';
+    const res = await fetch(url, { headers: SB_HEADERS, cache:'no-store' });
     if(!res.ok) throw new Error('http ' + res.status);
     const rows = await res.json();
-    const nomes = (rows||[]).map(r=>r.nome);
-    vistosAlunosCache[turmaReal] = nomes;
-    return nomes;
+    await vistosLerTransf();
+
+    const porChave = new Map(); // chave -> { nome, grafias:Set }
+    (rows||[]).forEach(r=>{
+      const bruto = String(r.nome||'');
+      const limpo = bruto.replace(/\s+/g,' ').trim();
+      if(!limpo) return;
+      const k = vistosChaveNome(limpo);
+      if(!porChave.has(k)) porChave.set(k, { nome: limpo, grafias: new Set() });
+      const g = porChave.get(k);
+      g.grafias.add(bruto); g.grafias.add(limpo);
+    });
+    const ativos = [], transf = [];
+    porChave.forEach((g, k)=>{
+      vistosAliases.set(g.nome, Array.from(g.grafias).filter(x=>x !== g.nome));
+      (vistosEhTransf(turmaReal, g.nome) ? transf : ativos).push(g.nome);
+    });
+    return ativos.concat(transf);
   }catch(e){
     console.error('[vistos] falha ao buscar alunos', e);
     return null; // null = erro; [] = turma sem alunos cadastrados
   }
+}
+function vistosAssinaturaDe(turmaReal, nomes){
+  return turmaReal + '|' + (nomes||[]).map(n=>n + (vistosEhTransf(turmaReal,n) ? '*' : '')).join('|');
+}
+
+/* visto de um aluno numa atividade — considera também grafias antigas do mesmo nome */
+function vistosMarkDe(tabela, entryId, nome){
+  const m = tabela.marks[entryId];
+  if(!m) return null;
+  if(m[nome]) return m[nome];
+  const outros = vistosAliases.get(nome) || [];
+  for(const a of outros){ if(m[a]) return m[a]; }
+  return null;
 }
 
 /* registros (colunas) desta turma real, no trimestre selecionado, que
@@ -2290,7 +2361,7 @@ function vistosEntriesDaSubturma(){
 function vistosSomaAluno(tabela, entriesCols, nome){
   let soma = 0;
   entriesCols.forEach(e=>{
-    const m = tabela.marks[e.id] && tabela.marks[e.id][nome];
+    const m = vistosMarkDe(tabela, e.id, nome);
     if(m && VISTOS_MARK_VALUES[m] !== undefined) soma += VISTOS_MARK_VALUES[m];
   });
   return soma;
@@ -2411,13 +2482,14 @@ function vistosRenderTabela(nomes, cols, tabela, turmaReal){
 
   const bodyRows = nomes.map(nome=>{
     const cells = cols.map(e=>{
-      const mark = tabela.marks[e.id] && tabela.marks[e.id][nome] || null;
+      const mark = vistosMarkDe(tabela, e.id, nome);
       const cls = mark ? ' ' + mark : '';
       const label = mark ? VISTOS_MARK_LABELS[mark] : '·';
       const title = mark ? VISTOS_MARK_TITLES[mark] : 'Sem visto — clique para marcar';
       return `<td class="vistos-cell-wrap"><div class="vistos-cell${cls}" data-entry="${e.id}" data-aluno="${escapeHtml(nome)}" title="${title}">${label}</div></td>`;
     }).join('');
-    return `<tr><td class="vistos-td-aluno">${escapeHtml(nome)}</td>${cells}<td class="vistos-td-total" data-total-aluno="${escapeHtml(nome)}">0,0</td></tr>`;
+    const transf = vistosEhTransf(turmaReal, nome);
+    return `<tr class="${transf?'vistos-row-transf':''}"><td class="vistos-td-aluno"><div class="vistos-nome-wrap"><span><span class="vistos-nome">${escapeHtml(nome)}</span>${transf?'<span class="vistos-badge-transf">TRANSFERIDO</span>':''}</span><button type="button" class="vistos-transf-btn" data-aluno="${escapeHtml(nome)}" title="${transf?'Desmarcar transferência (aluno voltou)':'Marcar como transferido'}">${transf?'↩':'⇄'}</button></div></td>${cells}<td class="vistos-td-total" data-total-aluno="${escapeHtml(nome)}">0,0</td></tr>`;
   }).join('');
 
   paper.innerHTML = `
@@ -2430,6 +2502,21 @@ function vistosRenderTabela(nomes, cols, tabela, turmaReal){
       <tbody>${bodyRows}</tbody>
     </table>
   `;
+
+  vistosAssinatura = vistosAssinaturaDe(turmaReal, nomes);
+
+  paper.querySelectorAll('.vistos-transf-btn').forEach(btn=>{
+    btn.addEventListener('click', async (ev)=>{
+      ev.stopPropagation();
+      const nome = btn.dataset.aluno;
+      const marcar = !vistosEhTransf(turmaReal, nome);
+      if(marcar && !confirm('Marcar "' + nome + '" como transferido(a)?\nO nome vai para o fim da lista, riscado, e também aparece assim no Diário de Notas.')) return;
+      btn.disabled = true;
+      try{ await vistosMarcarTransf(turmaReal, nome, marcar); }
+      catch(e){ console.error('[vistos] falha ao gravar transferido', e); alert('Não foi possível salvar a transferência agora. Tente novamente.'); }
+      renderVistos();
+    });
+  });
 
   // destaque em cruz: ao passar o cursor numa célula, evidencia o nome do
   // aluno (linha) e o cabeçalho da atividade (coluna) correspondentes
@@ -2456,9 +2543,10 @@ function vistosRenderTabela(nomes, cols, tabela, turmaReal){
       const entryId = cell.dataset.entry;
       const nome = cell.dataset.aluno;
       if(!tabela.marks[entryId]) tabela.marks[entryId] = {};
-      const atual = tabela.marks[entryId][nome] || null;
+      const atual = vistosMarkDe(tabela, entryId, nome);
       const idx = VISTOS_MARK_CYCLE.indexOf(atual);
       const proximo = VISTOS_MARK_CYCLE[(idx+1) % VISTOS_MARK_CYCLE.length];
+      (vistosAliases.get(nome) || []).forEach(a=>{ delete tabela.marks[entryId][a]; }); // limpa grafias antigas do mesmo nome
       if(proximo){ tabela.marks[entryId][nome] = proximo; }
       else{ delete tabela.marks[entryId][nome]; }
 
@@ -2523,11 +2611,12 @@ async function imprimirVistos(){
   const theadCols = cols.map(e=>`<th>${escapeHtml(e.codigo || '—')}</th>`).join('');
   const bodyRows = nomes.map(nome=>{
     const cells = cols.map(e=>{
-      const mark = tabela.marks[e.id] && tabela.marks[e.id][nome];
+      const mark = vistosMarkDe(tabela, e.id, nome);
       return `<td class="pv-cell${mark?' '+mark:''}">${mark?VISTOS_MARK_LABELS[mark]:''}</td>`;
     }).join('');
     const total = vistosFmt(vistosNotaAluno(tabela, cols, nome));
-    return `<tr><td class="pv-aluno">${escapeHtml(nome)}</td>${cells}<td class="pv-total">${total}</td></tr>`;
+    const transfP = vistosEhTransf(turmaReal, nome);
+    return `<tr><td class="pv-aluno${transfP?' transf':''}">${escapeHtml(nome)}${transfP?' (transf.)':''}</td>${cells}<td class="pv-total">${total}</td></tr>`;
   }).join('');
 
   const area = document.getElementById('vistos-print-area');
@@ -3255,6 +3344,28 @@ function savePrefs(){ try{ localStorage.setItem(PREFS_KEY, JSON.stringify({turma
     if(['all','1','2','3','4'].includes(p.trimestre)){ filters.trimestre = p.trimestre; document.getElementById('f-trimestre').value = p.trimestre; }
   }catch(e){}
 })();
+
+/* Mantém a lista de alunos do Vistos sempre igual à do Diário de Notas:
+   confere o banco ao voltar para a aba, ao receber aviso do index e a cada 20 s. */
+let vistosChecando = false;
+async function vistosConferirLista(){
+  if(vistosChecando || viewMode !== 'vistos' || document.hidden) return;
+  vistosChecando = true;
+  try{
+    const turmaReal = vistosTurmaReal();
+    const nomes = await vistosFetchAlunos(turmaReal);
+    if(nomes && vistosTurmaReal() === turmaReal && vistosAssinaturaDe(turmaReal, nomes) !== vistosAssinatura){
+      renderVistos();
+    }
+  }finally{ vistosChecando = false; }
+}
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) vistosConferirLista(); });
+window.addEventListener('focus', vistosConferirLista);
+window.addEventListener('message', ev=>{
+  if(ev.origin !== location.origin || !ev.data) return;
+  if(ev.data.tipo === 'alunos-atualizados') vistosConferirLista();
+});
+setInterval(vistosConferirLista, 20000);
 
 setSyncStatus('saving','● conectando…');
 
