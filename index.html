@@ -3239,7 +3239,7 @@ async function _pushNotas() {
           const notaNum = (val !== '' && val !== undefined && val !== null) ? parseFloat(val) : null;
           rows.push({ id: notaId(turma, nome, tr, i), prof_id, aluno_id: aid, turma, trimestre: tr, atividade: i,
             nota: notaNum,
-            obs: tr === 1 && i === 1 ? (n.obs || '') : '',
+            obs: i === 1 ? (n['t'+tr+'_obs'] !== undefined ? n['t'+tr+'_obs'] : (tr === 1 ? (n.obs || '') : '')) : '',
             atualizado_em: new Date().toISOString() });
         }
       });
@@ -3422,7 +3422,7 @@ async function carregarDoSupabase() {
         if (!novoDb.notas[row.turma][nome]) novoDb.notas[row.turma][nome] = { obs: '' };
         const key = 't'+row.trimestre+'_a'+row.atividade;
         novoDb.notas[row.turma][nome][key] = row.nota !== null ? String(row.atividade === VISTOS_POSICAO_RESERVADA ? arred1(row.nota) : row.nota) : '';
-        if (row.obs) novoDb.notas[row.turma][nome].obs = row.obs;
+        if (row.obs && row.atividade === 1) novoDb.notas[row.turma][nome]['t'+row.trimestre+'_obs'] = row.obs;
       });
     }
     if (Array.isArray(rAnot)) {
@@ -5580,7 +5580,7 @@ function montarDadosParaIA(turma, nome) {
 
   // Observação geral da aba de notas (campo obs — qualquer turma)
   const nota = (db.notas[turma] && db.notas[turma][nome]) || {};
-  const obsNotasGeral = (nota.obs || '').trim();
+  const obsNotasGeral = '';
 
   const resultado = { nome, turma, ehTurmaRef, obsNotasGeral, trimestres: [] };
 
@@ -5617,7 +5617,8 @@ function montarDadosParaIA(turma, nome) {
       aprendizagem:  anot.aprendizagem  || '',
       dificuldades:  anot.dificuldades  || '',
       destaques:     anot.destaques     || '',
-      observacoes:   anot.observacoes   || ''
+      observacoes:   anot.observacoes   || '',
+      obsDiario:     getObs(turma, nome, tr).trim()
     });
   });
   return resultado;
@@ -5657,6 +5658,7 @@ async function gerarAnaliseIA(dados, nomeAluno) {
       t.destaques     ? `Destaques: ${t.destaques}`         : '',
       t.observacoes   ? `Outras obs.: ${t.observacoes}`     : ''
     ].filter(Boolean);
+    if (t.obsDiario) camposAnot.unshift(`Observação do diário de notas: ${t.obsDiario}`);
     const anotStr = camposAnot.length
       ? '\n    [Anotações do professor]\n' + camposAnot.map(c => `    • ${c}`).join('\n')
       : '';
@@ -6108,7 +6110,7 @@ function renderizarNotas() {
   let row1 = '<tr><th rowspan="2" style="min-width:28px">#</th><th rowspan="2" style="min-width:140px;text-align:left">Estudante</th><th rowspan="2" style="min-width:80px;text-align:center;font-size:10px">Perfil</th>';
   row1 += `<th colspan="${N_ATIV}" style="background:${c.header};color:white;border-left:2px solid ${c.border};border-right:2px solid ${c.border};text-align:center;font-size:11px;padding:6px 8px">📅 ${c.label}</th>`;
   row1 += `<th rowspan="2" id="th-total-tri" style="background:#1e3a1e;color:white;min-width:80px;text-align:center;line-height:1.4">${totalLabel}</th>`;
-  row1 += '<th rowspan="2" style="min-width:110px;text-align:left">Observações</th></tr>';
+  row1 += `<th rowspan="2" style="min-width:110px;text-align:left;line-height:1.4">Observações<br><span style="font-size:10px;opacity:.85">${tr}º Tri</span></th></tr>`;
   let row2 = '<tr>';
   for (let i = 1; i <= N_ATIV; i++) {
     const aNome = ativ['t'+tr][i-1].nome || '';
@@ -6173,7 +6175,7 @@ function renderizarNotas() {
         ${chipSexo(info.sexo)}${chipEtnia(info.etnia)}
       </div>
     </td>`;
-    const obsVal = (nota.obs||'').replace(/"/g,'&quot;');
+    const obsVal = getObs(t, a, tr).replace(/"/g,'&quot;');
     const fotoNotaSrc = db.fotos_alunos && db.fotos_alunos[a] ? db.fotos_alunos[a] : null;
     const fotoNotaHtml = fotoNotaSrc
       ? `<img src="${fotoNotaSrc}" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:1.5px solid var(--ocean-light);flex-shrink:0;vertical-align:middle;margin-right:5px">`
@@ -6224,7 +6226,21 @@ function salvarNota(t, aluno, key, val) {
   salvar();
   _atualizarTotalAluno(t, aluno);
 }
-function salvarObs(t, aluno, val) { if (!db.notas[t]) db.notas[t]={}; if (!db.notas[t][aluno]) db.notas[t][aluno]={obs:''}; db.notas[t][aluno].obs=val; salvar(); }
+// Observação por trimestre: guardada em 't1_obs', 't2_obs', 't3_obs'
+// (o antigo campo único 'obs' é tratado como observação do 1º trimestre)
+function getObs(t, aluno, tr) {
+  const n = (db.notas[t] && db.notas[t][aluno]) || {};
+  const v = n['t'+tr+'_obs'];
+  if (v !== undefined) return v || '';
+  return tr === 1 ? (n.obs || '') : '';
+}
+function salvarObs(t, aluno, val, tr) {
+  tr = tr || trimestreFiltro;
+  if (!db.notas[t]) db.notas[t]={};
+  if (!db.notas[t][aluno]) db.notas[t][aluno]={obs:''};
+  db.notas[t][aluno]['t'+tr+'_obs'] = val;
+  salvar();
+}
 
 // ─── OBS EXPAND ──────────────────────────────────────────────────────────────
 let _obsExpandAtivo = null;
@@ -6253,7 +6269,7 @@ function abrirObsExpand(inputEl, t, aluno) {
 
   const valAtual = inputEl.value;
   box.innerHTML = `
-    <span class="obs-expand-label">✏️ Observação — ${aluno}</span>
+    <span class="obs-expand-label">✏️ Observação — ${aluno} (${trimestreFiltro}º Tri)</span>
     <textarea id="obs-expand-ta" ${isFechado ? 'disabled' : ''}>${valAtual.replace(/</g,'&lt;')}</textarea>
     <div class="obs-expand-footer">
       <button onclick="fecharObsExpand(false)" style="padding:5px 12px;font-size:12px;border:1px solid var(--border-2);border-radius:8px;background:var(--white);cursor:pointer;font-family:'DM Sans',sans-serif">Cancelar</button>
@@ -6266,7 +6282,7 @@ function abrirObsExpand(inputEl, t, aluno) {
   const ta = document.getElementById('obs-expand-ta');
   if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
 
-  _obsExpandAtivo = { inputEl, t, aluno };
+  _obsExpandAtivo = { inputEl, t, aluno, tr: trimestreFiltro };
 
   // Fechar ao clicar fora
   setTimeout(() => {
@@ -6283,7 +6299,7 @@ function salvarObsExpand(t, aluno) {
   const ta = document.getElementById('obs-expand-ta');
   if (!ta) return;
   const val = ta.value;
-  salvarObs(t, aluno, val);
+  salvarObs(t, aluno, val, _obsExpandAtivo && _obsExpandAtivo.tr);
   // Atualiza o input mini na tabela
   if (_obsExpandAtivo && _obsExpandAtivo.inputEl) {
     _obsExpandAtivo.inputEl.value = val;
@@ -6299,7 +6315,7 @@ function fecharObsExpand(salvarAuto) {
     const ta = document.getElementById('obs-expand-ta');
     if (ta && !_obsExpandAtivo.t.includes('__')) {
       const val = ta.value;
-      salvarObs(_obsExpandAtivo.t, _obsExpandAtivo.aluno, val);
+      salvarObs(_obsExpandAtivo.t, _obsExpandAtivo.aluno, val, _obsExpandAtivo.tr);
       if (_obsExpandAtivo.inputEl) {
         _obsExpandAtivo.inputEl.value = val;
         _obsExpandAtivo.inputEl.title = val;
@@ -6358,14 +6374,14 @@ function exportarCSV() {
   const ativ = db.atividades[t];
   let header = ['#','Estudante'];
   TRIMESTRES.forEach(tr => { for (let i=1;i<=N_ATIV;i++) { const nome=ativ['t'+tr][i-1].nome||('T'+tr+'-A'+i); header.push(nome+' (valor)',nome+' (nota)'); } });
-  header.push('Total Geral','Observações');
+  header.push('Total Geral','Observações 1º Tri','Observações 2º Tri','Observações 3º Tri');
   const linhas = [header.join(';')];
   db.turmas[t].forEach((a, idx) => {
     const nota = db.notas[t][a]||{};
     const row = [idx+1, a];
     let total = 0;
     TRIMESTRES.forEach(tr => { for (let i=1;i<=N_ATIV;i++) { const val=ativ['t'+tr][i-1].valor||''; const key='t'+tr+'_a'+i; const n=nota[key]||''; row.push(val,n); if(n!=='') total+=parseFloat(n)||0; } });
-    row.push(total>0?total.toFixed(1):'', nota.obs||'');
+    row.push(total>0?total.toFixed(1):'', getObs(t,a,1), getObs(t,a,2), getObs(t,a,3));
     linhas.push(row.join(';'));
   });
   const blob = new Blob(['\uFEFF'+linhas.join('\n')], {type:'text/csv;charset=utf-8;'});
@@ -6442,7 +6458,7 @@ function abrirModalImportarCSV() {
     const label = nomeAtiv.trim() ? (i + '. ' + nomeAtiv) : ('Atividade ' + i + ' (sem nome)');
     opcoesColuna.push('<option value="t' + tr + '_a' + i + '">' + _importCsvEscHtml(label) + '</option>');
   }
-  opcoesColuna.push('<option value="__obs__">📝 Observações (texto)</option>');
+  opcoesColuna.push('<option value="__obs__">📝 Observações (texto) — ' + tr + 'º Tri</option>');
 
   let m = document.getElementById('modal-import-csv');
   if (!m) { m = document.createElement('div'); m.id = 'modal-import-csv'; document.body.appendChild(m); }
@@ -6671,7 +6687,7 @@ function _importCsvExecutar() {
   // Guarda os valores ANTERIORES de cada célula que será sobrescrita, para permitir desfazer depois
   const itensSnapshot = validos.map(r => {
     const notaAluno = (db.notas[t] && db.notas[t][r.aluno]) || {};
-    const valorAntigo = destino === '__obs__' ? (notaAluno.obs || '') : (notaAluno[destino] !== undefined ? notaAluno[destino] : '');
+    const valorAntigo = destino === '__obs__' ? getObs(t, r.aluno, tr) : (notaAluno[destino] !== undefined ? notaAluno[destino] : '');
     return { aluno: r.aluno, valorAntigo };
   });
 
@@ -6679,7 +6695,7 @@ function _importCsvExecutar() {
   validos.forEach(r => {
     let valorFinal = r.valorCsv;
     if (destino !== '__obs__') valorFinal = valorFinal.replace(',', '.').replace(/[^0-9.\-]/g, '');
-    if (destino === '__obs__') salvarObs(t, r.aluno, valorFinal);
+    if (destino === '__obs__') salvarObs(t, r.aluno, valorFinal, tr);
     else salvarNota(t, r.aluno, destino, valorFinal);
     importados++;
   });
@@ -6776,7 +6792,7 @@ function desfazerImportacaoCSV() {
   if (!ok) return;
 
   s.itens.forEach(item => {
-    if (s.coluna === '__obs__') salvarObs(s.turma, item.aluno, item.valorAntigo);
+    if (s.coluna === '__obs__') salvarObs(s.turma, item.aluno, item.valorAntigo, s.trimestre);
     else salvarNota(s.turma, item.aluno, s.coluna, item.valorAntigo);
   });
 
@@ -6957,7 +6973,7 @@ function executarImpressao() {
           '</td>'
         : '';
       const obsCell = showObs
-        ? '<td style="font-size:9px;border:1px solid #e2e8f0;padding:4px 6px;color:#475569">' + ((nota.obs||'').replace(/</g,'&lt;')) + '</td>'
+        ? '<td style="font-size:9px;border:1px solid #e2e8f0;padding:4px 6px;color:#475569">' + (getObs(t, a, triAtivo).replace(/</g,'&lt;')) + '</td>'
         : '';
       const fotoSrc = db.fotos_alunos && db.fotos_alunos[a] ? db.fotos_alunos[a] : null;
       const fotoHtml = fotoSrc
@@ -9389,7 +9405,7 @@ function gsMontarDadosTurma(turma, trisSelecionados) {
     }
     header.push('Total ' + triLabels[tr]);
   });
-  header.push('Observações');
+  trisSelecionados.forEach(tr => header.push('Observações ' + triLabels[tr]));
 
   // ── Linhas de alunos ──
   const linhas = alunos.map((aluno, idx) => {
@@ -9404,7 +9420,7 @@ function gsMontarDadosTurma(turma, trisSelecionados) {
       const total = gsTotalTri(turma, aluno, tr);
       row.push(total !== null ? (total % 1 === 0 ? total : parseFloat(total.toFixed(1))) : '');
     });
-    row.push(notas.obs || '');
+    trisSelecionados.forEach(tr => row.push(getObs(turma, aluno, tr)));
     return row;
   });
 
