@@ -4232,6 +4232,7 @@ function renderizarTurmasProf() {
         <div style="font-weight:600;font-size:14px">${t}</div>
         <div style="font-size:12px;color:var(--ink-3)">${alunos.length} aluno(s) cadastrado(s)</div>
       </div>
+      <button class="btn btn-sm" title="Baixar a lista de nomes dos alunos desta turma em CSV" onclick="exportarCSVAlunosTurma('${esc(t)}')">📄 CSV alunos</button>
       <button class="btn btn-sm btn-primary" onclick="goTabComTurma('notas','${esc(t)}')">📊 Ver Notas</button>
     </div>`;
   }).join('');
@@ -4410,6 +4411,7 @@ function renderizarTurmas() {
       ' <span class="turma-chevron">▼</span></div>' +
       '<div style="display:flex;align-items:center;gap:6px" onclick="event.stopPropagation()">' +
       '<span style="font-size:12px;opacity:.75">' + alunos.length + ' aluno(s)</span>' +
+      '<button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border-color:rgba(255,255,255,.25);font-size:11px" title="Baixar a lista de nomes dos alunos desta turma em CSV" onclick="exportarCSVAlunosTurma(\'' + esc(t) + '\')">📄 CSV alunos</button>' +
       '<button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:white;border-color:rgba(255,255,255,.25);font-size:11px" onclick="abrirEdicaoLotePerfil(\'' + esc(t) + '\')">👥 Perfil em lote</button>' +
       '<button class="btn btn-sm" style="background:rgba(255,255,255,.15);color:white;border-color:rgba(255,255,255,.2);font-size:11px" onclick="excluirTurma(\'' + esc(t) + '\')">Excluir</button>' +
       '</div></div>' +
@@ -6369,6 +6371,22 @@ function exportarCSV() {
   const blob = new Blob(['\uFEFF'+linhas.join('\n')], {type:'text/csv;charset=utf-8;'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='notas_'+t.replace(/\s+/g,'_')+'.csv'; a.click();
   toast('CSV exportado! ✓');
+}
+
+// ─── EXPORTAR LISTA DE ALUNOS DA TURMA (CSV) ─────────────────────────────────
+function exportarCSVAlunosTurma(t) {
+  const alunos = (db.turmas && db.turmas[t]) || [];
+  if (!alunos.length) return toast('Esta turma não tem alunos cadastrados.');
+  const q = v => '"' + String(v).replace(/"/g, '""') + '"';
+  const linhas = [['Nº', 'Nome do Aluno'].join(';')];
+  alunos.forEach((a, i) => linhas.push([i + 1, q(a)].join(';')));
+  const blob = new Blob(['\uFEFF' + linhas.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'alunos_' + t.replace(/[^\w\-]+/g, '_') + '.csv';
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  toast('Lista de alunos exportada! ✓');
 }
 
 // ─── IMPORTAR CSV PARA UMA COLUNA ────────────────────────────────────────────
